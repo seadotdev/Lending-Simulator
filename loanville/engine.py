@@ -4,7 +4,6 @@ ledger booking, and loan resolution (fast-forward).
 """
 
 import asyncio
-import math
 from openai import AsyncOpenAI
 
 from .models import (
@@ -15,6 +14,7 @@ from .models import (
     LoanOutcome,
 )
 from .llm import run_lender_evaluations
+from .mock_llm import mock_evaluate_all
 
 
 class SimulationEngine:
@@ -22,16 +22,22 @@ class SimulationEngine:
         self,
         borrowers: list[Borrower],
         lenders: list[LenderConfig],
-        openrouter_api_key: str,
+        openrouter_api_key: str = "",
         max_concurrent_per_lender: int = 5,
+        mock: bool = False,
     ):
         self.borrowers = borrowers
         self.lenders = lenders
-        self.client = AsyncOpenAI(
-            base_url="https://openrouter.ai/api/v1",
-            api_key=openrouter_api_key,
-        )
+        self.mock = mock
         self.max_concurrent = max_concurrent_per_lender
+
+        if not mock:
+            self.client = AsyncOpenAI(
+                base_url="https://openrouter.ai/api/v1",
+                api_key=openrouter_api_key,
+            )
+        else:
+            self.client = None
 
         # State
         self.all_decisions: dict[str, list[LenderDecision]] = {}  # lender_id -> decisions
@@ -54,17 +60,23 @@ class SimulationEngine:
             print(f"  - {b.id}: {b.dossier.company_name} ({b.dossier.sector}) "
                   f"requesting ${b.dossier.loan_request_amount:,.0f}")
 
-        # Run all lenders in parallel
-        tasks = [
-            run_lender_evaluations(self.client, lender, self.borrowers, self.max_concurrent)
-            for lender in self.lenders
-        ]
+        if self.mock:
+            print("\n[MOCK MODE] Simulating LLM evaluations...\n")
+            self.all_decisions = mock_evaluate_all(self.lenders, self.borrowers)
+        else:
+            # Run all lenders in parallel via OpenRouter
+            tasks = [
+                run_lender_evaluations(self.client, lender, self.borrowers, self.max_concurrent)
+                for lender in self.lenders
+            ]
+            print("\nLenders are evaluating applications...\n")
+            results = await asyncio.gather(*tasks)
+            for lender, decisions in zip(self.lenders, results):
+                self.all_decisions[lender.id] = decisions
 
-        print("\nLenders are evaluating applications...\n")
-        results = await asyncio.gather(*tasks)
-
-        for lender, decisions in zip(self.lenders, results):
-            self.all_decisions[lender.id] = decisions
+        # Print results
+        for lender in self.lenders:
+            decisions = self.all_decisions[lender.id]
             approvals = sum(1 for d in decisions if d.decision == "APPROVE")
             rejections = len(decisions) - approvals
             print(f"  {lender.name} ({lender.model}):")
