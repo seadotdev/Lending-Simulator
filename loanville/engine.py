@@ -4,6 +4,7 @@ ledger booking, and loan resolution (fast-forward).
 """
 
 import asyncio
+import json
 from openai import AsyncOpenAI
 
 from .models import (
@@ -13,7 +14,7 @@ from .models import (
     LenderDecision,
     LoanOutcome,
 )
-from .llm import run_lender_evaluations
+from .llm import run_lender_evaluations, get_call_traces, clear_call_traces
 from .mock_llm import mock_evaluate_all
 
 
@@ -89,8 +90,17 @@ class SimulationEngine:
                     rate_str = f" @ {d.term_sheet.interest_rate}% for {d.term_sheet.term_months}mo"
                 print(f"      {bname}: {status}{rate_str}")
                 if d.reasoning and not d.reasoning.startswith("[SYSTEM"):
-                    short = d.reasoning[:120] + "..." if len(d.reasoning) > 120 else d.reasoning
-                    print(f"        Reasoning: {short}")
+                    print(f"        Reasoning: {d.reasoning}")
+
+        # Write trace file for live (non-mock) runs
+        if not self.mock:
+            traces = get_call_traces()
+            if traces:
+                trace_path = "loanville_trace.json"
+                with open(trace_path, "w") as f:
+                    json.dump(traces, f, indent=2)
+                print(f"\n  Trace log written to {trace_path} ({len(traces)} calls)")
+                clear_call_traces()
 
     # ------------------------------------------------------------------
     # Phase 3: Deal Adjudication

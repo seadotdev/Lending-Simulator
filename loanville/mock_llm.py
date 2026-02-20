@@ -28,6 +28,7 @@ MODEL_TIERS = {
     "openai/gpt-4o": "large",
     "google/gemini-pro-1.5": "large",
     "meta-llama/llama-3.1-70b-instruct": "large",
+    "anthropic/claude-3.5-haiku": "large",
     # Tier 2: Mid-size models - decent but miss subtleties
     "google/gemma-2-9b-it": "medium",
     "meta-llama/llama-3.1-8b-instruct": "medium",

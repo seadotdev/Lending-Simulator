@@ -16,6 +16,22 @@ from .models import (
 )
 
 
+# ---------------------------------------------------------------------------
+# Trace logging — captures full input/output of every LLM call
+# ---------------------------------------------------------------------------
+_call_traces: list[dict] = []
+
+
+def get_call_traces() -> list[dict]:
+    """Return accumulated LLM call traces."""
+    return list(_call_traces)
+
+
+def clear_call_traces() -> None:
+    """Clear accumulated traces."""
+    _call_traces.clear()
+
+
 def _format_dossier(borrower: Borrower) -> str:
     """Format a borrower's financial dossier into a readable text block."""
     d = borrower.dossier
@@ -110,11 +126,9 @@ YOUR CURRENT PORTFOLIO:
 INSTRUCTIONS:
 Evaluate the loan application below. You must analyze:
 
-1. FRAUD DETECTION: Are the financial statements legitimate? Look for red flags such as:
-   - Suspiciously round deposit amounts
-   - Circular transfers between related entities
-   - Unnaturally consistent figures month-over-month
-   - Revenue claims that don't match bank deposit patterns
+1. FRAUD DETECTION: Are the financial statements legitimate? Carefully examine the
+   bank statements for any anomalies, inconsistencies, or patterns that suggest
+   the financials may have been fabricated or manipulated.
 
 2. CREDITWORTHINESS: Can this business service the debt from free cash flow?
    - Calculate approximate monthly free cash flow
@@ -218,21 +232,55 @@ async def evaluate_borrower(
     semaphore: asyncio.Semaphore,
 ) -> LenderDecision:
     """Have a lender LLM evaluate a single borrower application."""
+    system_prompt = _build_system_prompt(lender)
+    user_prompt = _build_user_prompt(borrower)
+
     async with semaphore:
         try:
             response = await client.chat.completions.create(
                 model=lender.model,
                 messages=[
-                    {"role": "system", "content": _build_system_prompt(lender)},
-                    {"role": "user", "content": _build_user_prompt(borrower)},
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt},
                 ],
                 temperature=0.3,
-                max_tokens=1024,
+                max_tokens=2048,
+                response_format={"type": "json_object"},
             )
             content = response.choices[0].message.content or ""
             raw = _extract_json(content)
-            return _parse_decision(lender.id, borrower.id, raw)
+            decision = _parse_decision(lender.id, borrower.id, raw)
+
+            # Log the full trace
+            _call_traces.append({
+                "lender_id": lender.id,
+                "lender_name": lender.name,
+                "model": lender.model,
+                "borrower_id": borrower.id,
+                "borrower_name": borrower.dossier.company_name,
+                "system_prompt": system_prompt,
+                "user_prompt": user_prompt,
+                "raw_response": content,
+                "parsed_json": raw,
+                "decision": decision.decision,
+                "reasoning": decision.reasoning,
+            })
+
+            return decision
         except Exception as e:
+            _call_traces.append({
+                "lender_id": lender.id,
+                "lender_name": lender.name,
+                "model": lender.model,
+                "borrower_id": borrower.id,
+                "borrower_name": borrower.dossier.company_name,
+                "system_prompt": system_prompt,
+                "user_prompt": user_prompt,
+                "raw_response": None,
+                "error": f"{type(e).__name__}: {e}",
+                "decision": "REJECT",
+                "reasoning": f"[SYSTEM ERROR: {type(e).__name__}: {e}]",
+            })
             return LenderDecision(
                 lender_id=lender.id,
                 borrower_id=borrower.id,
