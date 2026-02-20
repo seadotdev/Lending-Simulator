@@ -5,6 +5,7 @@ Usage:
   python -m loanville              # Live mode (requires OPENROUTER_API_KEY)
   python -m loanville --mock       # Mock mode (no API key needed)
   python -m loanville --compare    # Compare big vs small models (mock)
+  python -m loanville --rotate     # Rotate models across lender roles (live)
 """
 
 import argparse
@@ -18,6 +19,22 @@ from dotenv import load_dotenv
 from .data import get_borrowers, get_lenders
 from .engine import SimulationEngine
 from .scoring import print_final_report, score_lenders
+
+
+# ---------------------------------------------------------------------------
+# Model rotation pools — cheap frontier models with strong tool-use support
+# ---------------------------------------------------------------------------
+
+# Each pool maps a lender role index (0=aggressive, 1=conservative, 2=balanced)
+# to a list of models. Rotation picks a different assignment each round.
+ROTATION_POOL = [
+    "deepseek/deepseek-chat-v3-0324",
+    "qwen/qwen3-235b-a22b",
+    "z-ai/glm-4.7",
+    "anthropic/claude-3.5-haiku",
+    "deepseek/deepseek-chat-v3.1",
+    "qwen/qwen3-30b-a3b-04-28",
+]
 
 
 def _run_single(borrowers, lenders, api_key="", mock=False):
@@ -40,28 +57,28 @@ def run_compare():
     """Run two simulations: big models vs small models, then compare."""
     borrowers = get_borrowers()
 
-    # --- Round 1: Big Models ---
+    # --- Round 1: Big frontier models (tool-use capable) ---
     big_lenders = get_lenders()
-    big_lenders[0].model = "openai/gpt-4o"
-    big_lenders[0].name = "Velocity Capital [GPT-4o]"
-    big_lenders[1].model = "anthropic/claude-sonnet-4"
-    big_lenders[1].name = "Heritage Trust [Claude Sonnet]"
-    big_lenders[2].model = "meta-llama/llama-3.1-70b-instruct"
-    big_lenders[2].name = "Meridian Partners [Llama-70B]"
+    big_lenders[0].model = "deepseek/deepseek-chat-v3-0324"
+    big_lenders[0].name = "Velocity Capital [DeepSeek V3]"
+    big_lenders[1].model = "qwen/qwen3-235b-a22b"
+    big_lenders[1].name = "Heritage Trust [Qwen3-235B]"
+    big_lenders[2].model = "z-ai/glm-4.7"
+    big_lenders[2].name = "Meridian Partners [GLM-4.7]"
 
     print("\n" + "#" * 70)
-    print("#  ROUND 1: BIG MODELS")
+    print("#  ROUND 1: FRONTIER MODELS (tool-use capable)")
     print("#" * 70)
     big_scores = _run_single(borrowers, big_lenders, mock=True)
 
-    # --- Round 2: Small Models ---
+    # --- Round 2: Small / mid-tier models ---
     small_lenders = get_lenders()
-    small_lenders[0].model = "meta-llama/llama-3.2-3b-instruct"
-    small_lenders[0].name = "Velocity Capital [Llama-3B]"
-    small_lenders[1].model = "google/gemma-2-2b-it"
-    small_lenders[1].name = "Heritage Trust [Gemma-2B]"
-    small_lenders[2].model = "qwen/qwen-2.5-3b-instruct"
-    small_lenders[2].name = "Meridian Partners [Qwen-3B]"
+    small_lenders[0].model = "meta-llama/llama-3.1-8b-instruct"
+    small_lenders[0].name = "Velocity Capital [Llama-8B]"
+    small_lenders[1].model = "qwen/qwen-2.5-3b-instruct"
+    small_lenders[1].name = "Heritage Trust [Qwen-3B]"
+    small_lenders[2].model = "mistralai/mistral-7b-instruct"
+    small_lenders[2].name = "Meridian Partners [Mistral-7B]"
 
     print("\n\n" + "#" * 70)
     print("#  ROUND 2: SMALL MODELS")
@@ -70,10 +87,10 @@ def run_compare():
 
     # --- Comparison ---
     print("\n\n" + "=" * 70)
-    print("  HEAD-TO-HEAD: BIG MODELS vs SMALL MODELS")
+    print("  HEAD-TO-HEAD: FRONTIER vs SMALL MODELS")
     print("=" * 70)
 
-    print(f"\n  {'Metric':<30s} {'Big Models':>15s} {'Small Models':>15s}")
+    print(f"\n  {'Metric':<30s} {'Frontier':>15s} {'Small':>15s}")
     print(f"  {'─'*60}")
 
     for label, big_list, small_list in [
@@ -109,7 +126,7 @@ def run_compare():
 
     print(f"\n  {'─'*60}")
     print(f"\n  Per-Lender Breakdown:")
-    print(f"\n  {'Lender Slot':<18s} {'Big Model Score':>15s} {'Small Model Score':>17s} {'Delta':>10s}")
+    print(f"\n  {'Lender Slot':<18s} {'Frontier Score':>15s} {'Small Score':>17s} {'Delta':>10s}")
     print(f"  {'─'*60}")
     for bs, ss in zip(big_scores, small_scores):
         delta = bs.final_adjusted_score - ss.final_adjusted_score
@@ -123,13 +140,74 @@ def run_compare():
     big_avg = sum(s.final_adjusted_score for s in big_scores) / len(big_scores)
     small_avg = sum(s.final_adjusted_score for s in small_scores) / len(small_scores)
     if big_avg > small_avg:
-        print(f"  BIG MODELS WIN by {big_avg - small_avg:.2f} percentage points")
+        print(f"  FRONTIER MODELS WIN by {big_avg - small_avg:.2f} percentage points")
     elif small_avg > big_avg:
         print(f"  SMALL MODELS WIN by {small_avg - big_avg:.2f} percentage points")
     else:
         print(f"  TIE!")
-    print(f"  Big: {big_avg:.2f}% avg | Small: {small_avg:.2f}% avg")
-    print(f"  Big frauds funded: {big_fraud} | Small frauds funded: {small_fraud}")
+    print(f"  Frontier: {big_avg:.2f}% avg | Small: {small_avg:.2f}% avg")
+    print(f"  Frontier frauds funded: {big_fraud} | Small frauds funded: {small_fraud}")
+    print(f"{'*'*70}\n")
+
+
+def run_rotate(api_key: str, rounds: int = 3):
+    """Run multiple rounds, rotating which model plays which lender role.
+
+    This shows that different models in different roles leads to distinct
+    outcomes — the model matters, not just the persona.
+    """
+    borrowers = get_borrowers()
+    n_models = len(ROTATION_POOL)
+    all_round_scores = []
+
+    for r in range(rounds):
+        print(f"\n{'#'*70}")
+        print(f"#  ROTATION ROUND {r+1}/{rounds}")
+        print(f"{'#'*70}")
+
+        lenders = get_lenders()
+        # Rotate: each round shifts which model sits in which role
+        for i, lender in enumerate(lenders):
+            model_idx = (i + r) % n_models
+            model = ROTATION_POOL[model_idx]
+            lender.model = model
+            short_name = model.split("/")[-1]
+            base_name = lender.name.split("[")[0].strip()
+            lender.name = f"{base_name} [{short_name}]"
+            print(f"  {base_name} -> {model}")
+
+        scores = _run_single(borrowers, lenders, api_key, mock=False)
+        all_round_scores.append(scores)
+
+    # Summary across rounds
+    print(f"\n\n{'='*70}")
+    print(f"  ROTATION SUMMARY ({rounds} rounds)")
+    print(f"{'='*70}")
+
+    # Collect per-model stats across all rounds
+    model_stats: dict[str, list[float]] = {}
+    model_frauds: dict[str, int] = {}
+    model_defaults: dict[str, int] = {}
+    for round_scores in all_round_scores:
+        for s in round_scores:
+            model = s.model
+            model_stats.setdefault(model, []).append(s.final_adjusted_score)
+            model_frauds[model] = model_frauds.get(model, 0) + s.frauds_funded
+            model_defaults[model] = model_defaults.get(model, 0) + s.defaults_count
+
+    print(f"\n  {'Model':<40s} {'Avg Score':>10s} {'Frauds':>8s} {'Defaults':>10s} {'Rounds':>8s}")
+    print(f"  {'─'*76}")
+    for model in sorted(model_stats.keys()):
+        scores_list = model_stats[model]
+        avg = sum(scores_list) / len(scores_list)
+        print(f"  {model:<40s} {avg:>9.2f}% {model_frauds[model]:>8d} "
+              f"{model_defaults[model]:>10d} {len(scores_list):>8d}")
+
+    print(f"\n{'*'*70}")
+    best_model = max(model_stats.keys(), key=lambda m: sum(model_stats[m]) / len(model_stats[m]))
+    best_avg = sum(model_stats[best_model]) / len(model_stats[best_model])
+    print(f"  BEST MODEL: {best_model}")
+    print(f"  Average Score: {best_avg:.2f}%")
     print(f"{'*'*70}\n")
 
 
@@ -140,7 +218,11 @@ def main() -> None:
     parser.add_argument("--mock", action="store_true",
                         help="Use mock LLM responses (no API key needed)")
     parser.add_argument("--compare", action="store_true",
-                        help="Run big-vs-small model comparison (uses mock mode)")
+                        help="Run frontier-vs-small model comparison (uses mock mode)")
+    parser.add_argument("--rotate", action="store_true",
+                        help="Run rotation: different models in different roles (live)")
+    parser.add_argument("--rounds", type=int, default=3,
+                        help="Number of rotation rounds (default: 3)")
     args = parser.parse_args()
 
     if args.compare:
@@ -161,6 +243,14 @@ def main() -> None:
         print("\nOr run with --mock for offline simulation:")
         print("  python -m loanville --mock")
         sys.exit(1)
+
+    if args.rotate:
+        print("=" * 70)
+        print("  LOANVILLE — MODEL ROTATION TOURNAMENT")
+        print("=" * 70)
+        run_rotate(api_key, rounds=args.rounds)
+        print("Rotation complete.\n")
+        return
 
     print("=" * 70)
     print("  LOANVILLE — THE LLM LENDING SIMULATOR")

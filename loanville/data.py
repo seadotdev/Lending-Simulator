@@ -12,6 +12,7 @@ from .models import (
     FinancialDossier,
     LenderConfig,
     MonthlyStatement,
+    QuarterlyIncome,
     Transaction,
 )
 
@@ -160,6 +161,30 @@ def _make_fabricated_deposits(total, customers, rng):
     return parts
 
 
+def _build_quarterly_income(monthly: list[tuple[float, float]]) -> list[QuarterlyIncome]:
+    """Aggregate monthly (deposits, withdrawals) into 4 quarterly income statements."""
+    quarters = []
+    labels = ["Q1 2025", "Q2 2025", "Q3 2025", "Q4 2025"]
+    for q in range(4):
+        start = q * 3
+        rev = sum(m[0] for m in monthly[start:start + 3])
+        exp = sum(m[1] for m in monthly[start:start + 3])
+        gp = rev - exp
+        gm = (gp / rev * 100) if rev else 0.0
+        ni = gp  # simplified: gross profit = net income at this level
+        nm = (ni / rev * 100) if rev else 0.0
+        quarters.append(QuarterlyIncome(
+            quarter=labels[q],
+            revenue=round(rev, 2),
+            expenses=round(exp, 2),
+            gross_profit=round(gp, 2),
+            gross_margin_pct=round(gm, 1),
+            net_income=round(ni, 2),
+            net_margin_pct=round(nm, 1),
+        ))
+    return quarters
+
+
 # ---------------------------------------------------------------------------
 # Borrower definitions
 # ---------------------------------------------------------------------------
@@ -191,6 +216,7 @@ def _build_borrowers() -> list[Borrower]:
                 ["FuelTech Supply", "AeroMaint Services", "Harbor Logistics"],
                 seed=1001,
             ),
+            quarterly_income=_build_quarterly_income(monthly),
             narrative=(
                 "SkyFreight Solutions is an established cargo logistics company operating across "
                 "the western seaboard. Founded in 2017, the company has grown steadily by serving "
@@ -227,6 +253,7 @@ def _build_borrowers() -> list[Borrower]:
                 ["LabEquip Wholesale", "ChemSource Ltd"],
                 seed=1002,
             ),
+            quarterly_income=_build_quarterly_income(monthly),
             narrative=(
                 "NovaBio Labs develops and manufactures synthetic biological compounds for "
                 "pharmaceutical intermediaries. The company has tripled revenue since founding "
@@ -262,6 +289,7 @@ def _build_borrowers() -> list[Borrower]:
                 ["SolarPanel Direct", "Inverter Solutions Inc", "CopperWire Supply"],
                 seed=1003,
             ),
+            quarterly_income=_build_quarterly_income(monthly),
             narrative=(
                 "Helios Solar Works installs commercial and municipal solar arrays. Revenue is "
                 "seasonal with a strong Q2-Q3 peak driven by construction weather windows. Despite "
@@ -297,6 +325,7 @@ def _build_borrowers() -> list[Borrower]:
                 ["Seed & Soil Supply", "HydroTech Systems"],
                 seed=1004,
             ),
+            quarterly_income=_build_quarterly_income(monthly),
             narrative=(
                 "UrbanGrow Collective operates vertical hydroponic farms in converted warehouse "
                 "spaces, supplying fresh produce to local grocery chains and a school district "
@@ -332,6 +361,7 @@ def _build_borrowers() -> list[Borrower]:
                 ["Adobe Licensing", "CloudHost Services", "Freelancer Payments"],
                 seed=1005,
             ),
+            quarterly_income=_build_quarterly_income(monthly),
             narrative=(
                 "PixelForge Studios is a full-service digital media production company specializing "
                 "in commercial video, animation, and interactive content. Revenue is project-based "
@@ -371,6 +401,7 @@ def _build_borrowers() -> list[Borrower]:
                 ["Fleet Maintenance Ltd", "Aviation Fuel Direct", "Hangar Lease Co"],
                 seed=1006,
             ),
+            quarterly_income=_build_quarterly_income(monthly),
             narrative=(
                 "AeroTrack Dynamics provides specialized cargo handling and logistics for defense "
                 "contractors. The company has a strong track record with its anchor client and "
@@ -407,6 +438,7 @@ def _build_borrowers() -> list[Borrower]:
                 ["Raw Chemical Suppliers Inc", "Regulatory Compliance Co", "Lab Staff Agency"],
                 seed=1007,
             ),
+            quarterly_income=_build_quarterly_income(monthly),
             narrative=(
                 "SynthaCure Pharma manufactures generic pharmaceutical compounds for regional "
                 "health networks. Revenue has been stable around $150K/month with a loyal customer "
@@ -444,6 +476,7 @@ def _build_borrowers() -> list[Borrower]:
                 ["Cryogenics Equipment Co", "University Lab Lease", "Research Staff Payroll"],
                 seed=1008,
             ),
+            quarterly_income=_build_quarterly_income(monthly),
             narrative=(
                 "QuantumLeap Systems is a cutting-edge quantum computing research company "
                 "developing novel qubit architectures. The company has received recognition from "
@@ -480,6 +513,7 @@ def _build_borrowers() -> list[Borrower]:
                 ["Battery Supply Co", "Electrician Contractors", "Warehouse Rent"],
                 seed=1009,
             ),
+            quarterly_income=_build_quarterly_income(monthly),
             narrative=(
                 "TerraVolt Energy installs and services battery storage systems for residential "
                 "and commercial clients. The company has been in business for 9 years and has an "
@@ -520,6 +554,7 @@ def _build_borrowers() -> list[Borrower]:
                 seed=1010,
                 fraud_type="round_numbers",
             ),
+            quarterly_income=_build_quarterly_income(monthly),
             narrative=(
                 "CloudNet Logistics is a rapidly growing air freight and last-mile delivery "
                 "company. The company reports exceptional margins of 37% and has experienced "
@@ -556,6 +591,7 @@ def _build_borrowers() -> list[Borrower]:
                 seed=1011,
                 fraud_type="circular",
             ),
+            quarterly_income=_build_quarterly_income(monthly),
             narrative=(
                 "BioGenesis Research is a biotechnology company specializing in novel compound "
                 "synthesis for pharmaceutical applications. The company operates under the "
@@ -592,6 +628,7 @@ def _build_borrowers() -> list[Borrower]:
                 seed=1012,
                 fraud_type="fabricated",
             ),
+            quarterly_income=_build_quarterly_income(monthly),
             narrative=(
                 "QubitTech Solutions provides quantum-resistant encryption services to enterprise "
                 "clients. The company reports remarkably stable revenue and consistent margins "
@@ -623,7 +660,7 @@ def _build_lenders() -> list[LenderConfig]:
                 "However, you still must avoid fraud and require basic creditworthiness. "
                 "You prefer shorter loan terms (12-24 months) with higher interest rates."
             ),
-            model="meta-llama/llama-3.1-8b-instruct",
+            model="deepseek/deepseek-chat-v3-0324",
             target_yield_pct=14.0,
             max_single_loan=800000,
             total_capital=3000000,
@@ -654,7 +691,7 @@ def _build_lenders() -> list[LenderConfig]:
                 "You offer lower interest rates but demand higher creditworthiness. "
                 "You prefer longer terms (24-36 months) with moderate rates."
             ),
-            model="anthropic/claude-3.5-haiku",
+            model="qwen/qwen3-235b-a22b",
             target_yield_pct=8.0,
             max_single_loan=600000,
             total_capital=4000000,
@@ -685,7 +722,7 @@ def _build_lenders() -> list[LenderConfig]:
                 "and inconsistencies in financial statements. "
                 "You offer competitive terms (18-30 months) with fair interest rates."
             ),
-            model="mistralai/mistral-7b-instruct",
+            model="z-ai/glm-4.7",
             target_yield_pct=11.0,
             max_single_loan=700000,
             total_capital=3500000,

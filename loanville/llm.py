@@ -1,7 +1,9 @@
 """
 OpenRouter LLM client for lender agents.
 
-Handles prompt construction, API calls, and JSON response parsing.
+Handles prompt construction, API calls (with tool use), and JSON response parsing.
+Models receive quarterly income statements upfront and can optionally call
+the ``analyse_bank_statements`` tool to inspect raw 12-month transaction data.
 """
 
 import asyncio
@@ -32,8 +34,80 @@ def clear_call_traces() -> None:
     _call_traces.clear()
 
 
+# ---------------------------------------------------------------------------
+# Tool definitions
+# ---------------------------------------------------------------------------
+
+TOOL_ANALYSE_BANK_STATEMENTS = {
+    "type": "function",
+    "function": {
+        "name": "analyse_bank_statements",
+        "description": (
+            "Retrieve the full 12-month bank statement history for the current "
+            "loan applicant. Returns a JSON array of monthly statements, each "
+            "containing individual deposit and withdrawal transactions with "
+            "dates, descriptions (customer/vendor names), and amounts. Use this "
+            "to check for: round-number deposits, affiliated-entity transfers, "
+            "unnaturally consistent amounts, customer concentration, or other "
+            "anomalies not visible in the quarterly income summary."
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "focus": {
+                    "type": "string",
+                    "description": (
+                        "Optional focus area: 'deposits', 'withdrawals', or 'all'. "
+                        "Defaults to 'all'."
+                    ),
+                    "enum": ["deposits", "withdrawals", "all"],
+                },
+            },
+            "required": [],
+        },
+    },
+}
+
+TOOLS = [TOOL_ANALYSE_BANK_STATEMENTS]
+
+
+def _bank_statements_to_json(borrower: Borrower, focus: str = "all") -> str:
+    """Serialize bank statements to a compact JSON string for tool responses."""
+    months = []
+    for stmt in borrower.dossier.bank_statements:
+        entry: dict = {
+            "month": stmt.month,
+            "opening_balance": stmt.opening_balance,
+            "ending_balance": stmt.ending_balance,
+        }
+        if focus in ("all", "deposits"):
+            entry["deposits"] = [
+                {"date": t.date, "description": t.description, "amount": t.amount}
+                for t in stmt.deposits
+            ]
+            entry["total_deposits"] = round(stmt.total_deposits, 2)
+        if focus in ("all", "withdrawals"):
+            entry["withdrawals"] = [
+                {"date": t.date, "description": t.description, "amount": t.amount}
+                for t in stmt.withdrawals
+            ]
+            entry["total_withdrawals"] = round(stmt.total_withdrawals, 2)
+        months.append(entry)
+    return json.dumps(months, indent=2)
+
+
+# ---------------------------------------------------------------------------
+# Dossier formatting (quarterly income statements)
+# ---------------------------------------------------------------------------
+
 def _format_dossier(borrower: Borrower) -> str:
-    """Format a borrower's financial dossier into a readable text block."""
+    """Format a borrower's financial dossier with quarterly income statements.
+
+    The quarterly view makes trends (margin compression, revenue decline,
+    suspicious consistency) immediately visible without requiring the model
+    to aggregate raw transactions.  Raw bank statements are still available
+    via the analyse_bank_statements tool for deeper investigation.
+    """
     d = borrower.dossier
     lines = []
     lines.append(f"{'='*60}")
@@ -49,26 +123,40 @@ def _format_dossier(borrower: Borrower) -> str:
     lines.append("--- COMPANY NARRATIVE ---")
     lines.append(d.narrative)
     lines.append("")
-    lines.append("--- ANNUAL FINANCIAL SUMMARY ---")
-    lines.append(f"Annual Revenue:  ${d.annual_revenue:,.2f}")
-    lines.append(f"Annual Expenses: ${d.annual_expenses:,.2f}")
-    lines.append(f"Net Income:      ${d.net_income:,.2f}")
+
+    # Quarterly income statements — compact, trend-readable format
+    lines.append("--- QUARTERLY INCOME STATEMENTS ---")
+    lines.append("")
+    header = f"  {'':20s}"
+    for q in d.quarterly_income:
+        header += f"{q.quarter:>14s}"
+    lines.append(header)
+    lines.append(f"  {'─'*20}" + f"{'─'*14}" * len(d.quarterly_income))
+
+    row_rev = f"  {'Revenue':<20s}"
+    row_exp = f"  {'Expenses':<20s}"
+    row_ni  = f"  {'Net Income':<20s}"
+    row_nm  = f"  {'Net Margin':<20s}"
+    for q in d.quarterly_income:
+        row_rev += f"{'${:>,.0f}'.format(q.revenue):>14s}"
+        row_exp += f"{'(${:>,.0f})'.format(q.expenses):>14s}"
+        row_ni  += f"{'${:>,.0f}'.format(q.net_income):>14s}"
+        row_nm  += f"{q.net_margin_pct:>13.1f}%"
+    lines.append(row_rev)
+    lines.append(row_exp)
+    lines.append(row_ni)
+    lines.append(row_nm)
+
+    lines.append("")
+    lines.append("--- ANNUAL TOTALS ---")
+    lines.append(f"Annual Revenue:  ${d.annual_revenue:,.0f}")
+    lines.append(f"Annual Expenses: ${d.annual_expenses:,.0f}")
+    lines.append(f"Net Income:      ${d.net_income:,.0f}")
     lines.append(f"Net Margin:      {d.net_income / d.annual_revenue * 100:.1f}%")
     lines.append("")
-    lines.append("--- 12-MONTH BANK STATEMENT HISTORY ---")
-
-    for stmt in d.bank_statements:
-        lines.append(f"\n  === {stmt.month} ===")
-        lines.append(f"  Opening Balance: ${stmt.opening_balance:,.2f}")
-        lines.append("  DEPOSITS:")
-        for t in stmt.deposits:
-            lines.append(f"    {t.date}  {t.description:<40s} ${t.amount:>12,.2f}")
-        lines.append(f"    {'Total Deposits:':<44s} ${stmt.total_deposits:>12,.2f}")
-        lines.append("  WITHDRAWALS:")
-        for t in stmt.withdrawals:
-            lines.append(f"    {t.date}  {t.description:<40s} ${t.amount:>12,.2f}")
-        lines.append(f"    {'Total Withdrawals:':<44s} ${stmt.total_withdrawals:>12,.2f}")
-        lines.append(f"  Ending Balance: ${stmt.ending_balance:,.2f}")
+    lines.append("NOTE: You have access to the analyse_bank_statements tool to inspect")
+    lines.append("the full 12-month bank statement with individual transactions.")
+    lines.append("Use it to check deposit patterns, customer names, and vendor details.")
 
     return "\n".join(lines)
 
@@ -126,32 +214,39 @@ YOUR CURRENT PORTFOLIO:
 INSTRUCTIONS:
 Evaluate the loan application below. You must analyze:
 
-1. FRAUD DETECTION: Are the financial statements legitimate? Carefully examine the
-   bank statements for any anomalies, inconsistencies, or patterns that suggest
-   the financials may have been fabricated or manipulated.
+1. CREDITWORTHINESS: Review the quarterly income statements carefully.
+   - Look at revenue trends across quarters — is revenue growing, flat, or declining?
+   - Look at margin trends — are margins stable, expanding, or compressing?
+   - Can this business service the debt from free cash flow?
 
-2. CREDITWORTHINESS: Can this business service the debt from free cash flow?
-   - Calculate approximate monthly free cash flow
-   - Assess revenue trends and stability
-   - Check customer/revenue concentration risk
-   - Evaluate expense trends vs revenue trends
+2. FRAUD DETECTION: Use the analyse_bank_statements tool to inspect the raw
+   12-month bank statement data. Look for:
+   - Deposits from affiliated entities or related parties (circular transfers)
+   - Suspiciously round deposit amounts ($50,000, $100,000, $150,000 etc.)
+   - Unnaturally consistent monthly totals (real businesses have variance)
+   - Revenue concentration — does one customer dominate deposits?
 
 3. PORTFOLIO FIT: Would this loan breach your sector concentration limits?
    - Consider your existing exposure to this sector
    - Factor in the new loan amount when checking limits
 
-You MUST respond with ONLY a valid JSON object in exactly this format:
-{{
+IMPORTANT: You SHOULD call the analyse_bank_statements tool before making your
+decision. The quarterly income statements alone may not reveal fraud patterns
+that are visible in the raw transaction data.
+
+When you are ready to give your final decision, respond with ONLY a valid JSON
+object in exactly this format:
+{{{{
   "decision": "APPROVE" or "REJECT",
   "reasoning": "Your 2-4 sentence analysis summary",
-  "term_sheet": {{
+  "term_sheet": {{{{
     "loan_amount": <number or null if rejected>,
     "interest_rate": <annual rate as percentage e.g. 8.5, or null if rejected>,
     "term_months": <integer or null if rejected>
-  }}
-}}
+  }}}}
+}}}}
 
-Respond with ONLY the JSON. No other text before or after."""
+Respond with ONLY the JSON when giving your final answer. No other text."""
 
 
 def _build_user_prompt(borrower: Borrower) -> str:
@@ -225,48 +320,111 @@ def _parse_decision(lender_id: str, borrower_id: str, raw: dict | None) -> Lende
     )
 
 
+# ---------------------------------------------------------------------------
+# Tool-use conversation loop
+# ---------------------------------------------------------------------------
+
+MAX_TOOL_ROUNDS = 3  # Max tool-call round-trips before forcing a final answer
+
+
 async def evaluate_borrower(
     client: AsyncOpenAI,
     lender: LenderConfig,
     borrower: Borrower,
     semaphore: asyncio.Semaphore,
 ) -> LenderDecision:
-    """Have a lender LLM evaluate a single borrower application."""
+    """Have a lender LLM evaluate a borrower, with tool-use support.
+
+    The model receives the quarterly income statements upfront and can call
+    ``analyse_bank_statements`` to retrieve the full 12-month transaction
+    data before making its decision.
+    """
     system_prompt = _build_system_prompt(lender)
     user_prompt = _build_user_prompt(borrower)
 
+    messages: list[dict] = [
+        {"role": "system", "content": system_prompt},
+        {"role": "user", "content": user_prompt},
+    ]
+
+    tool_calls_made: list[str] = []  # Track tool usage for tracing
+
     async with semaphore:
         try:
-            response = await client.chat.completions.create(
-                model=lender.model,
-                messages=[
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": user_prompt},
-                ],
-                temperature=0.3,
-                max_tokens=2048,
-                response_format={"type": "json_object"},
+            for round_num in range(MAX_TOOL_ROUNDS + 1):
+                # On the last round, drop tools to force a final text answer
+                kwargs: dict = {
+                    "model": lender.model,
+                    "messages": messages,
+                    "temperature": 0.3,
+                    "max_tokens": 2048,
+                }
+                if round_num < MAX_TOOL_ROUNDS:
+                    kwargs["tools"] = TOOLS
+                else:
+                    # Force plain text response on the final round
+                    pass
+
+                response = await client.chat.completions.create(**kwargs)
+                msg = response.choices[0].message
+
+                # Check if model wants to call tools
+                if msg.tool_calls:
+                    # Append assistant message with tool calls
+                    messages.append(msg.model_dump())
+
+                    for tc in msg.tool_calls:
+                        fn_name = tc.function.name
+                        fn_args = json.loads(tc.function.arguments) if tc.function.arguments else {}
+
+                        if fn_name == "analyse_bank_statements":
+                            focus = fn_args.get("focus", "all")
+                            result = _bank_statements_to_json(borrower, focus)
+                            tool_calls_made.append(f"analyse_bank_statements(focus={focus})")
+                        else:
+                            result = json.dumps({"error": f"Unknown tool: {fn_name}"})
+                            tool_calls_made.append(f"UNKNOWN:{fn_name}")
+
+                        messages.append({
+                            "role": "tool",
+                            "tool_call_id": tc.id,
+                            "content": result,
+                        })
+
+                    continue  # Loop back to get model's next response
+
+                # No tool calls — this should be the final decision
+                content = msg.content or ""
+                raw = _extract_json(content)
+                decision = _parse_decision(lender.id, borrower.id, raw)
+
+                # Log the full trace
+                _call_traces.append({
+                    "lender_id": lender.id,
+                    "lender_name": lender.name,
+                    "model": lender.model,
+                    "borrower_id": borrower.id,
+                    "borrower_name": borrower.dossier.company_name,
+                    "system_prompt": system_prompt,
+                    "user_prompt": user_prompt,
+                    "tool_calls": tool_calls_made,
+                    "tool_rounds": round_num,
+                    "raw_response": content,
+                    "parsed_json": raw,
+                    "decision": decision.decision,
+                    "reasoning": decision.reasoning,
+                })
+
+                return decision
+
+            # Should not reach here, but safety fallback
+            return LenderDecision(
+                lender_id=lender.id,
+                borrower_id=borrower.id,
+                decision="REJECT",
+                reasoning="[SYSTEM: Exceeded max tool rounds without final decision]",
             )
-            content = response.choices[0].message.content or ""
-            raw = _extract_json(content)
-            decision = _parse_decision(lender.id, borrower.id, raw)
 
-            # Log the full trace
-            _call_traces.append({
-                "lender_id": lender.id,
-                "lender_name": lender.name,
-                "model": lender.model,
-                "borrower_id": borrower.id,
-                "borrower_name": borrower.dossier.company_name,
-                "system_prompt": system_prompt,
-                "user_prompt": user_prompt,
-                "raw_response": content,
-                "parsed_json": raw,
-                "decision": decision.decision,
-                "reasoning": decision.reasoning,
-            })
-
-            return decision
         except Exception as e:
             _call_traces.append({
                 "lender_id": lender.id,
@@ -276,6 +434,7 @@ async def evaluate_borrower(
                 "borrower_name": borrower.dossier.company_name,
                 "system_prompt": system_prompt,
                 "user_prompt": user_prompt,
+                "tool_calls": tool_calls_made,
                 "raw_response": None,
                 "error": f"{type(e).__name__}: {e}",
                 "decision": "REJECT",

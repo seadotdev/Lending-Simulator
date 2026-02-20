@@ -22,17 +22,26 @@ from .models import Borrower, LenderConfig, LenderDecision, TermSheet
 
 # Model quality tiers mapped to behavior profiles
 MODEL_TIERS = {
-    # Tier 1: Large frontier models - excellent analysis
+    # Tier 1: Large frontier models - excellent analysis + tool use
     "anthropic/claude-3.5-sonnet": "large",
     "anthropic/claude-sonnet-4": "large",
     "openai/gpt-4o": "large",
     "google/gemini-pro-1.5": "large",
     "meta-llama/llama-3.1-70b-instruct": "large",
     "anthropic/claude-3.5-haiku": "large",
+    "deepseek/deepseek-chat-v3-0324": "large",
+    "deepseek/deepseek-v3.2-20251201": "large",
+    "deepseek/deepseek-chat-v3.1": "large",
+    "qwen/qwen3-235b-a22b": "large",
+    "qwen/qwen3-235b-a22b-thinking-2507": "large",
+    "z-ai/glm-5-20260211": "large",
+    "z-ai/glm-4.7": "large",
     # Tier 2: Mid-size models - decent but miss subtleties
     "google/gemma-2-9b-it": "medium",
     "meta-llama/llama-3.1-8b-instruct": "medium",
     "mistralai/mistral-7b-instruct": "medium",
+    "qwen/qwen-2.5-7b-instruct": "medium",
+    "qwen/qwen3-30b-a3b-04-28": "medium",
     "meta-llama/llama-3.2-3b-instruct": "small",
     # Tier 3: Small models - miss a lot
     "microsoft/phi-3-mini-128k-instruct": "small",
