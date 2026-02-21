@@ -22,16 +22,31 @@ from .models import Borrower, LenderConfig, LenderDecision, TermSheet
 
 # Model quality tiers mapped to behavior profiles
 MODEL_TIERS = {
-    # Tier 1: Large frontier models - excellent analysis
+    # Tier 1: Large frontier models - excellent analysis + tool use
     "anthropic/claude-3.5-sonnet": "large",
     "anthropic/claude-sonnet-4": "large",
     "openai/gpt-4o": "large",
     "google/gemini-pro-1.5": "large",
     "meta-llama/llama-3.1-70b-instruct": "large",
+    "meta-llama/llama-3.3-70b-instruct": "large",
+    "nvidia/llama-3.3-nemotron-super-49b-v1.5": "large",
+    "anthropic/claude-3.5-haiku": "large",
+    "deepseek/deepseek-chat-v3-0324": "large",
+    "deepseek/deepseek-v3.2-20251201": "large",
+    "deepseek/deepseek-chat-v3.1": "large",
+    "qwen/qwen3-235b-a22b": "large",
+    "qwen/qwen3-235b-a22b-07-25": "large",
+    "qwen/qwen3-235b-a22b-thinking-2507": "large",
+    "google/gemini-2.0-flash-001": "large",
+    "google/gemini-2.5-flash-preview": "large",
+    "z-ai/glm-5-20260211": "large",
+    "z-ai/glm-4.7": "large",
     # Tier 2: Mid-size models - decent but miss subtleties
     "google/gemma-2-9b-it": "medium",
     "meta-llama/llama-3.1-8b-instruct": "medium",
     "mistralai/mistral-7b-instruct": "medium",
+    "qwen/qwen-2.5-7b-instruct": "medium",
+    "qwen/qwen3-30b-a3b-04-28": "medium",
     "meta-llama/llama-3.2-3b-instruct": "small",
     # Tier 3: Small models - miss a lot
     "microsoft/phi-3-mini-128k-instruct": "small",
@@ -63,8 +78,18 @@ def _check_sector_exposure(lender: LenderConfig, borrower: Borrower) -> tuple[bo
     return actual_pct > limit, actual_pct
 
 
-def _evaluate_mock(lender: LenderConfig, borrower: Borrower) -> LenderDecision:
-    """Simulate an LLM evaluation with quality based on model tier."""
+def _evaluate_mock(
+    lender: LenderConfig, borrower: Borrower, data_mode: str = "full",
+) -> LenderDecision:
+    """Simulate an LLM evaluation with quality based on model tier and data mode.
+
+    Detection rates vary by data_mode because different financial evidence
+    reveals different signals:
+    - Fraud signals (round numbers, circular transfers, unnatural consistency)
+      live in raw bank statements — removing them drops fraud detection sharply.
+    - Bad-business signals (margin compression, revenue decline) are visible in
+      quarterly trends — removing quarterly data drops bad detection.
+    """
     tier = _get_tier(lender.model)
     bid = borrower.id
     lid = lender.id
@@ -74,8 +99,16 @@ def _evaluate_mock(lender: LenderConfig, borrower: Borrower) -> LenderDecision:
     rand2 = _deterministic_rand(lid, bid, "rate")
 
     # === FRAUD DETECTION ===
-    # Large models catch fraud ~95%, medium ~50%, small ~20%
-    fraud_detection_rate = {"large": 0.95, "medium": 0.50, "small": 0.20}[tier]
+    # Rates depend on data_mode: fraud patterns are in raw bank statements
+    if data_mode in ("full", "statements_inline"):
+        # Raw transaction data available — full detection capability
+        fraud_detection_rate = {"large": 0.95, "medium": 0.50, "small": 0.20}[tier]
+    elif data_mode == "quarterly_only":
+        # No raw statements — can only infer from suspiciously stable quarterlies
+        fraud_detection_rate = {"large": 0.30, "medium": 0.15, "small": 0.05}[tier]
+    else:  # aggregate_only
+        # Only annual totals — almost impossible to detect fraud
+        fraud_detection_rate = {"large": 0.10, "medium": 0.05, "small": 0.02}[tier]
     catches_fraud = rand < fraud_detection_rate
 
     if outcome == "fraud" and catches_fraud:
@@ -96,8 +129,18 @@ def _evaluate_mock(lender: LenderConfig, borrower: Borrower) -> LenderDecision:
         )
 
     # === BAD BUSINESS DETECTION ===
-    # Large models catch bad businesses ~85%, medium ~40%, small ~15%
-    bad_detection_rate = {"large": 0.85, "medium": 0.40, "small": 0.15}[tier]
+    # Rates depend on data_mode: bad-business signals are in quarterly trends
+    # (margin compression, revenue decline) and bank statement details
+    # (customer concentration, grant dependency)
+    if data_mode in ("full", "quarterly_only"):
+        # Quarterly trends visible — good detection of margin/revenue issues
+        bad_detection_rate = {"large": 0.85, "medium": 0.40, "small": 0.15}[tier]
+    elif data_mode == "statements_inline":
+        # Raw statements have the data but trends are harder to aggregate
+        bad_detection_rate = {"large": 0.70, "medium": 0.30, "small": 0.10}[tier]
+    else:  # aggregate_only
+        # Only annual totals — can see thin margins but not trends
+        bad_detection_rate = {"large": 0.40, "medium": 0.15, "small": 0.05}[tier]
     catches_bad = _deterministic_rand(lid, bid, "bad") < bad_detection_rate
 
     if outcome == "bad" and catches_bad:
@@ -203,10 +246,11 @@ def _evaluate_mock(lender: LenderConfig, borrower: Borrower) -> LenderDecision:
 def mock_evaluate_all(
     lenders: list[LenderConfig],
     borrowers: list[Borrower],
+    data_mode: str = "full",
 ) -> dict[str, list[LenderDecision]]:
     """Run mock evaluations for all lenders against all borrowers."""
     results = {}
     for lender in lenders:
-        decisions = [_evaluate_mock(lender, b) for b in borrowers]
+        decisions = [_evaluate_mock(lender, b, data_mode) for b in borrowers]
         results[lender.id] = decisions
     return results

@@ -27,6 +27,18 @@ class MonthlyStatement:
 
 
 @dataclass
+class QuarterlyIncome:
+    """Pre-computed quarterly income statement for LLM consumption."""
+    quarter: str  # e.g. "Q1 2025"
+    revenue: float
+    expenses: float
+    gross_profit: float
+    gross_margin_pct: float
+    net_income: float
+    net_margin_pct: float
+
+
+@dataclass
 class FinancialDossier:
     company_name: str
     sector: str
@@ -36,6 +48,7 @@ class FinancialDossier:
     net_income: float
     employee_count: int
     bank_statements: list[MonthlyStatement]
+    quarterly_income: list[QuarterlyIncome]
     narrative: str
     loan_request_amount: float
     loan_purpose: str
@@ -137,3 +150,4 @@ class LenderScore:
     concentration_penalty_pct: float
     fraud_penalty_pct: float
     final_adjusted_score: float
+    perfect_score: float = 0.0  # Theoretical max if lender had perfect foresight

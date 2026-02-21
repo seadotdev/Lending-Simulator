@@ -4,6 +4,7 @@ ledger booking, and loan resolution (fast-forward).
 """
 
 import asyncio
+import json
 from openai import AsyncOpenAI
 
 from .models import (
@@ -13,7 +14,7 @@ from .models import (
     LenderDecision,
     LoanOutcome,
 )
-from .llm import run_lender_evaluations
+from .llm import run_lender_evaluations, get_call_traces, clear_call_traces
 from .mock_llm import mock_evaluate_all
 
 
@@ -25,10 +26,12 @@ class SimulationEngine:
         openrouter_api_key: str = "",
         max_concurrent_per_lender: int = 5,
         mock: bool = False,
+        data_mode: str = "full",
     ):
         self.borrowers = borrowers
         self.lenders = lenders
         self.mock = mock
+        self.data_mode = data_mode
         self.max_concurrent = max_concurrent_per_lender
 
         if not mock:
@@ -61,12 +64,17 @@ class SimulationEngine:
                   f"requesting ${b.dossier.loan_request_amount:,.0f}")
 
         if self.mock:
-            print("\n[MOCK MODE] Simulating LLM evaluations...\n")
-            self.all_decisions = mock_evaluate_all(self.lenders, self.borrowers)
+            print(f"\n[MOCK MODE] Simulating LLM evaluations (data_mode={self.data_mode})...\n")
+            self.all_decisions = mock_evaluate_all(
+                self.lenders, self.borrowers, self.data_mode,
+            )
         else:
             # Run all lenders in parallel via OpenRouter
             tasks = [
-                run_lender_evaluations(self.client, lender, self.borrowers, self.max_concurrent)
+                run_lender_evaluations(
+                    self.client, lender, self.borrowers, self.max_concurrent,
+                    self.data_mode,
+                )
                 for lender in self.lenders
             ]
             print("\nLenders are evaluating applications...\n")
@@ -89,14 +97,28 @@ class SimulationEngine:
                     rate_str = f" @ {d.term_sheet.interest_rate}% for {d.term_sheet.term_months}mo"
                 print(f"      {bname}: {status}{rate_str}")
                 if d.reasoning and not d.reasoning.startswith("[SYSTEM"):
-                    short = d.reasoning[:120] + "..." if len(d.reasoning) > 120 else d.reasoning
-                    print(f"        Reasoning: {short}")
+                    print(f"        Reasoning: {d.reasoning}")
+
+        # Write trace file for live (non-mock) runs
+        if not self.mock:
+            traces = get_call_traces()
+            if traces:
+                trace_path = "loanville_trace.json"
+                with open(trace_path, "w") as f:
+                    json.dump(traces, f, indent=2)
+                print(f"\n  Trace log written to {trace_path} ({len(traces)} calls)")
+                clear_call_traces()
 
     # ------------------------------------------------------------------
     # Phase 3: Deal Adjudication
     # ------------------------------------------------------------------
     def adjudicate_deals(self) -> None:
-        """Determine which lender wins each deal based on competitive offers."""
+        """Determine which lender wins each deal based on competitive offers.
+
+        Enforces capital limits: a lender cannot deploy more than its available
+        capital (total_capital minus existing portfolio).  If the preferred
+        lender lacks capacity, the deal falls to the next-best offer.
+        """
         print("\n" + "=" * 70)
         print("PHASE 3: DEAL ADJUDICATION")
         print("=" * 70)
@@ -104,6 +126,12 @@ class SimulationEngine:
         borrower_map = {b.id: b for b in self.borrowers}
         lender_map = {l.id: l for l in self.lenders}
         loan_counter = 0
+
+        # Track remaining deployable capital per lender
+        remaining_capital: dict[str, float] = {}
+        for lender in self.lenders:
+            existing_deployed = sum(l.remaining_balance for l in lender.existing_portfolio)
+            remaining_capital[lender.id] = lender.total_capital - existing_deployed
 
         for borrower in self.borrowers:
             bid = borrower.id
@@ -121,22 +149,46 @@ class SimulationEngine:
                 print(f"\n  {bname}: NO OFFERS - all lenders rejected")
                 continue
 
-            if len(approvals) == 1:
-                winner = approvals[0]
-                print(f"\n  {bname}: SINGLE OFFER from {lender_map[winner.lender_id].name}")
-            else:
-                # Multiple offers - borrower picks the best deal
-                # Best = lowest effective cost (interest_rate * loan_amount_requested / loan_amount_offered)
-                # Simplified: borrower prefers lowest interest rate, ties broken by highest amount
-                approvals.sort(key=lambda a: (a.term_sheet.interest_rate, -a.term_sheet.loan_amount))
-                winner = approvals[0]
+            # Sort by borrower preference: lowest rate, then highest amount
+            approvals.sort(key=lambda a: (a.term_sheet.interest_rate, -a.term_sheet.loan_amount))
+
+            if len(approvals) > 1:
                 print(f"\n  {bname}: COMPETITIVE - {len(approvals)} offers")
                 for a in approvals:
                     lname = lender_map[a.lender_id].name
                     ts = a.term_sheet
-                    marker = " <-- WINNER" if a is winner else ""
+                    cap = remaining_capital[a.lender_id]
+                    cap_note = "" if ts.loan_amount <= cap else f" [OVER CAPITAL: ${cap:,.0f} remaining]"
                     print(f"    {lname}: ${ts.loan_amount:,.0f} @ {ts.interest_rate}% "
-                          f"for {ts.term_months}mo{marker}")
+                          f"for {ts.term_months}mo{cap_note}")
+
+            # Pick the best offer from a lender that has enough capital
+            winner = None
+            for a in approvals:
+                if a.term_sheet.loan_amount <= remaining_capital[a.lender_id]:
+                    winner = a
+                    break
+
+            if winner is None:
+                # No lender has enough capital — deal falls through
+                self.deal_results[bid] = {"outcome": "no_capital", "winner": None}
+                if len(approvals) == 1:
+                    lname = lender_map[approvals[0].lender_id].name
+                    print(f"\n  {bname}: SINGLE OFFER from {lname} — "
+                          f"DECLINED (insufficient capital)")
+                else:
+                    print(f"    --> NO DEAL — all interested lenders at capital limit")
+                continue
+
+            if len(approvals) == 1:
+                print(f"\n  {bname}: SINGLE OFFER from {lender_map[winner.lender_id].name}")
+            else:
+                # Mark winner in the list
+                for a in approvals:
+                    if a is winner:
+                        lname = lender_map[a.lender_id].name
+                        print(f"    --> {lname} selected")
+                        break
 
             # Book the winning deal
             loan_counter += 1
@@ -155,6 +207,7 @@ class SimulationEngine:
                 months_before_default=b.months_before_default,
             )
             self.booked_loans.append(loan)
+            remaining_capital[winner.lender_id] -= ts.loan_amount
 
             self.deal_results[bid] = {
                 "outcome": "booked",
