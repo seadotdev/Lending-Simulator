@@ -23,6 +23,60 @@ from .models import (
 # ---------------------------------------------------------------------------
 _call_traces: list[dict] = []
 
+# ---------------------------------------------------------------------------
+# Token / cost tracking
+# ---------------------------------------------------------------------------
+_token_usage: dict[str, dict[str, int]] = {}  # model -> {prompt, completion}
+
+# Approximate $/1M-token pricing from OpenRouter (as of Feb 2026)
+MODEL_PRICING: dict[str, tuple[float, float]] = {
+    # (input $/M tokens, output $/M tokens)
+    "deepseek/deepseek-chat-v3-0324":   (0.50, 1.50),
+    "deepseek/deepseek-chat-v3.1":      (0.50, 1.50),
+    "deepseek/deepseek-v3.2-20251201":  (0.50, 1.50),
+    "qwen/qwen3-235b-a22b-07-25":      (0.70, 2.80),
+    "qwen/qwen3-235b-a22b":            (0.70, 2.80),
+    "qwen/qwen3-30b-a3b-04-28":        (0.14, 0.14),
+    "z-ai/glm-4.7":                    (0.50, 0.50),
+    "z-ai/glm-5-20260211":             (1.00, 1.00),
+    "anthropic/claude-3.5-haiku":       (0.80, 4.00),
+    "anthropic/claude-3.5-sonnet":      (3.00, 15.00),
+    "meta-llama/llama-3.1-8b-instruct": (0.05, 0.05),
+    "mistralai/mistral-7b-instruct":    (0.05, 0.05),
+}
+
+
+def _track_usage(model: str, response) -> None:
+    """Accumulate token usage from an API response."""
+    usage = getattr(response, "usage", None)
+    if usage is None:
+        return
+    if model not in _token_usage:
+        _token_usage[model] = {"prompt": 0, "completion": 0}
+    _token_usage[model]["prompt"] += getattr(usage, "prompt_tokens", 0) or 0
+    _token_usage[model]["completion"] += getattr(usage, "completion_tokens", 0) or 0
+
+
+def get_token_usage() -> dict[str, dict[str, int]]:
+    """Return accumulated token usage per model."""
+    return dict(_token_usage)
+
+
+def get_cost_summary() -> dict[str, float]:
+    """Estimate dollar cost per model based on token usage."""
+    costs: dict[str, float] = {}
+    for model, tokens in _token_usage.items():
+        in_price, out_price = MODEL_PRICING.get(model, (1.0, 3.0))
+        cost = (tokens["prompt"] / 1_000_000 * in_price +
+                tokens["completion"] / 1_000_000 * out_price)
+        costs[model] = round(cost, 4)
+    return costs
+
+
+def clear_usage() -> None:
+    """Clear accumulated token/cost tracking."""
+    _token_usage.clear()
+
 
 def get_call_traces() -> list[dict]:
     """Return accumulated LLM call traces."""
@@ -366,6 +420,7 @@ async def evaluate_borrower(
                     pass
 
                 response = await client.chat.completions.create(**kwargs)
+                _track_usage(lender.model, response)
                 msg = response.choices[0].message
 
                 # Check if model wants to call tools

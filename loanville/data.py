@@ -375,6 +375,186 @@ def _build_borrowers() -> list[Borrower]:
         true_outcome="good",
     ))
 
+    # GOOD 6: IronClad Manufacturing - established precision machining
+    monthly = [
+        (210000, 158000), (215000, 160000), (220000, 163000), (218000, 162000),
+        (225000, 165000), (228000, 168000), (230000, 170000), (235000, 172000),
+        (232000, 171000), (238000, 174000), (240000, 176000), (245000, 178000),
+    ]
+    borrowers.append(Borrower(
+        id="BRW-013",
+        dossier=FinancialDossier(
+            company_name="IronClad Manufacturing",
+            sector="Advanced Manufacturing",
+            years_in_business=12,
+            annual_revenue=2736000,
+            annual_expenses=2017000,
+            net_income=719000,
+            employee_count=65,
+            bank_statements=_generate_statements(
+                monthly, 195000,
+                ["Pratt Aerospace", "Caterpillar Parts Div", "General Dynamics Sub-Assembly", "Northrop Tooling"],
+                ["MetalStock Supply", "CNC Tooling Inc", "Industrial Power Co"],
+                seed=1013,
+            ),
+            quarterly_income=_build_quarterly_income(monthly),
+            narrative=(
+                "IronClad Manufacturing is a precision machining shop producing specialty "
+                "components for aerospace and heavy equipment OEMs. Founded in 2013, the "
+                "company holds AS9100 and ISO 9001 certifications. Revenue has grown steadily "
+                "through long-term supply agreements. Seeking capital to add a 5-axis CNC "
+                "machine to reduce outsourcing costs on complex geometries."
+            ),
+            loan_request_amount=400000,
+            loan_purpose="5-axis CNC machine acquisition",
+        ),
+        true_outcome="good",
+    ))
+
+    # GOOD 7: BlueLine Plumbing - recession-resistant services
+    monthly = [
+        (88000, 62000), (92000, 64000), (95000, 66000), (105000, 72000),
+        (110000, 75000), (115000, 78000), (120000, 82000), (118000, 80000),
+        (108000, 74000), (100000, 70000), (95000, 66000), (90000, 63000),
+    ]
+    borrowers.append(Borrower(
+        id="BRW-014",
+        dossier=FinancialDossier(
+            company_name="BlueLine Plumbing Services",
+            sector="Construction Services",
+            years_in_business=15,
+            annual_revenue=1236000,
+            annual_expenses=852000,
+            net_income=384000,
+            employee_count=32,
+            bank_statements=_generate_statements(
+                monthly, 75000,
+                ["CityBuild Contractors", "HomeServ Warranty", "Lakeside Property Mgmt", "State DOT"],
+                ["Ferguson Supply", "Fleet Fuel Card", "Workers Comp Insurance"],
+                seed=1014,
+            ),
+            quarterly_income=_build_quarterly_income(monthly),
+            narrative=(
+                "BlueLine Plumbing Services provides commercial and residential plumbing "
+                "installation and repair. The company has operated continuously for 15 years "
+                "through multiple economic cycles. Revenue is seasonal (peaks in summer) but "
+                "annual margins are consistently above 30%. Seeking capital to purchase two "
+                "service vans and inventory for a new municipal maintenance contract."
+            ),
+            loan_request_amount=200000,
+            loan_purpose="Fleet expansion and inventory for municipal contract",
+        ),
+        true_outcome="good",
+    ))
+
+    # GOOD 8: Apex Data Solutions - B2B SaaS with recurring revenue
+    monthly = [
+        (165000, 110000), (170000, 112000), (178000, 116000), (182000, 118000),
+        (190000, 122000), (195000, 125000), (200000, 128000), (208000, 132000),
+        (215000, 136000), (220000, 138000), (228000, 142000), (235000, 146000),
+    ]
+    borrowers.append(Borrower(
+        id="BRW-015",
+        dossier=FinancialDossier(
+            company_name="Apex Data Solutions",
+            sector="Enterprise SaaS",
+            years_in_business=6,
+            annual_revenue=2386000,
+            annual_expenses=1525000,
+            net_income=861000,
+            employee_count=40,
+            bank_statements=_generate_statements(
+                monthly, 140000,
+                ["Regions Financial Group", "Sysco Food Services", "Hilton Hotels Corp", "AutoNation Inc", "Waste Management"],
+                ["AWS Hosting", "Salesforce License", "Engineering Payroll"],
+                seed=1015,
+            ),
+            quarterly_income=_build_quarterly_income(monthly),
+            narrative=(
+                "Apex Data Solutions provides cloud-based analytics and reporting tools to "
+                "mid-market enterprises. 90% of revenue is recurring SaaS subscriptions with "
+                "annual contracts. Net revenue retention is 115% driven by seat expansion. "
+                "The company has been cash-flow positive for 3 years. Seeking capital to hire "
+                "a sales team targeting the hospitality vertical."
+            ),
+            loan_request_amount=350000,
+            loan_purpose="Sales team expansion for hospitality vertical",
+        ),
+        true_outcome="good",
+    ))
+
+    # GOOD 9: Coastal Seafood Distributors - seasonal but profitable
+    monthly = [
+        (95000, 72000), (88000, 68000), (82000, 65000), (110000, 82000),
+        (145000, 105000), (180000, 128000), (195000, 138000), (190000, 135000),
+        (160000, 115000), (125000, 92000), (105000, 78000), (98000, 74000),
+    ]
+    borrowers.append(Borrower(
+        id="BRW-016",
+        dossier=FinancialDossier(
+            company_name="Coastal Seafood Distributors",
+            sector="Food Distribution",
+            years_in_business=11,
+            annual_revenue=1573000,
+            annual_expenses=1152000,
+            net_income=421000,
+            employee_count=25,
+            bank_statements=_generate_statements(
+                monthly, 85000,
+                ["Whole Foods Regional", "Chesapeake Restaurants", "FreshCatch Markets", "Harbor Hotels Group"],
+                ["Fleet Fisheries", "Cold Storage Logistics", "DOT Compliance"],
+                seed=1016,
+            ),
+            quarterly_income=_build_quarterly_income(monthly),
+            narrative=(
+                "Coastal Seafood Distributors supplies fresh and frozen seafood to restaurants, "
+                "hotels, and specialty grocers along the eastern seaboard. Revenue is seasonal "
+                "with a strong May-September peak. The company has maintained positive annual "
+                "cash flow every year since founding. Seeking capital to add a refrigerated "
+                "truck and expand cold storage capacity for the upcoming peak season."
+            ),
+            loan_request_amount=275000,
+            loan_purpose="Refrigerated truck and cold storage expansion",
+        ),
+        true_outcome="good",
+    ))
+
+    # GOOD 10: Keystone Legal Tech - legal SaaS with court system contracts
+    monthly = [
+        (130000, 92000), (132000, 93000), (135000, 95000), (138000, 96000),
+        (140000, 98000), (142000, 99000), (145000, 100000), (148000, 102000),
+        (150000, 104000), (152000, 105000), (155000, 106000), (158000, 108000),
+    ]
+    borrowers.append(Borrower(
+        id="BRW-017",
+        dossier=FinancialDossier(
+            company_name="Keystone Legal Tech",
+            sector="Legal Technology",
+            years_in_business=7,
+            annual_revenue=1725000,
+            annual_expenses=1198000,
+            net_income=527000,
+            employee_count=30,
+            bank_statements=_generate_statements(
+                monthly, 120000,
+                ["State Court Admin Office", "Baker McKenzie LLP", "LegalShield Corp", "County Clerk Consortium"],
+                ["Azure Cloud Services", "Developer Payroll", "Compliance Audit Co"],
+                seed=1017,
+            ),
+            quarterly_income=_build_quarterly_income(monthly),
+            narrative=(
+                "Keystone Legal Tech provides case management and e-filing software to state "
+                "court systems and law firms. Revenue is 80% recurring through multi-year "
+                "government contracts with automatic renewal clauses. The company has never "
+                "lost a contract renewal. Seeking capital to build an AI-assisted document "
+                "review module that three existing clients have pre-committed to purchase."
+            ),
+            loan_request_amount=300000,
+            loan_purpose="AI document review module development",
+        ),
+        true_outcome="good",
+    ))
+
     # ===== BAD BUSINESSES (4) =====
 
     # BAD 1: AeroTrack Dynamics - dangerous single-customer concentration
@@ -671,6 +851,11 @@ def _build_lenders() -> list[LenderConfig]:
                 "Green Energy": 0.30,
                 "Urban Agriculture": 0.25,
                 "Digital Media": 0.30,
+                "Advanced Manufacturing": 0.25,
+                "Construction Services": 0.25,
+                "Enterprise SaaS": 0.30,
+                "Food Distribution": 0.25,
+                "Legal Technology": 0.25,
             },
             existing_portfolio=[
                 ExistingLoan("QuantumCore Inc", "Quantum Computing", 400000, 320000, 12.0, 18),
@@ -702,6 +887,11 @@ def _build_lenders() -> list[LenderConfig]:
                 "Green Energy": 0.25,
                 "Urban Agriculture": 0.30,
                 "Digital Media": 0.20,
+                "Advanced Manufacturing": 0.25,
+                "Construction Services": 0.30,
+                "Enterprise SaaS": 0.20,
+                "Food Distribution": 0.25,
+                "Legal Technology": 0.25,
             },
             existing_portfolio=[
                 ExistingLoan("SkyBridge Freight", "Aero-Logistics", 500000, 420000, 7.5, 24),
@@ -733,6 +923,11 @@ def _build_lenders() -> list[LenderConfig]:
                 "Green Energy": 0.25,
                 "Urban Agriculture": 0.25,
                 "Digital Media": 0.25,
+                "Advanced Manufacturing": 0.25,
+                "Construction Services": 0.25,
+                "Enterprise SaaS": 0.25,
+                "Food Distribution": 0.25,
+                "Legal Technology": 0.25,
             },
             existing_portfolio=[
                 ExistingLoan("SynthWave Labs", "Bio-Synthetics", 400000, 340000, 10.0, 22),
@@ -746,11 +941,54 @@ def _build_lenders() -> list[LenderConfig]:
 
 
 # ---------------------------------------------------------------------------
+# Mix presets — control the good/bad/fraud ratio of the borrower pool
+# ---------------------------------------------------------------------------
+
+# Maps mix name -> (good_ids, bad_ids, fraud_ids)
+# IDs are cherry-picked so each preset tells a different story.
+MIX_PRESETS: dict[str, dict[str, list[str]]] = {
+    # ~75% good, ~17% bad, ~8% fraud — realistic commercial pipeline
+    "easy": {
+        "good":  ["BRW-001", "BRW-002", "BRW-003", "BRW-004", "BRW-005",
+                   "BRW-013", "BRW-014", "BRW-015", "BRW-016"],
+        "bad":   ["BRW-007", "BRW-009"],
+        "fraud": ["BRW-011"],
+    },
+    # ~50% good, ~29% bad, ~21% fraud — stressed market
+    "balanced": {
+        "good":  ["BRW-001", "BRW-002", "BRW-004", "BRW-005", "BRW-013",
+                   "BRW-015", "BRW-017"],
+        "bad":   ["BRW-006", "BRW-007", "BRW-008", "BRW-009"],
+        "fraud": ["BRW-010", "BRW-011", "BRW-012"],
+    },
+    # ~42% good, ~33% bad, ~25% fraud — adversarial stress test (original mix)
+    "hard": {
+        "good":  ["BRW-001", "BRW-002", "BRW-003", "BRW-004", "BRW-005"],
+        "bad":   ["BRW-006", "BRW-007", "BRW-008", "BRW-009"],
+        "fraud": ["BRW-010", "BRW-011", "BRW-012"],
+    },
+    # Full pool — everything
+    "all": {
+        "good":  ["BRW-001", "BRW-002", "BRW-003", "BRW-004", "BRW-005",
+                   "BRW-013", "BRW-014", "BRW-015", "BRW-016", "BRW-017"],
+        "bad":   ["BRW-006", "BRW-007", "BRW-008", "BRW-009"],
+        "fraud": ["BRW-010", "BRW-011", "BRW-012"],
+    },
+}
+
+
+# ---------------------------------------------------------------------------
 # Public API
 # ---------------------------------------------------------------------------
 
-def get_borrowers() -> list[Borrower]:
-    return _build_borrowers()
+def get_borrowers(mix: str = "easy") -> list[Borrower]:
+    """Return borrowers filtered by the chosen mix preset."""
+    all_borrowers = _build_borrowers()
+    if mix not in MIX_PRESETS:
+        raise ValueError(f"Unknown mix '{mix}'. Choose from: {list(MIX_PRESETS)}")
+    preset = MIX_PRESETS[mix]
+    allowed = set(preset["good"] + preset["bad"] + preset["fraud"])
+    return [b for b in all_borrowers if b.id in allowed]
 
 
 def get_lenders() -> list[LenderConfig]:

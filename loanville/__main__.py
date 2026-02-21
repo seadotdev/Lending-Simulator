@@ -2,10 +2,11 @@
 Entry point for: python -m loanville
 
 Usage:
-  python -m loanville              # Live mode (requires OPENROUTER_API_KEY)
-  python -m loanville --mock       # Mock mode (no API key needed)
-  python -m loanville --compare    # Compare big vs small models (mock)
-  python -m loanville --rotate     # Rotate models across lender roles (live)
+  python -m loanville                    # Live mode, easy mix (default)
+  python -m loanville --mock             # Mock mode (no API key needed)
+  python -m loanville --mix hard         # Adversarial stress test
+  python -m loanville --compare          # Compare big vs small models (mock)
+  python -m loanville --rotate           # Rotate models across lender roles (live)
 """
 
 import argparse
@@ -16,8 +17,9 @@ import sys
 
 from dotenv import load_dotenv
 
-from .data import get_borrowers, get_lenders
+from .data import get_borrowers, get_lenders, MIX_PRESETS
 from .engine import SimulationEngine
+from .llm import get_cost_summary, get_token_usage, clear_usage
 from .scoring import print_final_report, score_lenders
 
 
@@ -25,8 +27,6 @@ from .scoring import print_final_report, score_lenders
 # Model rotation pools — cheap frontier models with strong tool-use support
 # ---------------------------------------------------------------------------
 
-# Each pool maps a lender role index (0=aggressive, 1=conservative, 2=balanced)
-# to a list of models. Rotation picks a different assignment each round.
 ROTATION_POOL = [
     "deepseek/deepseek-chat-v3-0324",
     "qwen/qwen3-235b-a22b-07-25",
@@ -35,6 +35,46 @@ ROTATION_POOL = [
     "deepseek/deepseek-chat-v3.1",
     "qwen/qwen3-30b-a3b-04-28",
 ]
+
+
+def _print_cost_summary() -> None:
+    """Print token usage and estimated cost per model."""
+    usage = get_token_usage()
+    costs = get_cost_summary()
+    if not usage:
+        return
+
+    print(f"\n{'─'*60}")
+    print(f"  API COST ESTIMATE")
+    print(f"{'─'*60}")
+    total_cost = 0.0
+    total_prompt = 0
+    total_completion = 0
+    for model in sorted(usage.keys()):
+        u = usage[model]
+        c = costs.get(model, 0.0)
+        total_cost += c
+        total_prompt += u["prompt"]
+        total_completion += u["completion"]
+        print(f"  {model}")
+        print(f"    Tokens: {u['prompt']:>10,} prompt + {u['completion']:>10,} completion")
+        print(f"    Est. cost: ${c:.4f}")
+    print(f"  {'─'*56}")
+    print(f"  TOTAL: {total_prompt:>10,} prompt + {total_completion:>10,} completion")
+    print(f"  TOTAL COST: ${total_cost:.4f}")
+
+    # Project cost for larger pools
+    n_borrowers = sum(1 for _ in usage)  # rough proxy
+    per_call = total_cost / max(1, total_prompt + total_completion) * (total_prompt + total_completion)
+    calls_made = sum(u["prompt"] > 0 for u in usage.values())
+    if total_cost > 0:
+        avg_per_eval = total_cost / max(1, sum(u["prompt"] > 0 for u in usage.values()))
+        print(f"\n  Projections (at current avg cost per evaluation):")
+        for pool_size in [25, 50, 100, 200]:
+            for n_lenders in [3, 5]:
+                projected = avg_per_eval * pool_size * n_lenders
+                print(f"    {pool_size} borrowers x {n_lenders} lenders = "
+                      f"~${projected:.2f}")
 
 
 def _run_single(borrowers, lenders, api_key="", mock=False):
@@ -53,9 +93,21 @@ def _run_single(borrowers, lenders, api_key="", mock=False):
     return scores
 
 
-def run_compare():
+def _print_mix_info(mix: str, borrowers) -> None:
+    """Print the borrower population breakdown."""
+    from collections import Counter
+    outcomes = Counter(b.true_outcome for b in borrowers)
+    total = len(borrowers)
+    parts = []
+    for k in ["good", "bad", "fraud"]:
+        n = outcomes.get(k, 0)
+        parts.append(f"{n} {k} ({n/total*100:.0f}%)")
+    print(f"  Pipeline mix: {mix} — {', '.join(parts)}")
+
+
+def run_compare(mix: str):
     """Run two simulations: big models vs small models, then compare."""
-    borrowers = get_borrowers()
+    borrowers = get_borrowers(mix)
 
     # --- Round 1: Big frontier models (tool-use capable) ---
     big_lenders = get_lenders()
@@ -150,13 +202,9 @@ def run_compare():
     print(f"{'*'*70}\n")
 
 
-def run_rotate(api_key: str, rounds: int = 3):
-    """Run multiple rounds, rotating which model plays which lender role.
-
-    This shows that different models in different roles leads to distinct
-    outcomes — the model matters, not just the persona.
-    """
-    borrowers = get_borrowers()
+def run_rotate(api_key: str, mix: str, rounds: int = 3):
+    """Run multiple rounds, rotating which model plays which lender role."""
+    borrowers = get_borrowers(mix)
     n_models = len(ROTATION_POOL)
     all_round_scores = []
 
@@ -166,7 +214,6 @@ def run_rotate(api_key: str, rounds: int = 3):
         print(f"{'#'*70}")
 
         lenders = get_lenders()
-        # Rotate: each round shifts which model sits in which role
         for i, lender in enumerate(lenders):
             model_idx = (i + r) % n_models
             model = ROTATION_POOL[model_idx]
@@ -184,7 +231,6 @@ def run_rotate(api_key: str, rounds: int = 3):
     print(f"  ROTATION SUMMARY ({rounds} rounds)")
     print(f"{'='*70}")
 
-    # Collect per-model stats across all rounds
     model_stats: dict[str, list[float]] = {}
     model_frauds: dict[str, int] = {}
     model_defaults: dict[str, int] = {}
@@ -208,7 +254,9 @@ def run_rotate(api_key: str, rounds: int = 3):
     best_avg = sum(model_stats[best_model]) / len(model_stats[best_model])
     print(f"  BEST MODEL: {best_model}")
     print(f"  Average Score: {best_avg:.2f}%")
-    print(f"{'*'*70}\n")
+    print(f"{'*'*70}")
+
+    _print_cost_summary()
 
 
 def main() -> None:
@@ -223,13 +271,15 @@ def main() -> None:
                         help="Run rotation: different models in different roles (live)")
     parser.add_argument("--rounds", type=int, default=3,
                         help="Number of rotation rounds (default: 3)")
+    parser.add_argument("--mix", choices=list(MIX_PRESETS.keys()), default="easy",
+                        help="Borrower population mix (default: easy)")
     args = parser.parse_args()
 
     if args.compare:
         print("=" * 70)
         print("  LOANVILLE — MODEL SIZE COMPARISON")
         print("=" * 70)
-        run_compare()
+        run_compare(args.mix)
         print("Comparison complete.\n")
         return
 
@@ -248,8 +298,8 @@ def main() -> None:
         print("=" * 70)
         print("  LOANVILLE — MODEL ROTATION TOURNAMENT")
         print("=" * 70)
-        run_rotate(api_key, rounds=args.rounds)
-        print("Rotation complete.\n")
+        run_rotate(api_key, args.mix, rounds=args.rounds)
+        print("\nRotation complete.\n")
         return
 
     print("=" * 70)
@@ -258,10 +308,11 @@ def main() -> None:
         print("  [MOCK MODE]")
     print("=" * 70)
 
-    borrowers = get_borrowers()
+    borrowers = get_borrowers(args.mix)
     lenders = get_lenders()
 
     print(f"\nLoaded {len(borrowers)} borrower applications")
+    _print_mix_info(args.mix, borrowers)
     print(f"Loaded {len(lenders)} competing lenders:\n")
     for l in lenders:
         deployed = sum(x.remaining_balance for x in l.existing_portfolio)
@@ -270,7 +321,10 @@ def main() -> None:
               f"Deployed: ${deployed:,.0f} | "
               f"Target Yield: {l.target_yield_pct}%")
 
+    clear_usage()
     _run_single(borrowers, lenders, api_key, mock=mock)
+    if not mock:
+        _print_cost_summary()
 
     print("\nSimulation complete.\n")
 
