@@ -106,7 +106,12 @@ class SimulationEngine:
     # Phase 3: Deal Adjudication
     # ------------------------------------------------------------------
     def adjudicate_deals(self) -> None:
-        """Determine which lender wins each deal based on competitive offers."""
+        """Determine which lender wins each deal based on competitive offers.
+
+        Enforces capital limits: a lender cannot deploy more than its available
+        capital (total_capital minus existing portfolio).  If the preferred
+        lender lacks capacity, the deal falls to the next-best offer.
+        """
         print("\n" + "=" * 70)
         print("PHASE 3: DEAL ADJUDICATION")
         print("=" * 70)
@@ -114,6 +119,12 @@ class SimulationEngine:
         borrower_map = {b.id: b for b in self.borrowers}
         lender_map = {l.id: l for l in self.lenders}
         loan_counter = 0
+
+        # Track remaining deployable capital per lender
+        remaining_capital: dict[str, float] = {}
+        for lender in self.lenders:
+            existing_deployed = sum(l.remaining_balance for l in lender.existing_portfolio)
+            remaining_capital[lender.id] = lender.total_capital - existing_deployed
 
         for borrower in self.borrowers:
             bid = borrower.id
@@ -131,22 +142,46 @@ class SimulationEngine:
                 print(f"\n  {bname}: NO OFFERS - all lenders rejected")
                 continue
 
-            if len(approvals) == 1:
-                winner = approvals[0]
-                print(f"\n  {bname}: SINGLE OFFER from {lender_map[winner.lender_id].name}")
-            else:
-                # Multiple offers - borrower picks the best deal
-                # Best = lowest effective cost (interest_rate * loan_amount_requested / loan_amount_offered)
-                # Simplified: borrower prefers lowest interest rate, ties broken by highest amount
-                approvals.sort(key=lambda a: (a.term_sheet.interest_rate, -a.term_sheet.loan_amount))
-                winner = approvals[0]
+            # Sort by borrower preference: lowest rate, then highest amount
+            approvals.sort(key=lambda a: (a.term_sheet.interest_rate, -a.term_sheet.loan_amount))
+
+            if len(approvals) > 1:
                 print(f"\n  {bname}: COMPETITIVE - {len(approvals)} offers")
                 for a in approvals:
                     lname = lender_map[a.lender_id].name
                     ts = a.term_sheet
-                    marker = " <-- WINNER" if a is winner else ""
+                    cap = remaining_capital[a.lender_id]
+                    cap_note = "" if ts.loan_amount <= cap else f" [OVER CAPITAL: ${cap:,.0f} remaining]"
                     print(f"    {lname}: ${ts.loan_amount:,.0f} @ {ts.interest_rate}% "
-                          f"for {ts.term_months}mo{marker}")
+                          f"for {ts.term_months}mo{cap_note}")
+
+            # Pick the best offer from a lender that has enough capital
+            winner = None
+            for a in approvals:
+                if a.term_sheet.loan_amount <= remaining_capital[a.lender_id]:
+                    winner = a
+                    break
+
+            if winner is None:
+                # No lender has enough capital — deal falls through
+                self.deal_results[bid] = {"outcome": "no_capital", "winner": None}
+                if len(approvals) == 1:
+                    lname = lender_map[approvals[0].lender_id].name
+                    print(f"\n  {bname}: SINGLE OFFER from {lname} — "
+                          f"DECLINED (insufficient capital)")
+                else:
+                    print(f"    --> NO DEAL — all interested lenders at capital limit")
+                continue
+
+            if len(approvals) == 1:
+                print(f"\n  {bname}: SINGLE OFFER from {lender_map[winner.lender_id].name}")
+            else:
+                # Mark winner in the list
+                for a in approvals:
+                    if a is winner:
+                        lname = lender_map[a.lender_id].name
+                        print(f"    --> {lname} selected")
+                        break
 
             # Book the winning deal
             loan_counter += 1
@@ -165,6 +200,7 @@ class SimulationEngine:
                 months_before_default=b.months_before_default,
             )
             self.booked_loans.append(loan)
+            remaining_capital[winner.lender_id] -= ts.loan_amount
 
             self.deal_results[bid] = {
                 "outcome": "booked",
