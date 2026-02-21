@@ -5,8 +5,11 @@ Elo-rated tournament benchmark for Loanville lending models.
 Instead of testing each model against fixed competitors, models compete
 head-to-head in randomly matched triplets.  All three lenders get identical
 parameters (capital, limits, persona) so the only variable is the model.
-Elo ratings emerge from many matches, measuring both analytical quality
-(approve good / reject bad) and pricing strategy (win deals at fair rates).
+
+Elo ratings are computed per-applicant: for each borrower, every pair of
+models is compared on their hypothetical profit (approve at their terms vs
+reject).  This gives N_borrowers x C(3,2) pairwise signals per match
+instead of a single aggregate comparison — dramatically faster convergence.
 
 Usage:
   python elo_benchmark.py --mix analyst --matches 50
@@ -32,8 +35,8 @@ load_dotenv()
 from loanville.data import get_borrowers, MIX_PRESETS
 from loanville.engine import SimulationEngine
 from loanville.llm import MODEL_PRICING, clear_usage, get_cost_summary, get_token_usage
-from loanville.models import LenderConfig
-from loanville.scoring import score_lenders
+from loanville.models import Borrower, LenderConfig
+from loanville.scoring import compute_loan_payoff, score_lenders
 
 # Import model lists from benchmark_models
 from benchmark_models import SMALL_MODELS, BENCHMARK_MODELS
@@ -76,6 +79,52 @@ def make_lender(slot: int, model_id: str, display_name: str) -> LenderConfig:
 # Match runner
 # ---------------------------------------------------------------------------
 
+def _compute_per_applicant_payoffs(
+    borrowers: list[Borrower],
+    lenders: list[LenderConfig],
+    models: list[tuple[str, str]],
+    engine: "SimulationEngine",
+) -> dict[str, dict[str, float]]:
+    """Compute hypothetical per-borrower profit for each model.
+
+    For each (model, borrower) pair:
+      - If model rejected: payoff = 0 (no action)
+      - If model approved: payoff = compute_loan_payoff(terms, true_outcome)
+
+    This is used for per-applicant pairwise Elo — it measures what each
+    model *would have* earned on each borrower, independent of who actually
+    won the competitive deal.
+    """
+    borrower_map = {b.id: b for b in borrowers}
+    payoffs: dict[str, dict[str, float]] = {}  # model_id -> {borrower_id -> profit}
+
+    for lender, (model_id, _) in zip(lenders, models):
+        decisions = engine.all_decisions.get(lender.id, [])
+        model_payoffs: dict[str, float] = {}
+
+        for d in decisions:
+            b = borrower_map.get(d.borrower_id)
+            if not b:
+                continue
+
+            if d.decision == "APPROVE" and d.term_sheet:
+                result = compute_loan_payoff(
+                    principal=d.term_sheet.loan_amount,
+                    interest_rate=d.term_sheet.interest_rate,
+                    term_months=d.term_sheet.term_months,
+                    true_outcome=b.true_outcome,
+                    months_before_default=b.months_before_default,
+                )
+                model_payoffs[d.borrower_id] = result["net_profit"]
+            else:
+                # Rejected — no action, no gain, no loss
+                model_payoffs[d.borrower_id] = 0.0
+
+        payoffs[model_id] = model_payoffs
+
+    return payoffs
+
+
 def run_match(
     models: list[tuple[str, str]],
     mix: str,
@@ -107,6 +156,11 @@ def run_match(
 
     costs = get_cost_summary()
 
+    # Compute per-applicant payoffs for pairwise Elo
+    per_applicant = _compute_per_applicant_payoffs(
+        borrowers, lenders, models, engine,
+    )
+
     results = []
     for lender, (model_id, display_name) in zip(lenders, models):
         sc = next(s for s in scores if s.lender_id == lender.id)
@@ -117,6 +171,7 @@ def run_match(
             "model": model_id,
             "display_name": display_name,
             "score": sc.final_adjusted_score,
+            "raroc_score": sc.raroc_score,
             "deals_won": sc.deals_won,
             "frauds_funded": sc.frauds_funded,
             "defaults": sc.defaults_count,
@@ -124,6 +179,7 @@ def run_match(
             "net_pnl": sc.net_return,
             "approvals": approvals,
             "cost": costs.get(model_id, 0.0),
+            "per_applicant_payoffs": per_applicant.get(model_id, {}),
         })
 
     return results
@@ -138,12 +194,12 @@ def expected_score(rating_a: float, rating_b: float) -> float:
     return 1.0 / (1.0 + 10.0 ** ((rating_b - rating_a) / 400.0))
 
 
-def update_elo(
+def update_elo_batch(
     ratings: dict[str, float],
     match_results: list[dict],
     k: float = DEFAULT_K,
 ) -> dict[str, float]:
-    """Update Elo ratings for a multiplayer (3-way) match.
+    """Update Elo ratings using aggregate score (legacy batch mode).
 
     Every pair of players in the match generates a pairwise Elo update.
     K is scaled by 1/(n-1) so the total adjustment per match stays bounded.
@@ -157,7 +213,6 @@ def update_elo(
             mi = match_results[i]["model"]
             mj = match_results[j]["model"]
 
-            # Actual outcome based on Loanville score
             si = match_results[i]["score"]
             sj = match_results[j]["score"]
             if si > sj:
@@ -172,6 +227,66 @@ def update_elo(
 
             new_ratings[mi] += pair_k * (actual_i - exp_i)
             new_ratings[mj] += pair_k * (actual_j - exp_j)
+
+    return new_ratings
+
+
+def update_elo(
+    ratings: dict[str, float],
+    match_results: list[dict],
+    k: float = DEFAULT_K,
+) -> dict[str, float]:
+    """Update Elo ratings using per-applicant pairwise comparisons.
+
+    For each borrower, every pair of models is compared on their
+    hypothetical profit for that borrower.  This gives N_borrowers x C(n,2)
+    pairwise signals per match instead of just C(n,2) from the aggregate.
+
+    K is scaled so total Elo movement per match stays bounded:
+      pair_k = K / ((n-1) * n_borrowers)
+
+    Falls back to batch mode if per_applicant_payoffs are not available.
+    """
+    # Check if per-applicant data is available
+    if not match_results or "per_applicant_payoffs" not in match_results[0]:
+        return update_elo_batch(ratings, match_results, k=k)
+
+    # Collect all borrower IDs (union across all models)
+    all_borrower_ids: set[str] = set()
+    for r in match_results:
+        all_borrower_ids.update(r.get("per_applicant_payoffs", {}).keys())
+
+    if not all_borrower_ids:
+        return update_elo_batch(ratings, match_results, k=k)
+
+    new_ratings = dict(ratings)
+    n = len(match_results)
+    n_borrowers = len(all_borrower_ids)
+
+    # Scale K: total Elo movement per match ≈ K (same as batch)
+    pair_k = k / ((n - 1) * n_borrowers)
+
+    for bid in all_borrower_ids:
+        for i in range(n):
+            for j in range(i + 1, n):
+                mi = match_results[i]["model"]
+                mj = match_results[j]["model"]
+
+                pi = match_results[i]["per_applicant_payoffs"].get(bid, 0.0)
+                pj = match_results[j]["per_applicant_payoffs"].get(bid, 0.0)
+
+                if pi > pj:
+                    actual_i, actual_j = 1.0, 0.0
+                elif pi == pj:
+                    actual_i, actual_j = 0.5, 0.5
+                else:
+                    actual_i, actual_j = 0.0, 1.0
+
+                exp_i = expected_score(ratings[mi], ratings[mj])
+                exp_j = 1.0 - exp_i
+
+                new_ratings[mi] += pair_k * (actual_i - exp_i)
+                new_ratings[mj] += pair_k * (actual_j - exp_j)
 
     return new_ratings
 
@@ -276,10 +391,15 @@ def run_tournament(
                       f"score={r['score']:+7.2f}%  won={r['deals_won']}  "
                       f"Elo {old_ratings[r['model']]:.0f}→{ratings[r['model']]:.0f} ({d:+.1f})")
 
+            # Strip per_applicant_payoffs from logged results (too large for JSON)
+            logged_results = [
+                {k: v for k, v in r.items() if k != "per_applicant_payoffs"}
+                for r in results
+            ]
             match_log.append({
                 "match": match_num,
                 "models": [m[0] for m in triplet],
-                "results": results,
+                "results": logged_results,
                 "elapsed": round(elapsed, 1),
                 "cost": match_cost,
             })

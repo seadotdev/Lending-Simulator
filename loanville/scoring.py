@@ -1,24 +1,35 @@
 """
 Scoring and final reporting for the lending simulation.
 
-Score = Net P&L vs a risk-free benchmark.
+Score = RAROC (Risk-Adjusted Return on Capital) vs a risk-free benchmark.
 
 A lender's job is to deploy capital profitably.  Rejecting everything is
 safe but earns nothing; approving everything is reckless.  The scoring
-system measures actual P&L (interest earned minus principal lost) against
-what the lender *could* have earned at the risk-free rate on the same
-capital, then applies penalties for fraud and concentration breaches.
+system measures actual P&L (interest earned minus principal lost minus
+funding cost) against what the lender *could* have earned at the risk-free
+rate on the same capital, then applies penalties for fraud, concentration
+breaches, and risk (loss volatility).
 
 Key mechanics:
   - Opportunity cost: undeployed available capital earns the risk-free rate
     as a benchmark.  A lender that deploys nothing scores 0 net P&L but
     "missed" the risk-free return, giving it a negative relative score.
+  - Funding cost: deployed capital incurs a cost-of-funds charge
+    (principal x funding_rate x term).  Lending must beat the cost of money.
+  - RAROC: profit is penalized by loss volatility (lambda * sigma * sqrt(n)).
+    A portfolio with highly variable per-loan outcomes is riskier and scores
+    lower, even if the mean P&L is identical.
+  - Hard constraints: default rate caps and min ROE thresholds act as
+    disqualifiers — breaching them incurs a severe score penalty.
   - Yield drag: loans priced below the lender's target yield incur a
     penalty proportional to the shortfall, penalizing giveaway rates.
   - Fraud penalty: 25% of the fraud loan's principal is deducted on top
     of the actual loss (regulatory / reputational cost).
   - Concentration penalty: 5% of excess exposure above the sector limit.
 """
+
+import math
+from typing import Optional
 
 from .models import (
     BookedLoan,
@@ -33,6 +44,105 @@ from .models import (
 RISK_FREE_RATE = 0.05
 # Simulation horizon in months (used to prorate risk-free earnings)
 SIM_HORIZON_MONTHS = 24
+
+# --- Funding cost ---
+# Annualized cost of funds (what the lender pays to borrow/source capital)
+FUNDING_RATE = 0.04
+
+# --- RAROC risk penalty ---
+# Coefficient for loss-volatility penalty: higher = more penalty for variance
+RISK_LAMBDA = 0.5
+
+# --- Hard constraint thresholds ---
+# If default rate (defaults / deals_won) exceeds this, severe penalty
+MAX_DEFAULT_RATE = 0.50
+# If return on deployed capital is below this threshold, severe penalty
+MIN_ROE_THRESHOLD = -0.10
+# Penalty in percentage points per hard-constraint violation
+HARD_CONSTRAINT_PENALTY_PCT = 5.0
+
+
+# ---------------------------------------------------------------------------
+# Per-loan payoff computation (used by both scoring and per-applicant Elo)
+# ---------------------------------------------------------------------------
+
+def compute_loan_payoff(
+    principal: float,
+    interest_rate: float,       # annual percentage (e.g. 10.0 for 10%)
+    term_months: int,
+    true_outcome: str,          # "good", "bad", "fraud"
+    months_before_default: Optional[int] = None,
+    funding_rate: float = FUNDING_RATE,
+) -> dict:
+    """Compute realized P&L for a single loan given the borrower's true outcome.
+
+    Returns a dict with:
+      - interest_earned: total interest collected before default (if any)
+      - principal_lost: unrecovered principal
+      - funding_cost: cost of funds for the capital deployed
+      - fraud_penalty: extra 25% regulatory/reputational charge on fraud
+      - net_profit: interest - principal_lost - funding_cost - fraud_penalty
+    """
+    monthly_rate = interest_rate / 100.0 / 12.0
+
+    if true_outcome == "fraud":
+        # Immediate default — total principal loss, minimal funding period
+        fc = principal * funding_rate * (1.0 / 12.0)  # ~1 month before discovery
+        fp = principal * 0.25
+        return {
+            "interest_earned": 0.0,
+            "principal_lost": principal,
+            "funding_cost": fc,
+            "fraud_penalty": fp,
+            "net_profit": -principal - fc - fp,
+        }
+
+    if true_outcome == "bad":
+        months_paid = min(months_before_default or 6, term_months)
+
+        # Amortization schedule
+        if monthly_rate > 0:
+            payment = principal * (monthly_rate * (1 + monthly_rate) ** term_months) / \
+                      ((1 + monthly_rate) ** term_months - 1)
+        else:
+            payment = principal / term_months
+
+        remaining = principal
+        total_interest = 0.0
+        for _ in range(months_paid):
+            interest_portion = remaining * monthly_rate
+            principal_portion = payment - interest_portion
+            total_interest += interest_portion
+            remaining -= principal_portion
+
+        principal_lost = max(0.0, remaining)
+        fc = principal * funding_rate * (months_paid / 12.0)
+
+        return {
+            "interest_earned": total_interest,
+            "principal_lost": principal_lost,
+            "funding_cost": fc,
+            "fraud_penalty": 0.0,
+            "net_profit": total_interest - principal_lost - fc,
+        }
+
+    # Good loan — full repayment
+    if monthly_rate > 0:
+        payment = principal * (monthly_rate * (1 + monthly_rate) ** term_months) / \
+                  ((1 + monthly_rate) ** term_months - 1)
+        total_interest = payment * term_months - principal
+    else:
+        total_interest = 0.0
+
+    fc = principal * funding_rate * (term_months / 12.0)
+
+    return {
+        "interest_earned": total_interest,
+        "principal_lost": 0.0,
+        "funding_cost": fc,
+        "fraud_penalty": 0.0,
+        "net_profit": total_interest - fc,
+    }
 
 
 def calculate_sector_exposure(
@@ -155,8 +265,11 @@ def calculate_perfect_score(
             interest = 0.0
         total_interest += interest
 
-    # Score using same formula as actual scoring
-    net_pnl = total_interest  # No losses, no penalties
+    # Compute funding cost for perfect portfolio
+    total_funding_cost = (available_capital - capital_remaining) * FUNDING_RATE * (SIM_HORIZON_MONTHS / 12)
+
+    # Score using same formula as actual scoring (no losses, no penalties, no volatility)
+    net_pnl = total_interest - total_funding_cost
     if available_capital > 0:
         actual_return_pct = (net_pnl / available_capital) * 100
         benchmark_pct = RISK_FREE_RATE * (SIM_HORIZON_MONTHS / 12) * 100
@@ -172,8 +285,13 @@ def score_lenders(
     deal_results: dict[str, dict],
     borrowers: list[Borrower] | None = None,
 ) -> list[LenderScore]:
-    """Calculate final scores for all lenders."""
+    """Calculate final scores for all lenders.
+
+    The score is RAROC-adjusted: net P&L minus funding cost minus penalties,
+    with a volatility penalty and hard-constraint disqualifiers.
+    """
     scores = []
+    borrower_map = {b.id: b for b in borrowers} if borrowers else {}
 
     for lender in lenders:
         lender_outcomes = [o for o in loan_outcomes if o.lender_id == lender.id]
@@ -183,6 +301,8 @@ def score_lenders(
         # Basic counts
         deals_won = len(lender_loans)
         deals_rejected = sum(1 for d in lender_decisions if d.decision == "REJECT")
+        n_decisions = len(lender_decisions)
+        approval_rate = (n_decisions - deals_rejected) / n_decisions if n_decisions > 0 else 0.0
 
         # Count deals lost to competitors
         deals_lost = 0
@@ -203,34 +323,87 @@ def score_lenders(
         defaults_count = sum(1 for o in lender_outcomes if o.defaulted)
 
         # --- Opportunity cost ---
-        # Available capital that *could* have been deployed
         existing_deployed = sum(l.remaining_balance for l in lender.existing_portfolio)
         available_capital = lender.total_capital - existing_deployed
-        # Risk-free benchmark on available capital over the sim horizon
-        risk_free_earnings = available_capital * RISK_FREE_RATE * (SIM_HORIZON_MONTHS / 12)
+
+        # --- Funding cost ---
+        # Cost of capital deployed across all booked loans
+        funding_cost_dollars = 0.0
+        for loan in lender_loans:
+            # Compute actual months the capital was at work
+            outcome = next((o for o in lender_outcomes if o.loan_id == loan.id), None)
+            if outcome:
+                months_active = outcome.months_paid if outcome.defaulted else loan.term_months
+            else:
+                months_active = loan.term_months
+            funding_cost_dollars += loan.principal * FUNDING_RATE * (months_active / 12.0)
+
+        # --- Per-loan profit for volatility computation ---
+        per_loan_profits: list[float] = []
+        for loan in lender_loans:
+            outcome = next((o for o in lender_outcomes if o.loan_id == loan.id), None)
+            if outcome:
+                months_active = outcome.months_paid if outcome.defaulted else loan.term_months
+                loan_fc = loan.principal * FUNDING_RATE * (months_active / 12.0)
+                loan_fp = loan.principal * 0.25 if outcome.was_fraud else 0.0
+                loan_profit = outcome.total_interest_paid - outcome.principal_lost - loan_fc - loan_fp
+                per_loan_profits.append(loan_profit)
+
+        # --- Loss volatility (RAROC) ---
+        loss_volatility = 0.0
+        if len(per_loan_profits) > 1:
+            mean_profit = sum(per_loan_profits) / len(per_loan_profits)
+            variance = sum((p - mean_profit) ** 2 for p in per_loan_profits) / (len(per_loan_profits) - 1)
+            loss_volatility = math.sqrt(variance)
+
+        # Risk penalty: lambda * sigma * sqrt(n), expressed in dollars
+        n_loans = len(per_loan_profits)
+        risk_penalty_dollars = RISK_LAMBDA * loss_volatility * math.sqrt(n_loans) if n_loans > 0 else 0.0
 
         # --- Fraud penalty (extra cost beyond actual loss) ---
         fraud_penalty_dollars = 0.0
         for o in lender_outcomes:
             if o.was_fraud:
-                fraud_penalty_dollars += o.principal * 0.25  # 25% regulatory/reputational
+                fraud_penalty_dollars += o.principal * 0.25
 
         # --- Concentration penalty ---
         violations = find_concentration_violations(lender, booked_loans)
         concentration_penalty_dollars = _concentration_penalty_dollars(lender, booked_loans)
 
         # --- Yield drag ---
-        # Penalize loans priced below target yield
         yield_drag = 0.0
         for loan in lender_loans:
             if loan.interest_rate < lender.target_yield_pct:
                 shortfall_pct = (lender.target_yield_pct - loan.interest_rate) / 100.0
                 yield_drag += loan.principal * shortfall_pct * (loan.term_months / 12)
 
-        # --- Final score ---
-        # Score = (net P&L - penalties - yield drag) vs risk-free benchmark
-        adjusted_pnl = net_pnl - fraud_penalty_dollars - concentration_penalty_dollars - yield_drag
-        # Express as return on available capital, relative to risk-free
+        # --- Hard constraints ---
+        hard_violations: list[str] = []
+        default_rate = defaults_count / deals_won if deals_won > 0 else 0.0
+        roe_pct = (net_pnl / total_deployed * 100) if total_deployed > 0 else 0.0
+
+        if deals_won > 0 and default_rate > MAX_DEFAULT_RATE:
+            hard_violations.append(
+                f"Default rate {default_rate*100:.0f}% exceeds cap {MAX_DEFAULT_RATE*100:.0f}%"
+            )
+        if total_deployed > 0 and roe_pct < MIN_ROE_THRESHOLD * 100:
+            hard_violations.append(
+                f"ROE {roe_pct:.1f}% below minimum {MIN_ROE_THRESHOLD*100:.0f}%"
+            )
+
+        hard_constraint_penalty_dollars = len(hard_violations) * HARD_CONSTRAINT_PENALTY_PCT / 100.0 * available_capital
+
+        # --- Final RAROC score ---
+        adjusted_pnl = (
+            net_pnl
+            - funding_cost_dollars
+            - fraud_penalty_dollars
+            - concentration_penalty_dollars
+            - yield_drag
+            - risk_penalty_dollars
+            - hard_constraint_penalty_dollars
+        )
+
         if available_capital > 0:
             actual_return_pct = (adjusted_pnl / available_capital) * 100
             benchmark_pct = RISK_FREE_RATE * (SIM_HORIZON_MONTHS / 12) * 100
@@ -242,6 +415,8 @@ def score_lenders(
         roi_pct = (net_pnl / total_deployed * 100) if total_deployed > 0 else 0.0
         fraud_penalty_pct = (fraud_penalty_dollars / available_capital * 100) if available_capital > 0 else 0.0
         concentration_penalty_pct = (concentration_penalty_dollars / available_capital * 100) if available_capital > 0 else 0.0
+        risk_penalty_pct = (risk_penalty_dollars / available_capital * 100) if available_capital > 0 else 0.0
+        hard_constraint_penalty_pct = len(hard_violations) * HARD_CONSTRAINT_PENALTY_PCT
 
         # Perfect score (theoretical max with omniscient foresight)
         perfect = calculate_perfect_score(lender, borrowers) if borrowers else 0.0
@@ -265,6 +440,18 @@ def score_lenders(
             fraud_penalty_pct=fraud_penalty_pct,
             final_adjusted_score=final_score,
             perfect_score=perfect,
+            # New: RAROC
+            funding_cost=funding_cost_dollars,
+            loss_volatility=loss_volatility,
+            risk_penalty_pct=risk_penalty_pct,
+            raroc_score=final_score,
+            # New: Hard constraints
+            default_rate=default_rate,
+            roe_pct=roe_pct,
+            hard_constraint_violations=hard_violations,
+            hard_constraint_penalty_pct=hard_constraint_penalty_pct,
+            # New: Diagnostics
+            approval_rate=approval_rate,
         ))
 
     return scores
@@ -273,7 +460,7 @@ def score_lenders(
 def print_final_report(scores: list[LenderScore]) -> None:
     """Print the final scoring report and rankings."""
     print("\n" + "=" * 70)
-    print("FINAL SCORECARD")
+    print("FINAL SCORECARD (RAROC)")
     print("=" * 70)
 
     # Sort by final adjusted score descending
@@ -282,6 +469,10 @@ def print_final_report(scores: list[LenderScore]) -> None:
     benchmark_pct = RISK_FREE_RATE * (SIM_HORIZON_MONTHS / 12) * 100
     print(f"\n  Benchmark: {benchmark_pct:.1f}% risk-free return "
           f"({RISK_FREE_RATE*100:.0f}% annual over {SIM_HORIZON_MONTHS}mo)")
+    print(f"  Funding rate: {FUNDING_RATE*100:.0f}% | "
+          f"Risk lambda: {RISK_LAMBDA} | "
+          f"Max default rate: {MAX_DEFAULT_RATE*100:.0f}% | "
+          f"Min ROE: {MIN_ROE_THRESHOLD*100:.0f}%")
 
     for rank, s in enumerate(ranked, 1):
         print(f"\n{'─' * 60}")
@@ -292,33 +483,45 @@ def print_final_report(scores: list[LenderScore]) -> None:
         print(f"    Deals Won:      {s.deals_won}")
         print(f"    Deals Lost:     {s.deals_lost}")
         print(f"    Deals Rejected: {s.deals_rejected}")
+        print(f"    Approval Rate:  {s.approval_rate*100:.0f}%")
         print(f"  Financial Performance:")
         print(f"    Capital Deployed:    ${s.total_deployed:>12,.2f}")
         print(f"    Interest Earned:     ${s.total_interest_earned:>12,.2f}")
         print(f"    Principal Lost:      ${s.total_principal_lost:>12,.2f}")
+        print(f"    Funding Cost:        ${s.funding_cost:>12,.2f}")
         print(f"    Net P&L:             ${s.net_return:>12,.2f}")
         if s.total_deployed > 0:
             print(f"    Raw ROI:             {s.roi_pct:>11.2f}%")
+            print(f"    ROE:                 {s.roe_pct:>11.2f}%")
         else:
-            print(f"    Raw ROI:                  N/A (nothing deployed)")
+            print(f"    Raw ROI / ROE:            N/A (nothing deployed)")
         print(f"  Risk Metrics:")
         print(f"    Frauds Funded:       {s.frauds_funded}")
         print(f"    Total Defaults:      {s.defaults_count}")
+        print(f"    Default Rate:        {s.default_rate*100:.0f}%")
+        print(f"    Loss Volatility:     ${s.loss_volatility:>10,.0f}")
         if s.concentration_violations:
             print(f"    Concentration Violations:")
             for v in s.concentration_violations:
                 print(f"      - {v}")
         else:
             print(f"    Concentration Violations: None")
+        if s.hard_constraint_violations:
+            print(f"    HARD CONSTRAINT VIOLATIONS:")
+            for v in s.hard_constraint_violations:
+                print(f"      !! {v}")
         print(f"  Penalties:")
-        print(f"    Fraud Penalty:       {s.fraud_penalty_pct:>5.1f}% of available capital")
-        print(f"    Concentration Penalty: {s.concentration_penalty_pct:>5.1f}% of available capital")
+        print(f"    Fraud Penalty:         {s.fraud_penalty_pct:>5.1f}%")
+        print(f"    Concentration Penalty: {s.concentration_penalty_pct:>5.1f}%")
+        print(f"    Risk Penalty (RAROC):  {s.risk_penalty_pct:>5.1f}%")
+        if s.hard_constraint_penalty_pct > 0:
+            print(f"    Hard Constraint Pen:   {s.hard_constraint_penalty_pct:>5.1f}%")
         print(f"  {'='*40}")
-        print(f"  SCORE vs BENCHMARK:    {s.final_adjusted_score:>+11.2f}%")
+        print(f"  RAROC SCORE vs BENCHMARK: {s.final_adjusted_score:>+8.2f}%")
         if s.perfect_score != 0.0:
             gap = s.final_adjusted_score - s.perfect_score
-            print(f"  PERFECT SCORE:         {s.perfect_score:>+11.2f}%")
-            print(f"  GAP TO PERFECT:        {gap:>+11.2f}%")
+            print(f"  PERFECT SCORE:            {s.perfect_score:>+8.2f}%")
+            print(f"  GAP TO PERFECT:           {gap:>+8.2f}%")
 
     # Winner announcement
     if ranked:
@@ -328,5 +531,5 @@ def print_final_report(scores: list[LenderScore]) -> None:
             print(f"  TIE!")
         else:
             print(f"  WINNER: {winner.lender_name} ({winner.model})")
-            print(f"  Score vs Benchmark: {winner.final_adjusted_score:+.2f}%")
+            print(f"  RAROC Score: {winner.final_adjusted_score:+.2f}%")
         print(f"{'*' * 70}")

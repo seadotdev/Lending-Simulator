@@ -151,3 +151,15 @@ class LenderScore:
     fraud_penalty_pct: float
     final_adjusted_score: float
     perfect_score: float = 0.0  # Theoretical max if lender had perfect foresight
+    # --- RAROC / funding cost ---
+    funding_cost: float = 0.0           # Cost of funds on deployed capital
+    loss_volatility: float = 0.0        # Std dev of per-loan profits (dollars)
+    risk_penalty_pct: float = 0.0       # Volatility penalty as % of available capital
+    raroc_score: float = 0.0            # RAROC-adjusted final score
+    # --- Hard constraints ---
+    default_rate: float = 0.0           # Fraction of funded deals that defaulted
+    roe_pct: float = 0.0                # Return on deployed capital (%)
+    hard_constraint_violations: list[str] = field(default_factory=list)
+    hard_constraint_penalty_pct: float = 0.0
+    # --- Diagnostics ---
+    approval_rate: float = 0.0          # Fraction of applications approved
