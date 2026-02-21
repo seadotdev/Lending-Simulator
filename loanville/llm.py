@@ -107,9 +107,8 @@ TOOL_ANALYSE_BANK_STATEMENTS = {
             "loan applicant. Returns a JSON array of monthly statements, each "
             "containing individual deposit and withdrawal transactions with "
             "dates, descriptions (customer/vendor names), and amounts. Use this "
-            "to check for: round-number deposits, affiliated-entity transfers, "
-            "unnaturally consistent amounts, customer concentration, or other "
-            "anomalies not visible in the quarterly income summary."
+            "to examine raw transaction data for any anomalies not visible in "
+            "the quarterly income summary."
         ),
         "parameters": {
             "type": "object",
@@ -139,9 +138,9 @@ TOOL_RUN_BASH = {
             "monthly statements with deposits and withdrawals. Use jq, awk, "
             "grep, sort, uniq, wc, etc. to compute statistics and detect "
             "anomalies. Examples:\n"
-            "  jq '[.[] | .deposits[]] | length' /data/bank_statements.json\n"
-            "  jq '[.[] | .deposits[] | select(.amount % 1000 == 0)]' /data/bank_statements.json\n"
-            "  jq '[.[] | .total_deposits]' /data/bank_statements.json | jq 'add/length'"
+            "  jq 'length' /data/bank_statements.json\n"
+            "  jq '.[0] | keys' /data/bank_statements.json\n"
+            "  jq '.[0].deposits[0]' /data/bank_statements.json"
         ),
         "parameters": {
             "type": "object",
@@ -344,33 +343,29 @@ def _analysis_instructions(data_mode: str) -> str:
     if data_mode == "full":
         parts.append(
             "\n2. FRAUD DETECTION: Use the run_bash tool to query the bank statement data at\n"
-            "   /data/bank_statements.json with jq. Run targeted queries to check for:\n"
-            "   - Deposits from affiliated entities or related parties (circular transfers)\n"
-            "   - Suspiciously round deposit amounts ($50,000, $100,000, $150,000 etc.)\n"
-            "   - Unnaturally consistent monthly totals (real businesses have variance)\n"
-            "   - Revenue concentration — does one customer dominate deposits?"
+            "   /data/bank_statements.json with jq. Examine the raw transactions for any\n"
+            "   patterns or anomalies that could indicate fabrication, misrepresentation,\n"
+            "   or financial manipulation. Consider what normal business transactions look\n"
+            "   like and flag anything that strikes you as unusual."
         )
     elif data_mode == "quarterly_only":
         parts.append(
-            "\n2. FRAUD DETECTION: Based on the quarterly data, look for:\n"
-            "   - Suspiciously stable revenue with no natural quarterly variance\n"
-            "   - Revenue levels that seem implausible for the business type and size\n"
-            "   - Narrative claims that don't align with the financial trends shown"
+            "\n2. FRAUD DETECTION: Examine the quarterly financial data for any signs of\n"
+            "   fabrication or misrepresentation. Consider whether the numbers and trends\n"
+            "   are consistent with what you'd expect from a real operating business."
         )
     elif data_mode == "aggregate_only":
         parts.append(
-            "\n2. FRAUD DETECTION: Based on the limited data available, assess:\n"
-            "   - Whether stated revenue is plausible for the business type and size\n"
-            "   - Whether margins are realistic for the sector\n"
-            "   - Whether the narrative is consistent with the financial summary"
+            "\n2. FRAUD DETECTION: With only aggregate data available, assess whether the\n"
+            "   stated financials are plausible and internally consistent for this type\n"
+            "   of business."
         )
     else:  # statements_inline
         parts.append(
-            "\n2. FRAUD DETECTION: Carefully analyze the raw bank statements for:\n"
-            "   - Deposits from affiliated entities or related parties (circular transfers)\n"
-            "   - Suspiciously round deposit amounts ($50,000, $100,000, $150,000 etc.)\n"
-            "   - Unnaturally consistent monthly totals (real businesses have variance)\n"
-            "   - Revenue concentration — does one customer dominate deposits?"
+            "\n2. FRAUD DETECTION: Carefully examine the raw bank statement transactions\n"
+            "   for any patterns or anomalies that could indicate fabrication,\n"
+            "   misrepresentation, or financial manipulation. Consider what normal\n"
+            "   business transactions look like and flag anything unusual."
         )
 
     # 3. PORTFOLIO FIT (always the same)
@@ -384,16 +379,10 @@ def _analysis_instructions(data_mode: str) -> str:
     if data_mode == "full":
         parts.append(
             "\nIMPORTANT: You SHOULD use the run_bash tool to query /data/bank_statements.json\n"
-            "before making your decision. Run jq queries to compute statistics rather than\n"
-            "trying to eyeball raw data. Suggested queries:\n"
-            "  # List all unique deposit sources\n"
-            "  jq '[.[] | .deposits[] | .description] | unique' /data/bank_statements.json\n"
-            "  # Check for round-number deposits\n"
-            "  jq '[.[] | .deposits[] | select(.amount % 1000 == 0)]' /data/bank_statements.json\n"
-            "  # Monthly deposit totals to check variance\n"
-            "  jq '[.[] | {month, total_deposits}]' /data/bank_statements.json\n"
-            "  # Deposit concentration by source\n"
-            "  jq '[.[] | .deposits[] | {d: .description, a: .amount}] | group_by(.d) | map({source: .[0].d, total: (map(.a) | add), count: length}) | sort_by(-.total)' /data/bank_statements.json\n"
+            "before making your decision. The file is a JSON array of monthly statements,\n"
+            "each with deposits (date, description, amount) and withdrawals (date,\n"
+            "description, amount), plus total_deposits and total_withdrawals per month.\n"
+            "Use jq to compute summary statistics and look for anomalies.\n"
             "You can run multiple queries. Each call is independent."
         )
 
@@ -510,7 +499,8 @@ def _parse_decision(lender_id: str, borrower_id: str, raw: dict | None) -> Lende
 # Tool-use conversation loop
 # ---------------------------------------------------------------------------
 
-MAX_TOOL_ROUNDS = 5  # Max tool-call round-trips before forcing a final answer
+MAX_TOOL_ROUNDS = 3   # Max tool-call round-trips before forcing a final answer
+MAX_CALLS_PER_ROUND = 5  # Max parallel tool calls processed per round
 
 
 def _create_sandbox(borrower: Borrower) -> JustBash:
@@ -593,10 +583,15 @@ async def evaluate_borrower(
 
                 # Check if model wants to call tools
                 if msg.tool_calls:
-                    # Append assistant message with tool calls
-                    messages.append(msg.model_dump())
+                    # Cap parallel tool calls per round
+                    tool_calls_this_round = msg.tool_calls[:MAX_CALLS_PER_ROUND]
 
-                    for tc in msg.tool_calls:
+                    # Append assistant message with only the calls we'll process
+                    assistant_msg = msg.model_dump()
+                    assistant_msg["tool_calls"] = assistant_msg["tool_calls"][:MAX_CALLS_PER_ROUND]
+                    messages.append(assistant_msg)
+
+                    for tc in tool_calls_this_round:
                         fn_name = tc.function.name
                         fn_args = json.loads(tc.function.arguments) if tc.function.arguments else {}
 

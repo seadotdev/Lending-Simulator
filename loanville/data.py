@@ -86,6 +86,8 @@ def _generate_statements(
             dep_parts = _make_circular_deposits(dep_total, customers, rng, i)
         elif fraud_type == "fabricated":
             dep_parts = _make_fabricated_deposits(dep_total, customers, rng)
+        elif fraud_type == "structured":
+            dep_parts = _make_structured_deposits(dep_total, customers, rng)
         else:
             dep_parts = _split_amount(dep_total, customers, rng)
 
@@ -158,6 +160,30 @@ def _make_fabricated_deposits(total, customers, rng):
         # Tiny variation to look slightly different but suspiciously consistent
         variation = rng.uniform(-200, 200)
         parts.append((c, round(base + variation, 2)))
+    return parts
+
+
+def _make_structured_deposits(total, customers, rng):
+    """Fraud: deposits split into many small amounts just under $10,000.
+
+    This mimics 'structuring' (aka 'smurfing') — breaking large sums into
+    sub-$10K transactions to avoid Currency Transaction Report thresholds.
+    A legitimate business with $130K/month revenue would have a handful of
+    large client payments, not 15+ tiny deposits.
+    """
+    parts = []
+    remaining = total
+    while remaining > 0:
+        customer = rng.choice(customers)
+        if remaining < 5000:
+            parts.append((customer, round(remaining, 2)))
+            remaining = 0
+        else:
+            # Amount between $7,000 and $9,950, always under $10,000
+            amt = round(rng.uniform(7000, 9950), 2)
+            amt = min(amt, remaining)
+            parts.append((customer, round(amt, 2)))
+            remaining -= amt
     return parts
 
 
@@ -821,6 +847,45 @@ def _build_borrowers() -> list[Borrower]:
         true_outcome="fraud",
     ))
 
+    # FRAUD 4: Orion Fleet Services - structured deposits (smurfing)
+    # All deposits are broken into many sub-$10K transactions
+    monthly = [
+        (128000, 94000), (132000, 96000), (130000, 95000), (135000, 98000),
+        (131000, 95000), (133000, 97000), (129000, 94000), (134000, 97000),
+        (136000, 99000), (132000, 96000), (130000, 95000), (135000, 98000),
+    ]
+    borrowers.append(Borrower(
+        id="BRW-018",
+        dossier=FinancialDossier(
+            company_name="Orion Fleet Services",
+            sector="Construction Services",
+            years_in_business=6,
+            annual_revenue=1585000,
+            annual_expenses=1154000,
+            net_income=431000,
+            employee_count=28,
+            bank_statements=_generate_statements(
+                monthly, 110000,
+                ["Metro Builders", "Apex Construction", "Summit Paving Co",
+                 "Ridgeline Contractors", "Ironwork Specialists"],
+                ["Diesel Depot", "Heavy Equipment Leasing", "Fleet Insurance Corp"],
+                seed=1018,
+                fraud_type="structured",
+            ),
+            quarterly_income=_build_quarterly_income(monthly),
+            narrative=(
+                "Orion Fleet Services provides heavy equipment rental and fleet management "
+                "to mid-size construction firms. The company has grown steadily over 6 years "
+                "and reports healthy 27% margins. Revenue comes from a diversified base of "
+                "regional contractors. Seeking capital to acquire three additional excavators "
+                "and a crane to meet growing demand from infrastructure projects."
+            ),
+            loan_request_amount=350000,
+            loan_purpose="Heavy equipment acquisition (3 excavators + crane)",
+        ),
+        true_outcome="fraud",
+    ))
+
     return borrowers
 
 
@@ -959,20 +1024,20 @@ MIX_PRESETS: dict[str, dict[str, list[str]]] = {
         "good":  ["BRW-001", "BRW-002", "BRW-004", "BRW-005", "BRW-013",
                    "BRW-015", "BRW-017"],
         "bad":   ["BRW-006", "BRW-007", "BRW-008", "BRW-009"],
-        "fraud": ["BRW-010", "BRW-011", "BRW-012"],
+        "fraud": ["BRW-010", "BRW-011", "BRW-012", "BRW-018"],
     },
     # ~42% good, ~33% bad, ~25% fraud — adversarial stress test (original mix)
     "hard": {
         "good":  ["BRW-001", "BRW-002", "BRW-003", "BRW-004", "BRW-005"],
         "bad":   ["BRW-006", "BRW-007", "BRW-008", "BRW-009"],
-        "fraud": ["BRW-010", "BRW-011", "BRW-012"],
+        "fraud": ["BRW-010", "BRW-011", "BRW-012", "BRW-018"],
     },
     # Full pool — everything
     "all": {
         "good":  ["BRW-001", "BRW-002", "BRW-003", "BRW-004", "BRW-005",
                    "BRW-013", "BRW-014", "BRW-015", "BRW-016", "BRW-017"],
         "bad":   ["BRW-006", "BRW-007", "BRW-008", "BRW-009"],
-        "fraud": ["BRW-010", "BRW-011", "BRW-012"],
+        "fraud": ["BRW-010", "BRW-011", "BRW-012", "BRW-018"],
     },
 }
 
