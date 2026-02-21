@@ -691,7 +691,7 @@ def _build_lenders() -> list[LenderConfig]:
                 "You offer lower interest rates but demand higher creditworthiness. "
                 "You prefer longer terms (24-36 months) with moderate rates."
             ),
-            model="qwen/qwen3-235b-a22b",
+            model="qwen/qwen3-235b-a22b-07-25",
             target_yield_pct=8.0,
             max_single_loan=600000,
             total_capital=4000000,

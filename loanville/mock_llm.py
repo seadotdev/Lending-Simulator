@@ -33,6 +33,7 @@ MODEL_TIERS = {
     "deepseek/deepseek-v3.2-20251201": "large",
     "deepseek/deepseek-chat-v3.1": "large",
     "qwen/qwen3-235b-a22b": "large",
+    "qwen/qwen3-235b-a22b-07-25": "large",
     "qwen/qwen3-235b-a22b-thinking-2507": "large",
     "z-ai/glm-5-20260211": "large",
     "z-ai/glm-4.7": "large",

@@ -29,7 +29,7 @@ from .scoring import print_final_report, score_lenders
 # to a list of models. Rotation picks a different assignment each round.
 ROTATION_POOL = [
     "deepseek/deepseek-chat-v3-0324",
-    "qwen/qwen3-235b-a22b",
+    "qwen/qwen3-235b-a22b-07-25",
     "z-ai/glm-4.7",
     "anthropic/claude-3.5-haiku",
     "deepseek/deepseek-chat-v3.1",
@@ -61,7 +61,7 @@ def run_compare():
     big_lenders = get_lenders()
     big_lenders[0].model = "deepseek/deepseek-chat-v3-0324"
     big_lenders[0].name = "Velocity Capital [DeepSeek V3]"
-    big_lenders[1].model = "qwen/qwen3-235b-a22b"
+    big_lenders[1].model = "qwen/qwen3-235b-a22b-07-25"
     big_lenders[1].name = "Heritage Trust [Qwen3-235B]"
     big_lenders[2].model = "z-ai/glm-4.7"
     big_lenders[2].name = "Meridian Partners [GLM-4.7]"
