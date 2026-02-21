@@ -94,6 +94,26 @@ QUICK_MODELS = [
     ("meta-llama/llama-3.1-8b-instruct",             "Llama 3.1 8B"),
 ]
 
+SMALL_MODELS = [
+    # Reference (strong + cheap) for calibration
+    ("deepseek/deepseek-chat-v3-0324",               "DeepSeek V3 0324"),
+    ("google/gemini-2.5-flash",                      "Gemini 2.5 Flash"),
+    # Mid-range
+    ("openai/gpt-4o-mini",                           "GPT-4o Mini"),
+    ("openai/gpt-4.1-nano",                          "GPT-4.1 Nano"),
+    ("nvidia/llama-3.3-nemotron-super-49b-v1.5",    "Nemotron Super 49B"),
+    ("meta-llama/llama-3.3-70b-instruct",            "Llama 3.3 70B"),
+    ("qwen/qwq-32b",                                 "QwQ-32B"),
+    ("qwen/qwen3-30b-a3b",                           "Qwen3-30B"),
+    # Small / budget
+    ("mistralai/mistral-small-3.2-24b-instruct",    "Mistral Small 3.2"),
+    ("google/gemma-3-27b-it",                        "Gemma 3 27B"),
+    ("mistralai/mistral-nemo",                       "Mistral Nemo"),
+    ("meta-llama/llama-3.1-8b-instruct",             "Llama 3.1 8B"),
+    ("qwen/qwen-2.5-7b-instruct",                   "Qwen 2.5 7B"),
+    ("meta-llama/llama-3-8b-instruct",               "Llama 3 8B"),
+]
+
 MIX = "easy"
 
 
@@ -183,7 +203,8 @@ def run_benchmark(models: list[tuple[str, str]], api_key: str,
         print(f"  [{i}/{len(remaining)}] {display_name}")
         print(f"  Model: {model_id}")
         est = _estimate_cost_per_eval(model_id)
-        print(f"  Est. cost/eval: ${est:.6f} (x12 borrowers = ${est*12:.4f})")
+        n_borrowers = len(get_borrowers(MIX))
+        print(f"  Est. cost/eval: ${est:.6f} (x{n_borrowers} borrowers = ${est*n_borrowers:.4f})")
         print(f"{'='*70}")
 
         try:
@@ -504,19 +525,31 @@ def main():
     )
     parser.add_argument("--quick", action="store_true",
                         help="Run quick subset (~10 models)")
+    parser.add_argument("--small", action="store_true",
+                        help="Run small/budget model subset (~14 models)")
+    parser.add_argument("--mix", type=str, default="easy",
+                        help="Borrower mix preset (easy, balanced, hard, all, analyst)")
     parser.add_argument("--resume", type=str, default=None,
                         help="Resume from a previous results JSON file")
     parser.add_argument("--plot", type=str, default=None,
                         help="Just plot existing results (no new runs)")
     parser.add_argument("--list", action="store_true",
                         help="List all benchmark models and exit")
-    parser.add_argument("--output", type=str, default="benchmark_results.json",
-                        help="Output filename for results (default: benchmark_results.json)")
+    parser.add_argument("--output", type=str, default=None,
+                        help="Output filename for results (default: benchmark_<mix>_results.json)")
     args = parser.parse_args()
 
     if args.list:
         list_models()
         return
+
+    # Set mix (module-level MIX is used by run_model for borrower loading)
+    global MIX
+    MIX = args.mix
+
+    # Default output filename based on mix
+    if args.output is None:
+        args.output = f"benchmark_{MIX}_results.json"
 
     # Plot-only mode
     if args.plot:
@@ -534,7 +567,23 @@ def main():
         print("ERROR: OPENROUTER_API_KEY not set")
         sys.exit(1)
 
-    models = QUICK_MODELS if args.quick else BENCHMARK_MODELS
+    if args.small:
+        models = SMALL_MODELS
+        mode_str = "small"
+    elif args.quick:
+        models = QUICK_MODELS
+        mode_str = "quick"
+    else:
+        models = BENCHMARK_MODELS
+        mode_str = "full"
+
+    # Validate mix
+    from loanville.data import MIX_PRESETS
+    if MIX not in MIX_PRESETS:
+        print(f"ERROR: Unknown mix '{MIX}'. Choose from: {list(MIX_PRESETS)}")
+        sys.exit(1)
+
+    n_borrowers = sum(len(v) for v in MIX_PRESETS[MIX].values())
 
     # Resume support
     resume_data = None
@@ -545,10 +594,10 @@ def main():
 
     print("=" * 70)
     print("  LOANVILLE MODEL BENCHMARK")
-    print(f"  Models: {len(models)} | Mix: {MIX} | Mode: {'quick' if args.quick else 'full'}")
+    print(f"  Models: {len(models)} | Mix: {MIX} ({n_borrowers} borrowers) | Mode: {mode_str}")
     print("=" * 70)
 
-    total_est = sum(_estimate_cost_per_eval(m) * 12 for m, _ in models)
+    total_est = sum(_estimate_cost_per_eval(m) * n_borrowers for m, _ in models)
     already = len(resume_data.get("results", [])) if resume_data else 0
     print(f"\n  Estimated total cost: ~${total_est:.2f} (full run)")
     if already:
