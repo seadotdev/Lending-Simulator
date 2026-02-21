@@ -2,7 +2,7 @@
 Mock LLM responses that simulate model-quality differences.
 
 Bigger models:
-  - Catch fraud signals (round numbers, circular transfers, fabricated consistency)
+  - Catch fraud signals in bank statement data
   - Detect bad business red flags (concentration, margin compression, decline)
   - Produce valid JSON reliably
   - Offer well-calibrated interest rates
@@ -85,8 +85,8 @@ def _evaluate_mock(
 
     Detection rates vary by data_mode because different financial evidence
     reveals different signals:
-    - Fraud signals (round numbers, circular transfers, unnatural consistency)
-      live in raw bank statements — removing them drops fraud detection sharply.
+    - Fraud signals live in raw bank statements — removing them drops fraud
+      detection sharply.
     - Bad-business signals (margin compression, revenue decline) are visible in
       quarterly trends — removing quarterly data drops bad detection.
     """
@@ -122,6 +122,10 @@ def _evaluate_mock(
             "BRW-012": "Unnaturally consistent monthly figures across all 12 periods. Total deposits "
                        "vary by less than $400 month-to-month, which is statistically implausible "
                        "for a real operating business. Likely fabricated statements.",
+            "BRW-018": "Deposit structuring detected: all deposits are broken into many small "
+                       "transactions under $10,000 (typically $7K-$9.9K). A legitimate $130K/month "
+                       "business should have a handful of large client payments, not 15+ sub-$10K "
+                       "deposits. This pattern is consistent with structuring to avoid CTR thresholds.",
         }
         return LenderDecision(
             lender_id=lid, borrower_id=bid, decision="REJECT",
