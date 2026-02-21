@@ -45,7 +45,7 @@ TEST_MODELS = [
     ("meta-llama/llama-3.3-70b-instruct",              "large",  "70B dense — reference"),
     # Mid-tier
     ("nvidia/llama-3.3-nemotron-super-49b-v1.5",       "large",  "49B dense"),
-    ("qwen/qwen3-30b-a3b-04-28",                       "medium", "30B MoE (3B active)"),
+    ("qwen/qwen3-30b-a3b",                              "medium", "30B MoE (3B active)"),
     # Small
     ("meta-llama/llama-3.1-8b-instruct",               "small",  "8B dense"),
     ("qwen/qwen-2.5-7b-instruct",                      "small",  "7B dense"),

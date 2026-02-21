@@ -46,7 +46,7 @@ MODEL_TIERS = {
     "meta-llama/llama-3.1-8b-instruct": "medium",
     "mistralai/mistral-7b-instruct": "medium",
     "qwen/qwen-2.5-7b-instruct": "medium",
-    "qwen/qwen3-30b-a3b-04-28": "medium",
+    "qwen/qwen3-30b-a3b": "medium",
     "meta-llama/llama-3.2-3b-instruct": "small",
     # Tier 3: Small models - miss a lot
     "microsoft/phi-3-mini-128k-instruct": "small",

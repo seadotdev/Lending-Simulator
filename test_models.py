@@ -22,12 +22,12 @@ from loanville.llm import clear_usage, get_cost_summary, get_token_usage
 from loanville.scoring import score_lenders
 
 # Models to test, from largest to smallest.
-# All verified: ZDR-compatible + tool-use support on OpenRouter.
+# All verified: tool-use support on OpenRouter.
 TEST_MODELS = [
     "deepseek/deepseek-chat-v3-0324",                # ~685B MoE — known good
     "meta-llama/llama-3.3-70b-instruct",              # 70B dense
     "nvidia/llama-3.3-nemotron-super-49b-v1.5",       # 49B dense
-    "qwen/qwen3-30b-a3b-04-28",                      # 30B MoE (3B active)
+    "qwen/qwen3-30b-a3b",                            # 30B MoE (3B active)
     "meta-llama/llama-3.1-8b-instruct",               # 8B dense
     "qwen/qwen-2.5-7b-instruct",                     # 7B dense
 ]
