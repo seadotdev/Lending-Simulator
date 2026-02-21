@@ -499,7 +499,8 @@ def _parse_decision(lender_id: str, borrower_id: str, raw: dict | None) -> Lende
 # Tool-use conversation loop
 # ---------------------------------------------------------------------------
 
-MAX_TOOL_ROUNDS = 5  # Max tool-call round-trips before forcing a final answer
+MAX_TOOL_ROUNDS = 3   # Max tool-call round-trips before forcing a final answer
+MAX_CALLS_PER_ROUND = 5  # Max parallel tool calls processed per round
 
 
 def _create_sandbox(borrower: Borrower) -> JustBash:
@@ -582,10 +583,15 @@ async def evaluate_borrower(
 
                 # Check if model wants to call tools
                 if msg.tool_calls:
-                    # Append assistant message with tool calls
-                    messages.append(msg.model_dump())
+                    # Cap parallel tool calls per round
+                    tool_calls_this_round = msg.tool_calls[:MAX_CALLS_PER_ROUND]
 
-                    for tc in msg.tool_calls:
+                    # Append assistant message with only the calls we'll process
+                    assistant_msg = msg.model_dump()
+                    assistant_msg["tool_calls"] = assistant_msg["tool_calls"][:MAX_CALLS_PER_ROUND]
+                    messages.append(assistant_msg)
+
+                    for tc in tool_calls_this_round:
                         fn_name = tc.function.name
                         fn_args = json.loads(tc.function.arguments) if tc.function.arguments else {}
 
