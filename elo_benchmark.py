@@ -389,6 +389,8 @@ def main():
                         help="Just print standings from existing results")
     parser.add_argument("--full", action="store_true",
                         help="Use full 35-model set instead of small models")
+    parser.add_argument("--models", type=str, nargs="+", default=None,
+                        help="Specific model IDs to include (overrides --full)")
     args = parser.parse_args()
 
     if args.standings:
@@ -407,7 +409,19 @@ def main():
         print(f"ERROR: Unknown mix '{args.mix}'. Choose from: {list(MIX_PRESETS)}")
         sys.exit(1)
 
-    models = BENCHMARK_MODELS if args.full else SMALL_MODELS
+    all_models = BENCHMARK_MODELS if args.full else SMALL_MODELS
+    if args.models:
+        model_lookup = {m[0]: m for m in all_models + BENCHMARK_MODELS}
+        models = []
+        for mid in args.models:
+            if mid in model_lookup:
+                models.append(model_lookup[mid])
+            else:
+                print(f"ERROR: Unknown model '{mid}'")
+                print(f"Available: {[m[0] for m in all_models]}")
+                sys.exit(1)
+    else:
+        models = all_models
 
     resume_data = None
     if args.resume:
