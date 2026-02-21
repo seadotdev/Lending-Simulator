@@ -2,13 +2,15 @@
 OpenRouter LLM client for lender agents.
 
 Handles prompt construction, API calls (with tool use), and JSON response parsing.
-Models receive quarterly income statements upfront and can optionally call
-the ``analyse_bank_statements`` tool to inspect raw 12-month transaction data.
+Models receive quarterly income statements upfront and can optionally use a
+sandboxed bash environment (via just-bash) to run jq/awk/grep queries against
+the borrower's 12-month bank statement data.
 """
 
 import asyncio
 import json
 import re
+from just_bash import Bash as JustBash
 from openai import AsyncOpenAI
 from .models import (
     Borrower,
@@ -126,7 +128,40 @@ TOOL_ANALYSE_BANK_STATEMENTS = {
     },
 }
 
-TOOLS = [TOOL_ANALYSE_BANK_STATEMENTS]
+TOOL_RUN_BASH = {
+    "type": "function",
+    "function": {
+        "name": "run_bash",
+        "description": (
+            "Execute a bash command in a sandboxed environment to analyse the "
+            "loan applicant's 12-month bank statement data. The bank statements "
+            "are pre-loaded at /data/bank_statements.json as a JSON array of "
+            "monthly statements with deposits and withdrawals. Use jq, awk, "
+            "grep, sort, uniq, wc, etc. to compute statistics and detect "
+            "anomalies. Examples:\n"
+            "  jq '[.[] | .deposits[]] | length' /data/bank_statements.json\n"
+            "  jq '[.[] | .deposits[] | select(.amount % 1000 == 0)]' /data/bank_statements.json\n"
+            "  jq '[.[] | .total_deposits]' /data/bank_statements.json | jq 'add/length'"
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "command": {
+                    "type": "string",
+                    "description": (
+                        "The bash command to execute. The bank statement JSON is "
+                        "at /data/bank_statements.json. Use jq for JSON queries, "
+                        "or pipe through awk/grep/sort for further processing."
+                    ),
+                },
+            },
+            "required": ["command"],
+        },
+    },
+}
+
+TOOLS_LEGACY = [TOOL_ANALYSE_BANK_STATEMENTS]
+TOOLS_SANDBOX = [TOOL_RUN_BASH]
 
 
 def _bank_statements_to_json(borrower: Borrower, focus: str = "all") -> str:
@@ -227,9 +262,9 @@ def _format_dossier(borrower: Borrower, data_mode: str = "full") -> str:
 
     # --- Data availability note ---
     if data_mode == "full":
-        lines.append("NOTE: You have access to the analyse_bank_statements tool to inspect")
-        lines.append("the full 12-month bank statement with individual transactions.")
-        lines.append("Use it to check deposit patterns, customer names, and vendor details.")
+        lines.append("NOTE: You have access to a sandboxed bash environment via the run_bash tool.")
+        lines.append("The applicant's 12-month bank statements are at /data/bank_statements.json.")
+        lines.append("Use jq queries to analyse deposit patterns, customer names, and anomalies.")
     elif data_mode == "quarterly_only":
         lines.append("NOTE: Your evaluation is based solely on the quarterly income data above.")
         lines.append("No raw bank statement data is available for this application.")
@@ -308,8 +343,8 @@ def _analysis_instructions(data_mode: str) -> str:
     # 2. FRAUD DETECTION
     if data_mode == "full":
         parts.append(
-            "\n2. FRAUD DETECTION: Use the analyse_bank_statements tool to inspect the raw\n"
-            "   12-month bank statement data. Look for:\n"
+            "\n2. FRAUD DETECTION: Use the run_bash tool to query the bank statement data at\n"
+            "   /data/bank_statements.json with jq. Run targeted queries to check for:\n"
             "   - Deposits from affiliated entities or related parties (circular transfers)\n"
             "   - Suspiciously round deposit amounts ($50,000, $100,000, $150,000 etc.)\n"
             "   - Unnaturally consistent monthly totals (real businesses have variance)\n"
@@ -348,9 +383,18 @@ def _analysis_instructions(data_mode: str) -> str:
     # Tool usage note (only for full mode)
     if data_mode == "full":
         parts.append(
-            "\nIMPORTANT: You SHOULD call the analyse_bank_statements tool before making your\n"
-            "decision. The quarterly income statements alone may not reveal fraud patterns\n"
-            "that are visible in the raw transaction data."
+            "\nIMPORTANT: You SHOULD use the run_bash tool to query /data/bank_statements.json\n"
+            "before making your decision. Run jq queries to compute statistics rather than\n"
+            "trying to eyeball raw data. Suggested queries:\n"
+            "  # List all unique deposit sources\n"
+            "  jq '[.[] | .deposits[] | .description] | unique' /data/bank_statements.json\n"
+            "  # Check for round-number deposits\n"
+            "  jq '[.[] | .deposits[] | select(.amount % 1000 == 0)]' /data/bank_statements.json\n"
+            "  # Monthly deposit totals to check variance\n"
+            "  jq '[.[] | {month, total_deposits}]' /data/bank_statements.json\n"
+            "  # Deposit concentration by source\n"
+            "  jq '[.[] | .deposits[] | {d: .description, a: .amount}] | group_by(.d) | map({source: .[0].d, total: (map(.a) | add), count: length}) | sort_by(-.total)' /data/bank_statements.json\n"
+            "You can run multiple queries. Each call is independent."
         )
 
     return "\n".join(parts)
@@ -466,7 +510,35 @@ def _parse_decision(lender_id: str, borrower_id: str, raw: dict | None) -> Lende
 # Tool-use conversation loop
 # ---------------------------------------------------------------------------
 
-MAX_TOOL_ROUNDS = 3  # Max tool-call round-trips before forcing a final answer
+MAX_TOOL_ROUNDS = 5  # Max tool-call round-trips before forcing a final answer
+
+
+def _create_sandbox(borrower: Borrower) -> JustBash:
+    """Create a just-bash sandbox with the borrower's bank statements pre-loaded."""
+    from just_bash.types import ExecutionLimits
+
+    bank_json = _bank_statements_to_json(borrower, focus="all")
+    return JustBash(
+        files={"/data/bank_statements.json": bank_json},
+        limits=ExecutionLimits(
+            max_command_count=500,
+            max_loop_iterations=1000,
+            max_awk_iterations=1000,
+        ),
+    )
+
+
+async def _exec_sandbox(sandbox: JustBash, command: str) -> str:
+    """Execute a command in the sandbox, returning formatted output."""
+    result = await sandbox.exec(command)
+    parts = []
+    if result.stdout:
+        parts.append(result.stdout)
+    if result.stderr:
+        parts.append(f"[stderr] {result.stderr}")
+    if result.exit_code != 0:
+        parts.append(f"[exit code: {result.exit_code}]")
+    return "\n".join(parts) if parts else "(no output)"
 
 
 async def evaluate_borrower(
@@ -479,7 +551,7 @@ async def evaluate_borrower(
     """Have a lender LLM evaluate a borrower, with tool-use support.
 
     data_mode controls what financial data the model sees:
-    - "full": quarterly income + bank statement tool (default)
+    - "full": quarterly income + sandboxed bash tool for bank statements (default)
     - "quarterly_only": quarterly income only, no tool
     - "aggregate_only": annual totals only, no tool
     - "statements_inline": raw bank statements in prompt, no tool
@@ -494,6 +566,11 @@ async def evaluate_borrower(
 
     tool_calls_made: list[str] = []  # Track tool usage for tracing
 
+    # Create a per-evaluation sandbox if in full mode
+    sandbox: JustBash | None = None
+    if data_mode == "full":
+        sandbox = _create_sandbox(borrower)
+
     async with semaphore:
         try:
             for round_num in range(MAX_TOOL_ROUNDS + 1):
@@ -505,7 +582,7 @@ async def evaluate_borrower(
                     "max_tokens": 2048,
                 }
                 if round_num < MAX_TOOL_ROUNDS and data_mode == "full":
-                    kwargs["tools"] = TOOLS
+                    kwargs["tools"] = TOOLS_SANDBOX
                 else:
                     # No tools: either not full mode, or final round
                     pass
@@ -523,7 +600,12 @@ async def evaluate_borrower(
                         fn_name = tc.function.name
                         fn_args = json.loads(tc.function.arguments) if tc.function.arguments else {}
 
-                        if fn_name == "analyse_bank_statements":
+                        if fn_name == "run_bash" and sandbox is not None:
+                            command = fn_args.get("command", "echo 'no command'")
+                            result = await _exec_sandbox(sandbox, command)
+                            tool_calls_made.append(f"run_bash: {command}")
+                        elif fn_name == "analyse_bank_statements":
+                            # Legacy fallback: model called old tool name
                             focus = fn_args.get("focus", "all")
                             result = _bank_statements_to_json(borrower, focus)
                             tool_calls_made.append(f"analyse_bank_statements(focus={focus})")
