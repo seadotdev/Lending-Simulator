@@ -158,16 +158,19 @@ def _bank_statements_to_json(borrower: Borrower, focus: str = "all") -> str:
 # Dossier formatting (quarterly income statements)
 # ---------------------------------------------------------------------------
 
-def _format_dossier(borrower: Borrower) -> str:
-    """Format a borrower's financial dossier with quarterly income statements.
+def _format_dossier(borrower: Borrower, data_mode: str = "full") -> str:
+    """Format a borrower's financial dossier for LLM consumption.
 
-    The quarterly view makes trends (margin compression, revenue decline,
-    suspicious consistency) immediately visible without requiring the model
-    to aggregate raw transactions.  Raw bank statements are still available
-    via the analyse_bank_statements tool for deeper investigation.
+    data_mode controls what financial evidence is presented:
+    - "full": quarterly income upfront + bank statement tool available (default)
+    - "quarterly_only": quarterly income only, no raw bank data
+    - "aggregate_only": just annual totals + narrative
+    - "statements_inline": raw 12-month bank statements embedded in prompt
     """
     d = borrower.dossier
     lines = []
+
+    # --- Identity (always present) ---
     lines.append(f"{'='*60}")
     lines.append(f"LOAN APPLICATION: {d.company_name}")
     lines.append(f"{'='*60}")
@@ -182,39 +185,60 @@ def _format_dossier(borrower: Borrower) -> str:
     lines.append(d.narrative)
     lines.append("")
 
-    # Quarterly income statements — compact, trend-readable format
-    lines.append("--- QUARTERLY INCOME STATEMENTS ---")
-    lines.append("")
-    header = f"  {'':20s}"
-    for q in d.quarterly_income:
-        header += f"{q.quarter:>14s}"
-    lines.append(header)
-    lines.append(f"  {'─'*20}" + f"{'─'*14}" * len(d.quarterly_income))
+    # --- Quarterly income (full, quarterly_only) ---
+    if data_mode in ("full", "quarterly_only"):
+        lines.append("--- QUARTERLY INCOME STATEMENTS ---")
+        lines.append("")
+        header = f"  {'':20s}"
+        for q in d.quarterly_income:
+            header += f"{q.quarter:>14s}"
+        lines.append(header)
+        lines.append(f"  {'─'*20}" + f"{'─'*14}" * len(d.quarterly_income))
 
-    row_rev = f"  {'Revenue':<20s}"
-    row_exp = f"  {'Expenses':<20s}"
-    row_ni  = f"  {'Net Income':<20s}"
-    row_nm  = f"  {'Net Margin':<20s}"
-    for q in d.quarterly_income:
-        row_rev += f"{'${:>,.0f}'.format(q.revenue):>14s}"
-        row_exp += f"{'(${:>,.0f})'.format(q.expenses):>14s}"
-        row_ni  += f"{'${:>,.0f}'.format(q.net_income):>14s}"
-        row_nm  += f"{q.net_margin_pct:>13.1f}%"
-    lines.append(row_rev)
-    lines.append(row_exp)
-    lines.append(row_ni)
-    lines.append(row_nm)
+        row_rev = f"  {'Revenue':<20s}"
+        row_exp = f"  {'Expenses':<20s}"
+        row_ni  = f"  {'Net Income':<20s}"
+        row_nm  = f"  {'Net Margin':<20s}"
+        for q in d.quarterly_income:
+            row_rev += f"{'${:>,.0f}'.format(q.revenue):>14s}"
+            row_exp += f"{'(${:>,.0f})'.format(q.expenses):>14s}"
+            row_ni  += f"{'${:>,.0f}'.format(q.net_income):>14s}"
+            row_nm  += f"{q.net_margin_pct:>13.1f}%"
+        lines.append(row_rev)
+        lines.append(row_exp)
+        lines.append(row_ni)
+        lines.append(row_nm)
+        lines.append("")
 
-    lines.append("")
-    lines.append("--- ANNUAL TOTALS ---")
-    lines.append(f"Annual Revenue:  ${d.annual_revenue:,.0f}")
-    lines.append(f"Annual Expenses: ${d.annual_expenses:,.0f}")
-    lines.append(f"Net Income:      ${d.net_income:,.0f}")
-    lines.append(f"Net Margin:      {d.net_income / d.annual_revenue * 100:.1f}%")
-    lines.append("")
-    lines.append("NOTE: You have access to the analyse_bank_statements tool to inspect")
-    lines.append("the full 12-month bank statement with individual transactions.")
-    lines.append("Use it to check deposit patterns, customer names, and vendor details.")
+    # --- Annual totals (all modes except statements_inline) ---
+    if data_mode != "statements_inline":
+        lines.append("--- ANNUAL TOTALS ---")
+        lines.append(f"Annual Revenue:  ${d.annual_revenue:,.0f}")
+        lines.append(f"Annual Expenses: ${d.annual_expenses:,.0f}")
+        lines.append(f"Net Income:      ${d.net_income:,.0f}")
+        lines.append(f"Net Margin:      {d.net_income / d.annual_revenue * 100:.1f}%")
+        lines.append("")
+
+    # --- Raw bank statements inline (statements_inline only) ---
+    if data_mode == "statements_inline":
+        lines.append("--- 12-MONTH BANK STATEMENTS ---")
+        lines.append(_bank_statements_to_json(borrower))
+        lines.append("")
+
+    # --- Data availability note ---
+    if data_mode == "full":
+        lines.append("NOTE: You have access to the analyse_bank_statements tool to inspect")
+        lines.append("the full 12-month bank statement with individual transactions.")
+        lines.append("Use it to check deposit patterns, customer names, and vendor details.")
+    elif data_mode == "quarterly_only":
+        lines.append("NOTE: Your evaluation is based solely on the quarterly income data above.")
+        lines.append("No raw bank statement data is available for this application.")
+    elif data_mode == "aggregate_only":
+        lines.append("NOTE: Only aggregate annual financial data is available.")
+        lines.append("No quarterly breakdown or raw bank statements are available.")
+    elif data_mode == "statements_inline":
+        lines.append("NOTE: The raw 12-month bank statements are provided above for analysis.")
+        lines.append("No pre-computed summaries are available — derive insights from the transactions.")
 
     return "\n".join(lines)
 
@@ -251,7 +275,88 @@ def _format_portfolio_summary(lender: LenderConfig) -> str:
     return "\n".join(lines)
 
 
-def _build_system_prompt(lender: LenderConfig) -> str:
+def _analysis_instructions(data_mode: str) -> str:
+    """Generate mode-specific analysis instructions for the system prompt."""
+    parts = []
+    parts.append("INSTRUCTIONS:")
+    parts.append("Evaluate the loan application below. You must analyze:")
+    parts.append("")
+
+    # 1. CREDITWORTHINESS
+    if data_mode in ("full", "quarterly_only"):
+        parts.append(
+            "1. CREDITWORTHINESS: Review the quarterly income statements carefully.\n"
+            "   - Look at revenue trends across quarters — is revenue growing, flat, or declining?\n"
+            "   - Look at margin trends — are margins stable, expanding, or compressing?\n"
+            "   - Can this business service the debt from free cash flow?"
+        )
+    elif data_mode == "aggregate_only":
+        parts.append(
+            "1. CREDITWORTHINESS: Review the annual financial summary.\n"
+            "   - Are revenue and margins healthy for this sector and business size?\n"
+            "   - Can this business service the debt from free cash flow?\n"
+            "   - Is the requested loan amount reasonable relative to revenue and income?"
+        )
+    else:  # statements_inline
+        parts.append(
+            "1. CREDITWORTHINESS: Analyze the bank statement transactions.\n"
+            "   - Calculate approximate monthly revenue from deposits and expenses from withdrawals\n"
+            "   - Look for revenue trends — are monthly deposits growing, flat, or declining?\n"
+            "   - Can this business service the debt from available cash flow?"
+        )
+
+    # 2. FRAUD DETECTION
+    if data_mode == "full":
+        parts.append(
+            "\n2. FRAUD DETECTION: Use the analyse_bank_statements tool to inspect the raw\n"
+            "   12-month bank statement data. Look for:\n"
+            "   - Deposits from affiliated entities or related parties (circular transfers)\n"
+            "   - Suspiciously round deposit amounts ($50,000, $100,000, $150,000 etc.)\n"
+            "   - Unnaturally consistent monthly totals (real businesses have variance)\n"
+            "   - Revenue concentration — does one customer dominate deposits?"
+        )
+    elif data_mode == "quarterly_only":
+        parts.append(
+            "\n2. FRAUD DETECTION: Based on the quarterly data, look for:\n"
+            "   - Suspiciously stable revenue with no natural quarterly variance\n"
+            "   - Revenue levels that seem implausible for the business type and size\n"
+            "   - Narrative claims that don't align with the financial trends shown"
+        )
+    elif data_mode == "aggregate_only":
+        parts.append(
+            "\n2. FRAUD DETECTION: Based on the limited data available, assess:\n"
+            "   - Whether stated revenue is plausible for the business type and size\n"
+            "   - Whether margins are realistic for the sector\n"
+            "   - Whether the narrative is consistent with the financial summary"
+        )
+    else:  # statements_inline
+        parts.append(
+            "\n2. FRAUD DETECTION: Carefully analyze the raw bank statements for:\n"
+            "   - Deposits from affiliated entities or related parties (circular transfers)\n"
+            "   - Suspiciously round deposit amounts ($50,000, $100,000, $150,000 etc.)\n"
+            "   - Unnaturally consistent monthly totals (real businesses have variance)\n"
+            "   - Revenue concentration — does one customer dominate deposits?"
+        )
+
+    # 3. PORTFOLIO FIT (always the same)
+    parts.append(
+        "\n3. PORTFOLIO FIT: Would this loan breach your sector concentration limits?\n"
+        "   - Consider your existing exposure to this sector\n"
+        "   - Factor in the new loan amount when checking limits"
+    )
+
+    # Tool usage note (only for full mode)
+    if data_mode == "full":
+        parts.append(
+            "\nIMPORTANT: You SHOULD call the analyse_bank_statements tool before making your\n"
+            "decision. The quarterly income statements alone may not reveal fraud patterns\n"
+            "that are visible in the raw transaction data."
+        )
+
+    return "\n".join(parts)
+
+
+def _build_system_prompt(lender: LenderConfig, data_mode: str = "full") -> str:
     """Build the system prompt that defines the lender's persona and guidelines."""
     sector_limits_str = "\n".join(
         f"    - {sector}: max {pct*100:.0f}% of total capital"
@@ -269,28 +374,7 @@ YOUR LENDING GUIDELINES:
 YOUR CURRENT PORTFOLIO:
 {_format_portfolio_summary(lender)}
 
-INSTRUCTIONS:
-Evaluate the loan application below. You must analyze:
-
-1. CREDITWORTHINESS: Review the quarterly income statements carefully.
-   - Look at revenue trends across quarters — is revenue growing, flat, or declining?
-   - Look at margin trends — are margins stable, expanding, or compressing?
-   - Can this business service the debt from free cash flow?
-
-2. FRAUD DETECTION: Use the analyse_bank_statements tool to inspect the raw
-   12-month bank statement data. Look for:
-   - Deposits from affiliated entities or related parties (circular transfers)
-   - Suspiciously round deposit amounts ($50,000, $100,000, $150,000 etc.)
-   - Unnaturally consistent monthly totals (real businesses have variance)
-   - Revenue concentration — does one customer dominate deposits?
-
-3. PORTFOLIO FIT: Would this loan breach your sector concentration limits?
-   - Consider your existing exposure to this sector
-   - Factor in the new loan amount when checking limits
-
-IMPORTANT: You SHOULD call the analyse_bank_statements tool before making your
-decision. The quarterly income statements alone may not reveal fraud patterns
-that are visible in the raw transaction data.
+{_analysis_instructions(data_mode)}
 
 When you are ready to give your final decision, respond with ONLY a valid JSON
 object in exactly this format:
@@ -307,9 +391,9 @@ object in exactly this format:
 Respond with ONLY the JSON when giving your final answer. No other text."""
 
 
-def _build_user_prompt(borrower: Borrower) -> str:
+def _build_user_prompt(borrower: Borrower, data_mode: str = "full") -> str:
     """Build the user prompt containing the borrower's dossier."""
-    return f"Please evaluate the following loan application:\n\n{_format_dossier(borrower)}"
+    return f"Please evaluate the following loan application:\n\n{_format_dossier(borrower, data_mode)}"
 
 
 def _extract_json(text: str) -> dict | None:
@@ -390,15 +474,18 @@ async def evaluate_borrower(
     lender: LenderConfig,
     borrower: Borrower,
     semaphore: asyncio.Semaphore,
+    data_mode: str = "full",
 ) -> LenderDecision:
     """Have a lender LLM evaluate a borrower, with tool-use support.
 
-    The model receives the quarterly income statements upfront and can call
-    ``analyse_bank_statements`` to retrieve the full 12-month transaction
-    data before making its decision.
+    data_mode controls what financial data the model sees:
+    - "full": quarterly income + bank statement tool (default)
+    - "quarterly_only": quarterly income only, no tool
+    - "aggregate_only": annual totals only, no tool
+    - "statements_inline": raw bank statements in prompt, no tool
     """
-    system_prompt = _build_system_prompt(lender)
-    user_prompt = _build_user_prompt(borrower)
+    system_prompt = _build_system_prompt(lender, data_mode)
+    user_prompt = _build_user_prompt(borrower, data_mode)
 
     messages: list[dict] = [
         {"role": "system", "content": system_prompt},
@@ -417,10 +504,10 @@ async def evaluate_borrower(
                     "temperature": 0.3,
                     "max_tokens": 2048,
                 }
-                if round_num < MAX_TOOL_ROUNDS:
+                if round_num < MAX_TOOL_ROUNDS and data_mode == "full":
                     kwargs["tools"] = TOOLS
                 else:
-                    # Force plain text response on the final round
+                    # No tools: either not full mode, or final round
                     pass
 
                 response = await client.chat.completions.create(**kwargs)
@@ -512,11 +599,12 @@ async def run_lender_evaluations(
     lender: LenderConfig,
     borrowers: list[Borrower],
     max_concurrent: int = 5,
+    data_mode: str = "full",
 ) -> list[LenderDecision]:
     """Run all borrower evaluations for a single lender concurrently."""
     semaphore = asyncio.Semaphore(max_concurrent)
     tasks = [
-        evaluate_borrower(client, lender, borrower, semaphore)
+        evaluate_borrower(client, lender, borrower, semaphore, data_mode)
         for borrower in borrowers
     ]
     return await asyncio.gather(*tasks)

@@ -78,8 +78,18 @@ def _check_sector_exposure(lender: LenderConfig, borrower: Borrower) -> tuple[bo
     return actual_pct > limit, actual_pct
 
 
-def _evaluate_mock(lender: LenderConfig, borrower: Borrower) -> LenderDecision:
-    """Simulate an LLM evaluation with quality based on model tier."""
+def _evaluate_mock(
+    lender: LenderConfig, borrower: Borrower, data_mode: str = "full",
+) -> LenderDecision:
+    """Simulate an LLM evaluation with quality based on model tier and data mode.
+
+    Detection rates vary by data_mode because different financial evidence
+    reveals different signals:
+    - Fraud signals (round numbers, circular transfers, unnatural consistency)
+      live in raw bank statements — removing them drops fraud detection sharply.
+    - Bad-business signals (margin compression, revenue decline) are visible in
+      quarterly trends — removing quarterly data drops bad detection.
+    """
     tier = _get_tier(lender.model)
     bid = borrower.id
     lid = lender.id
@@ -89,8 +99,16 @@ def _evaluate_mock(lender: LenderConfig, borrower: Borrower) -> LenderDecision:
     rand2 = _deterministic_rand(lid, bid, "rate")
 
     # === FRAUD DETECTION ===
-    # Large models catch fraud ~95%, medium ~50%, small ~20%
-    fraud_detection_rate = {"large": 0.95, "medium": 0.50, "small": 0.20}[tier]
+    # Rates depend on data_mode: fraud patterns are in raw bank statements
+    if data_mode in ("full", "statements_inline"):
+        # Raw transaction data available — full detection capability
+        fraud_detection_rate = {"large": 0.95, "medium": 0.50, "small": 0.20}[tier]
+    elif data_mode == "quarterly_only":
+        # No raw statements — can only infer from suspiciously stable quarterlies
+        fraud_detection_rate = {"large": 0.30, "medium": 0.15, "small": 0.05}[tier]
+    else:  # aggregate_only
+        # Only annual totals — almost impossible to detect fraud
+        fraud_detection_rate = {"large": 0.10, "medium": 0.05, "small": 0.02}[tier]
     catches_fraud = rand < fraud_detection_rate
 
     if outcome == "fraud" and catches_fraud:
@@ -111,8 +129,18 @@ def _evaluate_mock(lender: LenderConfig, borrower: Borrower) -> LenderDecision:
         )
 
     # === BAD BUSINESS DETECTION ===
-    # Large models catch bad businesses ~85%, medium ~40%, small ~15%
-    bad_detection_rate = {"large": 0.85, "medium": 0.40, "small": 0.15}[tier]
+    # Rates depend on data_mode: bad-business signals are in quarterly trends
+    # (margin compression, revenue decline) and bank statement details
+    # (customer concentration, grant dependency)
+    if data_mode in ("full", "quarterly_only"):
+        # Quarterly trends visible — good detection of margin/revenue issues
+        bad_detection_rate = {"large": 0.85, "medium": 0.40, "small": 0.15}[tier]
+    elif data_mode == "statements_inline":
+        # Raw statements have the data but trends are harder to aggregate
+        bad_detection_rate = {"large": 0.70, "medium": 0.30, "small": 0.10}[tier]
+    else:  # aggregate_only
+        # Only annual totals — can see thin margins but not trends
+        bad_detection_rate = {"large": 0.40, "medium": 0.15, "small": 0.05}[tier]
     catches_bad = _deterministic_rand(lid, bid, "bad") < bad_detection_rate
 
     if outcome == "bad" and catches_bad:
@@ -218,10 +246,11 @@ def _evaluate_mock(lender: LenderConfig, borrower: Borrower) -> LenderDecision:
 def mock_evaluate_all(
     lenders: list[LenderConfig],
     borrowers: list[Borrower],
+    data_mode: str = "full",
 ) -> dict[str, list[LenderDecision]]:
     """Run mock evaluations for all lenders against all borrowers."""
     results = {}
     for lender in lenders:
-        decisions = [_evaluate_mock(lender, b) for b in borrowers]
+        decisions = [_evaluate_mock(lender, b, data_mode) for b in borrowers]
         results[lender.id] = decisions
     return results

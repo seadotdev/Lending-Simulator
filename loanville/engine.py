@@ -26,10 +26,12 @@ class SimulationEngine:
         openrouter_api_key: str = "",
         max_concurrent_per_lender: int = 5,
         mock: bool = False,
+        data_mode: str = "full",
     ):
         self.borrowers = borrowers
         self.lenders = lenders
         self.mock = mock
+        self.data_mode = data_mode
         self.max_concurrent = max_concurrent_per_lender
 
         if not mock:
@@ -62,12 +64,17 @@ class SimulationEngine:
                   f"requesting ${b.dossier.loan_request_amount:,.0f}")
 
         if self.mock:
-            print("\n[MOCK MODE] Simulating LLM evaluations...\n")
-            self.all_decisions = mock_evaluate_all(self.lenders, self.borrowers)
+            print(f"\n[MOCK MODE] Simulating LLM evaluations (data_mode={self.data_mode})...\n")
+            self.all_decisions = mock_evaluate_all(
+                self.lenders, self.borrowers, self.data_mode,
+            )
         else:
             # Run all lenders in parallel via OpenRouter
             tasks = [
-                run_lender_evaluations(self.client, lender, self.borrowers, self.max_concurrent)
+                run_lender_evaluations(
+                    self.client, lender, self.borrowers, self.max_concurrent,
+                    self.data_mode,
+                )
                 for lender in self.lenders
             ]
             print("\nLenders are evaluating applications...\n")

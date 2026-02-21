@@ -78,9 +78,9 @@ def _print_cost_summary() -> None:
                       f"~${projected:.2f}")
 
 
-def _run_single(borrowers, lenders, api_key="", mock=False):
+def _run_single(borrowers, lenders, api_key="", mock=False, data_mode="full"):
     """Run a single simulation and return scores."""
-    engine = SimulationEngine(borrowers, lenders, api_key, mock=mock)
+    engine = SimulationEngine(borrowers, lenders, api_key, mock=mock, data_mode=data_mode)
     asyncio.run(engine.run())
 
     scores = score_lenders(
@@ -123,7 +123,7 @@ def run_compare(mix: str):
     print("\n" + "#" * 70)
     print("#  ROUND 1: FRONTIER MODELS (tool-use capable)")
     print("#" * 70)
-    big_scores = _run_single(borrowers, big_lenders, mock=True)
+    big_scores = _run_single(borrowers, big_lenders, mock=True, data_mode="full")
 
     # --- Round 2: Small / mid-tier models ---
     small_lenders = get_lenders()
@@ -137,7 +137,7 @@ def run_compare(mix: str):
     print("\n\n" + "#" * 70)
     print("#  ROUND 2: SMALL MODELS")
     print("#" * 70)
-    small_scores = _run_single(borrowers, small_lenders, mock=True)
+    small_scores = _run_single(borrowers, small_lenders, mock=True, data_mode="full")
 
     # --- Comparison ---
     print("\n\n" + "=" * 70)
@@ -225,7 +225,7 @@ def run_rotate(api_key: str, mix: str, rounds: int = 3):
             lender.name = f"{base_name} [{short_name}]"
             print(f"  {base_name} -> {model}")
 
-        scores = _run_single(borrowers, lenders, api_key, mock=False)
+        scores = _run_single(borrowers, lenders, api_key, mock=False, data_mode="full")
         all_round_scores.append(scores)
 
     # Summary across rounds
@@ -275,6 +275,10 @@ def main() -> None:
                         help="Number of rotation rounds (default: 3)")
     parser.add_argument("--mix", choices=list(MIX_PRESETS.keys()), default="easy",
                         help="Borrower population mix (default: easy)")
+    parser.add_argument("--data-mode",
+                        choices=["full", "quarterly_only", "aggregate_only", "statements_inline"],
+                        default="full",
+                        help="Financial data presentation mode (default: full)")
     args = parser.parse_args()
 
     if args.compare:
@@ -324,7 +328,7 @@ def main() -> None:
               f"Target Yield: {l.target_yield_pct}%")
 
     clear_usage()
-    _run_single(borrowers, lenders, api_key, mock=mock)
+    _run_single(borrowers, lenders, api_key, mock=mock, data_mode=args.data_mode)
     if not mock:
         _print_cost_summary()
 
