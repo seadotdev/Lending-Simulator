@@ -37,11 +37,15 @@ MODEL_PRICING: dict[str, tuple[float, float]] = {
     "qwen/qwen3-235b-a22b-07-25":      (0.70, 2.80),
     "qwen/qwen3-235b-a22b":            (0.70, 2.80),
     "qwen/qwen3-30b-a3b-04-28":        (0.14, 0.14),
+    "google/gemini-2.0-flash-001":     (0.10, 0.40),
+    "google/gemini-2.5-flash-preview": (0.15, 0.60),
     "z-ai/glm-4.7":                    (0.50, 0.50),
-    "z-ai/glm-5-20260211":             (1.00, 1.00),
     "anthropic/claude-3.5-haiku":       (0.80, 4.00),
     "anthropic/claude-3.5-sonnet":      (3.00, 15.00),
+    "meta-llama/llama-3.3-70b-instruct": (0.10, 0.32),
+    "nvidia/llama-3.3-nemotron-super-49b-v1.5": (0.10, 0.40),
     "meta-llama/llama-3.1-8b-instruct": (0.05, 0.05),
+    "qwen/qwen-2.5-7b-instruct":       (0.05, 0.05),
     "mistralai/mistral-7b-instruct":    (0.05, 0.05),
 }
 

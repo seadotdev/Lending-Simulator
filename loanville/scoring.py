@@ -22,6 +22,7 @@ Key mechanics:
 
 from .models import (
     BookedLoan,
+    Borrower,
     LenderConfig,
     LenderDecision,
     LenderScore,
@@ -90,12 +91,86 @@ def _concentration_penalty_dollars(
     return penalty
 
 
+def calculate_perfect_score(
+    lender: LenderConfig,
+    borrowers: list[Borrower],
+) -> float:
+    """Calculate the theoretical best score if the lender had perfect foresight.
+
+    Assumes the lender:
+    - Approves all good borrowers (that fit within constraints)
+    - Rejects all bad and fraud borrowers
+    - Prices every loan at their target yield
+    - Uses the standard sim horizon as term
+    - Wins every deal (ignores competition — gives an upper bound)
+    """
+    existing_deployed = sum(l.remaining_balance for l in lender.existing_portfolio)
+    available_capital = lender.total_capital - existing_deployed
+
+    # Track sector exposure from existing portfolio
+    sector_exposure: dict[str, float] = {}
+    for loan in lender.existing_portfolio:
+        sector_exposure[loan.sector] = sector_exposure.get(loan.sector, 0) + loan.remaining_balance
+
+    # Greedily fund good borrowers (sorted by loan size descending for max deployment)
+    good_borrowers = [b for b in borrowers if b.true_outcome == "good"]
+    good_borrowers.sort(key=lambda b: b.dossier.loan_request_amount, reverse=True)
+
+    total_interest = 0.0
+    capital_remaining = available_capital
+    rate = lender.target_yield_pct
+    term = SIM_HORIZON_MONTHS
+    monthly_rate = rate / 100.0 / 12.0
+
+    for b in good_borrowers:
+        principal = b.dossier.loan_request_amount
+
+        # Check max single loan
+        if principal > lender.max_single_loan:
+            principal = lender.max_single_loan
+
+        # Check available capital
+        if principal > capital_remaining:
+            continue
+
+        # Check sector concentration limit
+        sector = b.dossier.sector
+        current = sector_exposure.get(sector, 0)
+        limit = lender.sector_limits.get(sector, 0.25)
+        max_allowed = lender.total_capital * limit
+        if current + principal > max_allowed:
+            # Can we do a partial? Skip for simplicity.
+            continue
+
+        # Fund this loan
+        capital_remaining -= principal
+        sector_exposure[sector] = current + principal
+
+        # Calculate interest earned (full amortization at target yield)
+        if monthly_rate > 0:
+            payment = principal * (monthly_rate * (1 + monthly_rate) ** term) / \
+                      ((1 + monthly_rate) ** term - 1)
+            interest = payment * term - principal
+        else:
+            interest = 0.0
+        total_interest += interest
+
+    # Score using same formula as actual scoring
+    net_pnl = total_interest  # No losses, no penalties
+    if available_capital > 0:
+        actual_return_pct = (net_pnl / available_capital) * 100
+        benchmark_pct = RISK_FREE_RATE * (SIM_HORIZON_MONTHS / 12) * 100
+        return actual_return_pct - benchmark_pct
+    return 0.0
+
+
 def score_lenders(
     lenders: list[LenderConfig],
     all_decisions: dict[str, list[LenderDecision]],
     booked_loans: list[BookedLoan],
     loan_outcomes: list[LoanOutcome],
     deal_results: dict[str, dict],
+    borrowers: list[Borrower] | None = None,
 ) -> list[LenderScore]:
     """Calculate final scores for all lenders."""
     scores = []
@@ -168,6 +243,9 @@ def score_lenders(
         fraud_penalty_pct = (fraud_penalty_dollars / available_capital * 100) if available_capital > 0 else 0.0
         concentration_penalty_pct = (concentration_penalty_dollars / available_capital * 100) if available_capital > 0 else 0.0
 
+        # Perfect score (theoretical max with omniscient foresight)
+        perfect = calculate_perfect_score(lender, borrowers) if borrowers else 0.0
+
         scores.append(LenderScore(
             lender_id=lender.id,
             lender_name=lender.name,
@@ -186,6 +264,7 @@ def score_lenders(
             concentration_penalty_pct=concentration_penalty_pct,
             fraud_penalty_pct=fraud_penalty_pct,
             final_adjusted_score=final_score,
+            perfect_score=perfect,
         ))
 
     return scores
@@ -236,6 +315,10 @@ def print_final_report(scores: list[LenderScore]) -> None:
         print(f"    Concentration Penalty: {s.concentration_penalty_pct:>5.1f}% of available capital")
         print(f"  {'='*40}")
         print(f"  SCORE vs BENCHMARK:    {s.final_adjusted_score:>+11.2f}%")
+        if s.perfect_score != 0.0:
+            gap = s.final_adjusted_score - s.perfect_score
+            print(f"  PERFECT SCORE:         {s.perfect_score:>+11.2f}%")
+            print(f"  GAP TO PERFECT:        {gap:>+11.2f}%")
 
     # Winner announcement
     if ranked:

@@ -27,13 +27,14 @@ from .scoring import print_final_report, score_lenders
 # Model rotation pools — cheap frontier models with strong tool-use support
 # ---------------------------------------------------------------------------
 
+# All models verified: ZDR-compatible + tool-use support on OpenRouter
 ROTATION_POOL = [
     "deepseek/deepseek-chat-v3-0324",
     "qwen/qwen3-235b-a22b-07-25",
-    "z-ai/glm-4.7",
-    "anthropic/claude-3.5-haiku",
-    "deepseek/deepseek-chat-v3.1",
+    "meta-llama/llama-3.3-70b-instruct",
+    "nvidia/llama-3.3-nemotron-super-49b-v1.5",
     "qwen/qwen3-30b-a3b-04-28",
+    "meta-llama/llama-3.1-8b-instruct",
 ]
 
 
@@ -88,6 +89,7 @@ def _run_single(borrowers, lenders, api_key="", mock=False):
         engine.booked_loans,
         engine.loan_outcomes,
         engine.deal_results,
+        borrowers=borrowers,
     )
     print_final_report(scores)
     return scores
@@ -115,8 +117,8 @@ def run_compare(mix: str):
     big_lenders[0].name = "Velocity Capital [DeepSeek V3]"
     big_lenders[1].model = "qwen/qwen3-235b-a22b-07-25"
     big_lenders[1].name = "Heritage Trust [Qwen3-235B]"
-    big_lenders[2].model = "z-ai/glm-4.7"
-    big_lenders[2].name = "Meridian Partners [GLM-4.7]"
+    big_lenders[2].model = "meta-llama/llama-3.3-70b-instruct"
+    big_lenders[2].name = "Meridian Partners [Llama-3.3-70B]"
 
     print("\n" + "#" * 70)
     print("#  ROUND 1: FRONTIER MODELS (tool-use capable)")
@@ -127,10 +129,10 @@ def run_compare(mix: str):
     small_lenders = get_lenders()
     small_lenders[0].model = "meta-llama/llama-3.1-8b-instruct"
     small_lenders[0].name = "Velocity Capital [Llama-8B]"
-    small_lenders[1].model = "qwen/qwen-2.5-3b-instruct"
-    small_lenders[1].name = "Heritage Trust [Qwen-3B]"
-    small_lenders[2].model = "mistralai/mistral-7b-instruct"
-    small_lenders[2].name = "Meridian Partners [Mistral-7B]"
+    small_lenders[1].model = "qwen/qwen-2.5-7b-instruct"
+    small_lenders[1].name = "Heritage Trust [Qwen-7B]"
+    small_lenders[2].model = "qwen/qwen3-30b-a3b-04-28"
+    small_lenders[2].name = "Meridian Partners [Qwen3-30B]"
 
     print("\n\n" + "#" * 70)
     print("#  ROUND 2: SMALL MODELS")

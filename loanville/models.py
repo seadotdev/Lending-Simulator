@@ -150,3 +150,4 @@ class LenderScore:
     concentration_penalty_pct: float
     fraud_penalty_pct: float
     final_adjusted_score: float
+    perfect_score: float = 0.0  # Theoretical max if lender had perfect foresight

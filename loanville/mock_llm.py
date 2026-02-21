@@ -28,6 +28,8 @@ MODEL_TIERS = {
     "openai/gpt-4o": "large",
     "google/gemini-pro-1.5": "large",
     "meta-llama/llama-3.1-70b-instruct": "large",
+    "meta-llama/llama-3.3-70b-instruct": "large",
+    "nvidia/llama-3.3-nemotron-super-49b-v1.5": "large",
     "anthropic/claude-3.5-haiku": "large",
     "deepseek/deepseek-chat-v3-0324": "large",
     "deepseek/deepseek-v3.2-20251201": "large",
@@ -35,6 +37,8 @@ MODEL_TIERS = {
     "qwen/qwen3-235b-a22b": "large",
     "qwen/qwen3-235b-a22b-07-25": "large",
     "qwen/qwen3-235b-a22b-thinking-2507": "large",
+    "google/gemini-2.0-flash-001": "large",
+    "google/gemini-2.5-flash-preview": "large",
     "z-ai/glm-5-20260211": "large",
     "z-ai/glm-4.7": "large",
     # Tier 2: Mid-size models - decent but miss subtleties

@@ -912,7 +912,7 @@ def _build_lenders() -> list[LenderConfig]:
                 "and inconsistencies in financial statements. "
                 "You offer competitive terms (18-30 months) with fair interest rates."
             ),
-            model="z-ai/glm-4.7",
+            model="meta-llama/llama-3.3-70b-instruct",
             target_yield_pct=11.0,
             max_single_loan=700000,
             total_capital=3500000,
