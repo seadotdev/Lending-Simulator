@@ -52,7 +52,7 @@ TEST_MODELS = [
 ]
 
 # Borrower IDs: fraud cases are the primary test targets
-FRAUD_IDS = ["BRW-010", "BRW-011", "BRW-012"]
+FRAUD_IDS = ["BRW-010", "BRW-011", "BRW-012", "BRW-018"]
 BAD_IDS = ["BRW-006", "BRW-007"]
 GOOD_IDS = ["BRW-001", "BRW-002"]
 
