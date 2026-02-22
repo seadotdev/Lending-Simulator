@@ -827,8 +827,10 @@ def main():
                         help="Use full 35-model set instead of small models")
     parser.add_argument("--models", type=str, nargs="+", default=None,
                         help="Specific model IDs to include (overrides --full)")
-    parser.add_argument("--sample-borrowers", type=int, default=None,
-                        help="Sample N borrowers per match from the pool (introduces variation)")
+    parser.add_argument("--sample-borrowers", type=int, default=12,
+                        help="Sample N borrowers per match from the pool (default: 12, 0=use all)")
+    parser.add_argument("--no-sample", action="store_true",
+                        help="Disable borrower sampling (use full pool every match)")
     args = parser.parse_args()
 
     if args.standings:
@@ -870,11 +872,15 @@ def main():
             resume_data = json.load(f)
         print(f"Loaded {len(resume_data.get('match_log', []))} previous matches")
 
+    # Resolve sampling: --no-sample disables, --sample-borrowers 0 disables,
+    # otherwise default is 12
+    sample_n = None if args.no_sample or args.sample_borrowers == 0 else args.sample_borrowers
+
     output = run_tournament(
         models, args.matches, args.mix, api_key,
         k=args.k, output_file=args.output,
         resume_data=resume_data,
-        sample_borrowers=args.sample_borrowers,
+        sample_borrowers=sample_n,
     )
 
     _save_results(output, args.output)
