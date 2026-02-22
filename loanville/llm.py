@@ -71,6 +71,8 @@ MODEL_PRICING: dict[str, tuple[float, float]] = {
     "cohere/command-r-08-2024":         (0.15, 0.60),
     "x-ai/grok-3-mini":                (0.30, 0.50),
     "x-ai/grok-4-fast":                (0.20, 0.50),
+    "nvidia/llama-3.1-nemotron-ultra-253b-v1": (0.60, 1.80),
+    "nvidia/llama-3.1-nemotron-70b-instruct": (1.20, 1.20),
     "nvidia/llama-3.3-nemotron-super-49b-v1.5": (0.10, 0.40),
     "google/gemini-2.5-flash-lite":     (0.10, 0.40),
     "openai/gpt-4.1-nano":             (0.10, 0.40),
@@ -92,6 +94,7 @@ MODEL_PRICING: dict[str, tuple[float, float]] = {
     "amazon/nova-lite-v1":              (0.06, 0.24),
     # --- Cheapest ---
     "nvidia/nemotron-3-nano-30b-a3b":   (0.05, 0.20),
+    "nvidia/nemotron-nano-12b-v2-vl":   (0.07, 0.20),
     "qwen/qwen-turbo":                  (0.05, 0.20),
     "mistralai/ministral-14b-2512":     (0.20, 0.20),
     "mistralai/mistral-small-3.2-24b-instruct": (0.06, 0.18),
