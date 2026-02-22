@@ -163,3 +163,5 @@ class LenderScore:
     hard_constraint_penalty_pct: float = 0.0
     # --- Diagnostics ---
     approval_rate: float = 0.0          # Fraction of applications approved
+    deployment_ratio: float = 0.0       # Fraction of available capital deployed
+    volume_penalty_pct: float = 0.0     # Penalty for under-deployment (% of capital)

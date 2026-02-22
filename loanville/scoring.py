@@ -16,11 +16,16 @@ Key mechanics:
     "missed" the risk-free return, giving it a negative relative score.
   - Funding cost: deployed capital incurs a cost-of-funds charge
     (principal x funding_rate x term).  Lending must beat the cost of money.
-  - RAROC: profit is penalized by loss volatility (lambda * sigma * sqrt(n)).
+  - RAROC: profit is penalized by loss volatility (lambda * sigma * n).
     A portfolio with highly variable per-loan outcomes is riskier and scores
-    lower, even if the mean P&L is identical.
-  - Hard constraints: default rate caps and min ROE thresholds act as
-    disqualifiers — breaching them incurs a severe score penalty.
+    lower, even if the mean P&L is identical.  The penalty scales with per-loan
+    sigma, not aggregate portfolio size — avoiding penalizing diversification.
+  - Volume floor: models must deploy at least 20% of available capital.
+    Under-deployment incurs a quadratic penalty, preventing gaming by
+    declining everything to avoid risk.
+  - Hard constraints: default rate caps (30%) and min ROE thresholds act as
+    disqualifiers — breaching them incurs a quadratic penalty that scales
+    with the severity of the violation.
   - Yield drag: loans priced below the lender's target yield incur a
     penalty proportional to the shortfall, penalizing giveaway rates.
   - Fraud penalty: 25% of the fraud loan's principal is deducted on top
@@ -53,13 +58,20 @@ FUNDING_RATE = 0.04
 # Coefficient for loss-volatility penalty: higher = more penalty for variance
 RISK_LAMBDA = 0.5
 
+# --- Volume floor ---
+# Minimum deployment ratio (fraction of available capital).  Models that deploy
+# less than this fraction are penalized proportionally — prevents gaming by
+# declining everything to avoid risk penalties.
+MIN_DEPLOYMENT_RATIO = 0.20  # must deploy >= 20% of available capital
+VOLUME_PENALTY_LAMBDA = 0.5  # penalty = lambda * shortfall^2 * available_capital
+
 # --- Hard constraint thresholds ---
 # If default rate (defaults / deals_won) exceeds this, severe penalty
-MAX_DEFAULT_RATE = 0.50
+MAX_DEFAULT_RATE = 0.30
 # If return on deployed capital is below this threshold, severe penalty
 MIN_ROE_THRESHOLD = -0.10
-# Penalty in percentage points per hard-constraint violation
-HARD_CONSTRAINT_PENALTY_PCT = 5.0
+# Hard constraint penalties scale quadratically with severity of violation
+HARD_CONSTRAINT_BASE_PCT = 5.0  # base penalty in ppt for at-threshold violation
 
 
 # ---------------------------------------------------------------------------
@@ -109,14 +121,16 @@ def compute_loan_payoff(
 
         remaining = principal
         total_interest = 0.0
+        fc = 0.0
         for _ in range(months_paid):
+            # Funding cost on outstanding balance this month
+            fc += remaining * funding_rate / 12.0
             interest_portion = remaining * monthly_rate
             principal_portion = payment - interest_portion
             total_interest += interest_portion
             remaining -= principal_portion
 
         principal_lost = max(0.0, remaining)
-        fc = principal * funding_rate * (months_paid / 12.0)
 
         return {
             "interest_earned": total_interest,
@@ -133,8 +147,18 @@ def compute_loan_payoff(
         total_interest = payment * term_months - principal
     else:
         total_interest = 0.0
+        payment = principal / term_months if term_months > 0 else 0.0
 
-    fc = principal * funding_rate * (term_months / 12.0)
+    # Funding cost on amortizing outstanding balance
+    fc = 0.0
+    remaining = principal
+    for _ in range(term_months):
+        fc += remaining * funding_rate / 12.0
+        if monthly_rate > 0:
+            principal_portion = payment - remaining * monthly_rate
+        else:
+            principal_portion = payment
+        remaining -= principal_portion
 
     return {
         "interest_earned": total_interest,
@@ -265,8 +289,10 @@ def calculate_perfect_score(
             interest = 0.0
         total_interest += interest
 
-    # Compute funding cost for perfect portfolio
-    total_funding_cost = (available_capital - capital_remaining) * FUNDING_RATE * (SIM_HORIZON_MONTHS / 12)
+    # Compute funding cost for perfect portfolio (amortizing)
+    # For simplicity in the theoretical max, use average outstanding balance ≈ principal/2
+    total_deployed = available_capital - capital_remaining
+    total_funding_cost = (total_deployed / 2.0) * FUNDING_RATE * (SIM_HORIZON_MONTHS / 12)
 
     # Score using same formula as actual scoring (no losses, no penalties, no volatility)
     net_pnl = total_interest - total_funding_cost
@@ -326,17 +352,29 @@ def score_lenders(
         existing_deployed = sum(l.remaining_balance for l in lender.existing_portfolio)
         available_capital = lender.total_capital - existing_deployed
 
-        # --- Funding cost ---
-        # Cost of capital deployed across all booked loans
+        # --- Funding cost (on amortizing outstanding balance) ---
         funding_cost_dollars = 0.0
         for loan in lender_loans:
-            # Compute actual months the capital was at work
             outcome = next((o for o in lender_outcomes if o.loan_id == loan.id), None)
+            months_active = loan.term_months
             if outcome:
                 months_active = outcome.months_paid if outcome.defaulted else loan.term_months
+
+            monthly_rate = loan.interest_rate / 100.0 / 12.0
+            if monthly_rate > 0:
+                pmt = loan.principal * (monthly_rate * (1 + monthly_rate) ** loan.term_months) / \
+                      ((1 + monthly_rate) ** loan.term_months - 1)
             else:
-                months_active = loan.term_months
-            funding_cost_dollars += loan.principal * FUNDING_RATE * (months_active / 12.0)
+                pmt = loan.principal / loan.term_months if loan.term_months > 0 else 0.0
+
+            remaining = loan.principal
+            for _ in range(months_active):
+                funding_cost_dollars += remaining * FUNDING_RATE / 12.0
+                if monthly_rate > 0:
+                    principal_portion = pmt - remaining * monthly_rate
+                else:
+                    principal_portion = pmt
+                remaining -= principal_portion
 
         # --- Per-loan profit for volatility computation ---
         per_loan_profits: list[float] = []
@@ -344,7 +382,23 @@ def score_lenders(
             outcome = next((o for o in lender_outcomes if o.loan_id == loan.id), None)
             if outcome:
                 months_active = outcome.months_paid if outcome.defaulted else loan.term_months
-                loan_fc = loan.principal * FUNDING_RATE * (months_active / 12.0)
+                # Amortizing funding cost for this loan
+                loan_mr = loan.interest_rate / 100.0 / 12.0
+                if loan_mr > 0:
+                    loan_pmt = loan.principal * (loan_mr * (1 + loan_mr) ** loan.term_months) / \
+                               ((1 + loan_mr) ** loan.term_months - 1)
+                else:
+                    loan_pmt = loan.principal / loan.term_months if loan.term_months > 0 else 0.0
+                loan_fc = 0.0
+                loan_rem = loan.principal
+                for _ in range(months_active):
+                    loan_fc += loan_rem * FUNDING_RATE / 12.0
+                    if loan_mr > 0:
+                        loan_pp = loan_pmt - loan_rem * loan_mr
+                    else:
+                        loan_pp = loan_pmt
+                    loan_rem -= loan_pp
+
                 loan_fp = loan.principal * 0.25 if outcome.was_fraud else 0.0
                 loan_profit = outcome.total_interest_paid - outcome.principal_lost - loan_fc - loan_fp
                 per_loan_profits.append(loan_profit)
@@ -356,9 +410,18 @@ def score_lenders(
             variance = sum((p - mean_profit) ** 2 for p in per_loan_profits) / (len(per_loan_profits) - 1)
             loss_volatility = math.sqrt(variance)
 
-        # Risk penalty: lambda * sigma * sqrt(n), expressed in dollars
+        # Risk penalty: lambda * sigma (penalizes per-loan outcome variance,
+        # not aggregate portfolio size — avoids penalizing diversification)
         n_loans = len(per_loan_profits)
-        risk_penalty_dollars = RISK_LAMBDA * loss_volatility * math.sqrt(n_loans) if n_loans > 0 else 0.0
+        risk_penalty_dollars = RISK_LAMBDA * loss_volatility * n_loans if n_loans > 0 else 0.0
+
+        # Volume penalty: quadratic penalty for deploying less than the floor
+        deployment_ratio = total_deployed / available_capital if available_capital > 0 else 0.0
+        if deployment_ratio < MIN_DEPLOYMENT_RATIO:
+            shortfall = MIN_DEPLOYMENT_RATIO - deployment_ratio
+            volume_penalty_dollars = VOLUME_PENALTY_LAMBDA * (shortfall ** 2) * available_capital
+        else:
+            volume_penalty_dollars = 0.0
 
         # --- Fraud penalty (extra cost beyond actual loss) ---
         fraud_penalty_dollars = 0.0
@@ -391,7 +454,15 @@ def score_lenders(
                 f"ROE {roe_pct:.1f}% below minimum {MIN_ROE_THRESHOLD*100:.0f}%"
             )
 
-        hard_constraint_penalty_dollars = len(hard_violations) * HARD_CONSTRAINT_PENALTY_PCT / 100.0 * available_capital
+        # Quadratic hard-constraint penalty: scales with severity of violation.
+        # "slightly off" is tolerable; "way off" is crushed.
+        hard_constraint_penalty_dollars = 0.0
+        if deals_won > 0 and default_rate > MAX_DEFAULT_RATE:
+            overshoot = (default_rate - MAX_DEFAULT_RATE) / MAX_DEFAULT_RATE  # relative
+            hard_constraint_penalty_dollars += HARD_CONSTRAINT_BASE_PCT * (1 + overshoot ** 2) / 100.0 * available_capital
+        if total_deployed > 0 and roe_pct < MIN_ROE_THRESHOLD * 100:
+            undershoot = abs(roe_pct - MIN_ROE_THRESHOLD * 100) / 100.0
+            hard_constraint_penalty_dollars += HARD_CONSTRAINT_BASE_PCT * (1 + undershoot ** 2) / 100.0 * available_capital
 
         # --- Final RAROC score ---
         adjusted_pnl = (
@@ -401,6 +472,7 @@ def score_lenders(
             - concentration_penalty_dollars
             - yield_drag
             - risk_penalty_dollars
+            - volume_penalty_dollars
             - hard_constraint_penalty_dollars
         )
 
@@ -416,7 +488,8 @@ def score_lenders(
         fraud_penalty_pct = (fraud_penalty_dollars / available_capital * 100) if available_capital > 0 else 0.0
         concentration_penalty_pct = (concentration_penalty_dollars / available_capital * 100) if available_capital > 0 else 0.0
         risk_penalty_pct = (risk_penalty_dollars / available_capital * 100) if available_capital > 0 else 0.0
-        hard_constraint_penalty_pct = len(hard_violations) * HARD_CONSTRAINT_PENALTY_PCT
+        volume_penalty_pct = (volume_penalty_dollars / available_capital * 100) if available_capital > 0 else 0.0
+        hard_constraint_penalty_pct = (hard_constraint_penalty_dollars / available_capital * 100) if available_capital > 0 else 0.0
 
         # Perfect score (theoretical max with omniscient foresight)
         perfect = calculate_perfect_score(lender, borrowers) if borrowers else 0.0
@@ -452,6 +525,8 @@ def score_lenders(
             hard_constraint_penalty_pct=hard_constraint_penalty_pct,
             # New: Diagnostics
             approval_rate=approval_rate,
+            deployment_ratio=deployment_ratio,
+            volume_penalty_pct=volume_penalty_pct,
         ))
 
     return scores
@@ -472,7 +547,8 @@ def print_final_report(scores: list[LenderScore]) -> None:
     print(f"  Funding rate: {FUNDING_RATE*100:.0f}% | "
           f"Risk lambda: {RISK_LAMBDA} | "
           f"Max default rate: {MAX_DEFAULT_RATE*100:.0f}% | "
-          f"Min ROE: {MIN_ROE_THRESHOLD*100:.0f}%")
+          f"Min ROE: {MIN_ROE_THRESHOLD*100:.0f}% | "
+          f"Min deploy: {MIN_DEPLOYMENT_RATIO*100:.0f}%")
 
     for rank, s in enumerate(ranked, 1):
         print(f"\n{'─' * 60}")
@@ -510,10 +586,13 @@ def print_final_report(scores: list[LenderScore]) -> None:
             print(f"    HARD CONSTRAINT VIOLATIONS:")
             for v in s.hard_constraint_violations:
                 print(f"      !! {v}")
+        print(f"    Deployment Ratio:    {s.deployment_ratio*100:>10.0f}%")
         print(f"  Penalties:")
         print(f"    Fraud Penalty:         {s.fraud_penalty_pct:>5.1f}%")
         print(f"    Concentration Penalty: {s.concentration_penalty_pct:>5.1f}%")
         print(f"    Risk Penalty (RAROC):  {s.risk_penalty_pct:>5.1f}%")
+        if s.volume_penalty_pct > 0:
+            print(f"    Volume Penalty:        {s.volume_penalty_pct:>5.1f}%")
         if s.hard_constraint_penalty_pct > 0:
             print(f"    Hard Constraint Pen:   {s.hard_constraint_penalty_pct:>5.1f}%")
         print(f"  {'='*40}")

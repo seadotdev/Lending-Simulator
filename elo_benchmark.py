@@ -85,42 +85,88 @@ def _compute_per_applicant_payoffs(
     models: list[tuple[str, str]],
     engine: "SimulationEngine",
 ) -> dict[str, dict[str, float]]:
-    """Compute hypothetical per-borrower profit for each model.
+    """Compute competitive per-borrower profit for each model.
 
-    For each (model, borrower) pair:
-      - If model rejected: payoff = 0 (no action)
-      - If model approved: payoff = compute_loan_payoff(terms, true_outcome)
+    Implements a per-borrower allocation rule (winner-takes-deal):
+      1. Each model submits (approve/decline, APR).
+      2. If nobody approves → all get 0 (no deal).
+      3. If one or more approve → borrower takes the lowest APR offer.
+      4. Only the winner gets realized payoff; losers get 0.
+      5. Decline = 0 (distinct from losing a deal you bid on).
 
-    This is used for per-applicant pairwise Elo — it measures what each
-    model *would have* earned on each borrower, independent of who actually
-    won the competitive deal.
+    This makes per-applicant Elo a "market share × profitability" competition,
+    not just parallel-universe underwriting.
+
+    Returns:
+      model_id -> {borrower_id -> payoff}
+      Also includes a "decision" key per borrower for tie-rule logic:
+        "declined", "won", "lost"
     """
     borrower_map = {b.id: b for b in borrowers}
-    payoffs: dict[str, dict[str, float]] = {}  # model_id -> {borrower_id -> profit}
 
+    # First pass: collect all decisions indexed by borrower
+    # model_id -> lender decision for that borrower
+    model_decisions: dict[str, dict[str, "LenderDecision"]] = {}
+    model_id_for_lender: dict[str, str] = {}
     for lender, (model_id, _) in zip(lenders, models):
+        model_id_for_lender[lender.id] = model_id
         decisions = engine.all_decisions.get(lender.id, [])
-        model_payoffs: dict[str, float] = {}
-
+        dec_map = {}
         for d in decisions:
-            b = borrower_map.get(d.borrower_id)
-            if not b:
-                continue
+            dec_map[d.borrower_id] = d
+        model_decisions[model_id] = dec_map
 
-            if d.decision == "APPROVE" and d.term_sheet:
-                result = compute_loan_payoff(
-                    principal=d.term_sheet.loan_amount,
-                    interest_rate=d.term_sheet.interest_rate,
-                    term_months=d.term_sheet.term_months,
-                    true_outcome=b.true_outcome,
-                    months_before_default=b.months_before_default,
-                )
-                model_payoffs[d.borrower_id] = result["net_profit"]
+    payoffs: dict[str, dict[str, float]] = {mid: {} for mid, _ in models}
+    # Also track decision states for Elo tie rules
+    decision_states: dict[str, dict[str, str]] = {mid: {} for mid, _ in models}
+
+    for b in borrowers:
+        bid = b.id
+
+        # Collect approvals with their rates
+        approvals = []  # (model_id, decision, rate)
+        for model_id, _ in models:
+            d = model_decisions[model_id].get(bid)
+            if d and d.decision == "APPROVE" and d.term_sheet:
+                approvals.append((model_id, d, d.term_sheet.interest_rate))
+
+        if not approvals:
+            # Nobody approved — all declined, all get 0
+            for model_id, _ in models:
+                payoffs[model_id][bid] = 0.0
+                decision_states[model_id][bid] = "declined"
+            continue
+
+        # Winner = lowest APR (ties broken by higher loan amount, matching engine.py)
+        approvals.sort(key=lambda x: (x[2], -x[1].term_sheet.loan_amount))
+        winner_model_id, winner_decision, _ = approvals[0]
+
+        # Compute winner's realized payoff
+        result = compute_loan_payoff(
+            principal=winner_decision.term_sheet.loan_amount,
+            interest_rate=winner_decision.term_sheet.interest_rate,
+            term_months=winner_decision.term_sheet.term_months,
+            true_outcome=b.true_outcome,
+            months_before_default=b.months_before_default,
+        )
+
+        for model_id, _ in models:
+            d = model_decisions[model_id].get(bid)
+            if model_id == winner_model_id:
+                payoffs[model_id][bid] = result["net_profit"]
+                decision_states[model_id][bid] = "won"
+            elif d and d.decision == "APPROVE" and d.term_sheet:
+                # Approved but lost the deal — bid cost = 0, but distinct state
+                payoffs[model_id][bid] = 0.0
+                decision_states[model_id][bid] = "lost"
             else:
-                # Rejected — no action, no gain, no loss
-                model_payoffs[d.borrower_id] = 0.0
+                # Declined
+                payoffs[model_id][bid] = 0.0
+                decision_states[model_id][bid] = "declined"
 
-        payoffs[model_id] = model_payoffs
+    # Attach decision_states alongside payoffs for Elo tie-rule logic
+    for model_id, _ in models:
+        payoffs[model_id]["_decision_states"] = decision_states[model_id]
 
     return payoffs
 
@@ -238,9 +284,16 @@ def update_elo(
 ) -> dict[str, float]:
     """Update Elo ratings using per-applicant pairwise comparisons.
 
-    For each borrower, every pair of models is compared on their
-    hypothetical profit for that borrower.  This gives N_borrowers x C(n,2)
-    pairwise signals per match instead of just C(n,2) from the aggregate.
+    For each borrower, every pair of models generates an Elo signal based
+    on competitive outcomes (not hypothetical parallel-universe payoffs).
+
+    Tie rules (per borrower, for models A vs B):
+      - Both declined          → tie (0.5 / 0.5) — neither acted
+      - One won, other declined → winner wins, decliner loses
+      - One won, other lost    → winner wins, loser loses
+      - Both lost (third model won) → tie — neither earned anything
+      - One lost, other declined → tie — neither earned, but losing
+        a deal you bid on is not worse than not bidding
 
     K is scaled so total Elo movement per match stays bounded:
       pair_k = K / ((n-1) * n_borrowers)
@@ -251,10 +304,12 @@ def update_elo(
     if not match_results or "per_applicant_payoffs" not in match_results[0]:
         return update_elo_batch(ratings, match_results, k=k)
 
-    # Collect all borrower IDs (union across all models)
+    # Collect all borrower IDs (union across all models, excluding metadata keys)
     all_borrower_ids: set[str] = set()
     for r in match_results:
-        all_borrower_ids.update(r.get("per_applicant_payoffs", {}).keys())
+        for key in r.get("per_applicant_payoffs", {}):
+            if not key.startswith("_"):
+                all_borrower_ids.add(key)
 
     if not all_borrower_ids:
         return update_elo_batch(ratings, match_results, k=k)
@@ -275,12 +330,43 @@ def update_elo(
                 pi = match_results[i]["per_applicant_payoffs"].get(bid, 0.0)
                 pj = match_results[j]["per_applicant_payoffs"].get(bid, 0.0)
 
-                if pi > pj:
+                # Get decision states for tie-rule logic
+                states_i = match_results[i]["per_applicant_payoffs"].get("_decision_states", {})
+                states_j = match_results[j]["per_applicant_payoffs"].get("_decision_states", {})
+                si = states_i.get(bid, "declined")
+                sj = states_j.get(bid, "declined")
+
+                # Apply tie rules
+                if si == "declined" and sj == "declined":
+                    # Both declined → tie
+                    actual_i, actual_j = 0.5, 0.5
+                elif si == "won" and sj == "won":
+                    # Shouldn't happen (only one winner), but defensive
+                    actual_i, actual_j = 0.5, 0.5
+                elif si == "won":
+                    # i won the deal: compare on realized payoff vs 0
+                    # Winner always "wins" the Elo matchup (even if payoff is
+                    # negative — winning a bad deal is the model's fault)
                     actual_i, actual_j = 1.0, 0.0
-                elif pi == pj:
+                elif sj == "won":
+                    actual_i, actual_j = 0.0, 1.0
+                elif si == "lost" and sj == "lost":
+                    # Both approved but a third model won → tie
+                    actual_i, actual_j = 0.5, 0.5
+                elif si == "lost" and sj == "declined":
+                    # i bid and lost, j didn't bid → tie
+                    # (not bidding is not better or worse than losing)
+                    actual_i, actual_j = 0.5, 0.5
+                elif si == "declined" and sj == "lost":
                     actual_i, actual_j = 0.5, 0.5
                 else:
-                    actual_i, actual_j = 0.0, 1.0
+                    # Fallback: compare on payoff
+                    if pi > pj:
+                        actual_i, actual_j = 1.0, 0.0
+                    elif pi == pj:
+                        actual_i, actual_j = 0.5, 0.5
+                    else:
+                        actual_i, actual_j = 0.0, 1.0
 
                 exp_i = expected_score(ratings[mi], ratings[mj])
                 exp_j = 1.0 - exp_i
