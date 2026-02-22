@@ -556,3 +556,167 @@ Keeping custom tools as bash scripts means they run in the existing `just-bash` 
 4. **Borrower memory:** Should borrowers who were rejected in Week N reappear later (perhaps with updated financials)? This would add a "relationship lending" dimension.
 
 5. **Pi Agent Core availability:** Need to confirm the Pi Agent Core SDK is available and compatible. If not, custom tools can be implemented with a simpler bespoke registry as a v1 fallback.
+
+---
+
+## 11. Future Considerations (Post-v1)
+
+### 11.1 Competitive Refinancing
+
+As a portfolio matures, the most interesting competitive dynamic in real lending is **poaching**: Lender B targets Lender A's best-performing borrowers and offers refinancing at a lower rate. The performing borrower is now a known quantity — the credit risk is proven — so the refinancing lender can rationally offer better terms.
+
+This creates several design tensions:
+
+**The static-financials problem.** Borrower financials are currently predetermined at season start. If Lender B offers a lower rate, that changes the borrower's debt service costs, which should improve their cash flow, which should change their financial profile. But we can't retroactively rewrite the bank statements.
+
+**Recommended approach: treat financials as static, model refinancing as a pure rate/exposure event.**
+
+- A performing loan (6+ months of on-time payments) becomes **refinancing-eligible**
+- Competing lenders see a simplified "refi dossier": sector, original terms, months performing, current balance — but NOT the original bank statements
+- The refinancing decision is: "Given this borrower has performed for N months at X% rate, will I offer Y% to take the loan?"
+- If a refi is accepted, the original lender loses the loan (remaining principal returned to their available capital) and the new lender books it at the new rate
+- The borrower's underlying outcome (good/bad) doesn't change — a "bad" borrower that hasn't defaulted yet can still be refinanced, and will still default at their predetermined month
+
+**Why this is hard but worth exploring:**
+
+| Challenge | Mitigation |
+|---|---|
+| Financials don't reflect the new rate | Treat financials as static; the refi decision is based on payment history, not updated projections |
+| Predetermined defaults create unfair refi traps | Only allow refi on loans past 50% of their `months_before_default` — if it would default at month 6, it's not eligible until month 3 |
+| Adds significant complexity to adjudication | Implement as a separate "refi round" after new origination each week |
+| Scoring becomes circular | Score refi'd loans based on the terms and remaining life under the new lender |
+
+**The strategic depth this adds:** A lender who rejected a borrower in Week 2 might refinance that same borrower from a competitor in Week 6 — at proven-performing terms. This rewards patience and punishes lenders who underprice good deals (their best borrowers get poached).
+
+### 11.2 Phased Pipeline & Bandwidth Management
+
+Currently, all borrowers in a cohort arrive simultaneously and lenders evaluate them all in parallel. In reality, loan applications arrive in a stream, and underwriters must **triage** — deciding where to spend their limited analytical bandwidth.
+
+**The concept: skim vs. deep underwrite as a resource allocation problem.**
+
+#### 11.2.1 Two-Tier Evaluation
+
+Instead of one evaluation phase per borrower, split into two tiers:
+
+```
+TIER 1 — SKIM (cheap, fast)
+  - Lender sees: company name, sector, loan amount, narrative, annual totals
+  - NO quarterly breakdowns, NO bank statement access
+  - Cost: 0 tool calls (pure prompt, single LLM call)
+  - Output: PASS (proceed to deep underwrite) or SKIP (decline to evaluate further)
+
+TIER 2 — DEEP UNDERWRITE (expensive, thorough)
+  - Full dossier: quarterly income + bank statement tools
+  - Cost: N tool calls (as today)
+  - Output: APPROVE with term sheet, or REJECT
+```
+
+**Bandwidth constraint:** Each lender has a maximum number of **deep underwrite slots per week** (e.g., 3 out of 5 available borrowers). This forces triage:
+
+```python
+@dataclass
+class BandwidthConfig:
+    skim_slots: int = -1       # Unlimited skims (they're cheap)
+    deep_uw_slots: int = 3     # Max full underwrite per week
+    # A lender that uses all 3 slots on mediocre deals
+    # misses the great deal that arrived last
+```
+
+#### 11.2.2 Phased Arrival
+
+Borrowers don't all arrive at once. Within a week, they arrive in **phases**:
+
+```
+Week 5:
+  Phase A (Monday):  Borrower 21, Borrower 22  → lenders skim
+  Phase B (Wednesday): Borrower 23, Borrower 24 → lenders skim
+  Phase C (Friday):  Borrower 25              → lenders skim
+
+  After all phases: lenders allocate deep UW slots
+  Then: full evaluation + adjudication
+```
+
+This tests **pipeline management**: do you burn your deep UW slots on the first borrowers you see, or do you wait to see the full pipeline? Waiting is safer but means you might lose a competitive deal to a lender who already deep-underwrote and made an offer.
+
+**The speed-to-offer interaction:** A lender who skims Phase A and immediately deep-underwrites Borrower 21 gets a speed bonus on that deal. A lender who waits until Phase C to decide gets better information but slower offers. This is a genuine strategic trade-off.
+
+#### 11.2.3 Why Phased Arrival Matters for the Benchmark
+
+This moves the benchmark from "can you analyze one dossier well?" toward "can you manage an underwriting desk?" — which is fundamentally a resource allocation problem:
+
+| Decision | Trade-off |
+|---|---|
+| Skim aggressively, deep UW early | Fast offers, but might waste slots on mediocre deals |
+| Skim everything, deep UW selectively | Better selection, but slower offers and risk of losing competitive deals |
+| Build custom tools to make skims more informative | Upfront investment (tool creation cost) for better triage later |
+
+The phased model also creates natural synergy with custom tools: a lender who builds a good skim-stage analytical tool (e.g., `quick_sector_health_check`) can make more informed triage decisions without burning deep UW slots.
+
+### 11.3 Borrower Financial Maturation
+
+A related question to refinancing: should borrower financials change over time?
+
+**The simplest model: static financials, dynamic payment history.**
+
+- Bank statements and quarterly income remain frozen at origination
+- But the season tracks payment history: months performing, total interest paid, any missed payments
+- This payment history is what other lenders see when considering refinancing
+- The underlying outcome (good/bad/fraud) is still predetermined
+
+**A more ambitious model: evolving financials.**
+
+If we procedurally generate borrowers (Phase 4 of implementation), we could also procedurally evolve their financials:
+
+- Good borrowers: revenue grows 2-5% per season quarter, margins stable
+- Bad borrowers: revenue flat or declining, margins compress before default
+- Fraud borrowers: financials remain artificially clean until sudden collapse
+
+This would let lenders do **portfolio monitoring** — reviewing their existing borrowers' updated financials each week and deciding whether to increase exposure (offer more capital) or pull back. But it adds significant complexity to the data generation pipeline and risks making the simulation feel arbitrary if the generation isn't convincing.
+
+**Recommendation: defer to post-v1.** Static financials with dynamic payment history is sufficient for v1 season mode. The payment history alone gives lenders meaningful signals to react to. Evolving financials can be layered on in v2 once the procedural generation pipeline is proven.
+
+### 11.4 How These Features Interact
+
+These three ideas compound each other in interesting ways:
+
+```
+                    Phased Arrival
+                         │
+              "Which deals deserve my bandwidth?"
+                         │
+                    ┌────┴────┐
+                    ▼         ▼
+               Skim Only   Deep UW
+                    │         │
+                    │    ┌────┴────┐
+                    │    ▼         ▼
+                    │  Reject   Approve
+                    │              │
+                    │         Book Loan
+                    │              │
+                    │    ┌────────┴────────┐
+                    │    ▼                 ▼
+                    │  Performing       Defaulting
+                    │    │                 │
+                    │    ▼                 │
+                    │  Refi-eligible       │
+                    │    │                 │
+                    │    ▼                 │
+                    │  Competitor offers   │
+                    │  lower rate          │
+                    │    │                 │
+                    │    ▼                 ▼
+                    │  Loan moves to      Loss realized
+                    │  new lender
+                    │
+                    ▼
+               Missed deal
+          (borrower went to competitor)
+```
+
+**Implementation order if pursued:**
+1. Phased arrival + bandwidth (extends Season v1 naturally)
+2. Refinancing (requires performing loan tracking, which Season v1 already has)
+3. Financial maturation (requires procedural generation pipeline from Phase 4)
+
+Each can be shipped independently. Phased arrival is the highest-impact addition because it transforms the benchmark from "credit analysis" to "underwriting desk management" — a much richer test of agent capability.
