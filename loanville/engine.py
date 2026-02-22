@@ -16,6 +16,8 @@ from .models import (
 )
 from .llm import run_lender_evaluations, get_call_traces, clear_call_traces
 from .mock_llm import mock_evaluate_all
+from .run_schema import UnderwritingRun, build_run
+from .run_logger import RunLogger
 
 
 class SimulationEngine:
@@ -47,6 +49,10 @@ class SimulationEngine:
         self.booked_loans: list[BookedLoan] = []
         self.loan_outcomes: list[LoanOutcome] = []
         self.deal_results: dict[str, dict] = {}  # borrower_id -> adjudication info
+
+        # Flywheel: Run artifacts emitted per (lender, borrower) evaluation
+        self.runs: list[UnderwritingRun] = []
+        self.run_logger: RunLogger | None = None
 
     # ------------------------------------------------------------------
     # Phase 1 & 2: Pipeline Distribution + Underwriting
@@ -108,6 +114,20 @@ class SimulationEngine:
                     json.dump(traces, f, indent=2)
                 print(f"\n  Trace log written to {trace_path} ({len(traces)} calls)")
                 clear_call_traces()
+
+        # Emit UnderwritingRun artifacts for every (lender, borrower) evaluation
+        borrower_map = {b.id: b for b in self.borrowers}
+        for lender in self.lenders:
+            for decision in self.all_decisions.get(lender.id, []):
+                borrower = borrower_map.get(decision.borrower_id)
+                if borrower:
+                    run = build_run(
+                        borrower=borrower,
+                        lender=lender,
+                        decision=decision,
+                        source="simulator",
+                    )
+                    self.runs.append(run)
 
     # ------------------------------------------------------------------
     # Phase 3: Deal Adjudication
@@ -351,6 +371,43 @@ class SimulationEngine:
             self.loan_outcomes.append(outcome)
 
     # ------------------------------------------------------------------
+    # Run artifact finalization
+    # ------------------------------------------------------------------
+    def _finalize_runs(self) -> None:
+        """Attach outcome labels to runs after loan resolution."""
+        # Index outcomes by (lender_id, borrower_id)
+        outcome_map: dict[tuple[str, str], LoanOutcome] = {}
+        for loan in self.booked_loans:
+            outcome = next(
+                (o for o in self.loan_outcomes if o.loan_id == loan.id), None
+            )
+            if outcome:
+                outcome_map[(loan.lender_id, loan.borrower_id)] = outcome
+
+        for run in self.runs:
+            key = (
+                run.policy.params.get("_lender_id", ""),
+                run.case.case_id,
+            )
+            # Try to match by iterating outcomes
+            for (lid, bid), outcome in outcome_map.items():
+                if bid == run.case.case_id and lid in run.policy.policy_id:
+                    run.labels.outcome = {
+                        "defaulted": outcome.defaulted,
+                        "was_fraud": outcome.was_fraud,
+                        "months_paid": outcome.months_paid,
+                        "interest_paid": outcome.total_interest_paid,
+                        "principal_lost": outcome.principal_lost,
+                        "principal_recovered": outcome.principal_recovered,
+                    }
+                    break
+
+        # Log runs if logger is configured
+        if self.run_logger:
+            for run in self.runs:
+                self.run_logger.log(run)
+
+    # ------------------------------------------------------------------
     # Full run
     # ------------------------------------------------------------------
     async def run(self) -> None:
@@ -359,3 +416,4 @@ class SimulationEngine:
         self.adjudicate_deals()
         self.print_booked_ledger()
         self.resolve_loans()
+        self._finalize_runs()
