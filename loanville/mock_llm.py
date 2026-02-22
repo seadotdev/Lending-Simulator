@@ -136,15 +136,34 @@ def _evaluate_mock(
     # Rates depend on data_mode: bad-business signals are in quarterly trends
     # (margin compression, revenue decline) and bank statement details
     # (customer concentration, grant dependency)
-    if data_mode in ("full", "quarterly_only"):
-        # Quarterly trends visible — good detection of margin/revenue issues
-        bad_detection_rate = {"large": 0.85, "medium": 0.40, "small": 0.15}[tier]
-    elif data_mode == "statements_inline":
-        # Raw statements have the data but trends are harder to aggregate
-        bad_detection_rate = {"large": 0.70, "medium": 0.30, "small": 0.10}[tier]
-    else:  # aggregate_only
-        # Only annual totals — can see thin margins but not trends
-        bad_detection_rate = {"large": 0.40, "medium": 0.15, "small": 0.05}[tier]
+    #
+    # Cash-conversion / seasonality businesses (BRW-025 to BRW-028) are a
+    # special case: their quarterly income looks healthy, so the red flags
+    # are ONLY visible in raw bank statement data (monthly deposit/withdrawal
+    # timing, ending balance trends, seasonal cash burn patterns).
+    cash_conversion_ids = {"BRW-025", "BRW-026", "BRW-027", "BRW-028"}
+    is_cash_conversion = bid in cash_conversion_ids
+
+    if is_cash_conversion:
+        # Only detectable from raw bank statements
+        if data_mode in ("full", "statements_inline"):
+            bad_detection_rate = {"large": 0.80, "medium": 0.35, "small": 0.10}[tier]
+        elif data_mode == "quarterly_only":
+            # Quarterly P&L looks fine — nearly undetectable
+            bad_detection_rate = {"large": 0.10, "medium": 0.05, "small": 0.02}[tier]
+        else:  # aggregate_only
+            # Annual totals look great — essentially invisible
+            bad_detection_rate = {"large": 0.05, "medium": 0.02, "small": 0.01}[tier]
+    else:
+        if data_mode in ("full", "quarterly_only"):
+            # Quarterly trends visible — good detection of margin/revenue issues
+            bad_detection_rate = {"large": 0.85, "medium": 0.40, "small": 0.15}[tier]
+        elif data_mode == "statements_inline":
+            # Raw statements have the data but trends are harder to aggregate
+            bad_detection_rate = {"large": 0.70, "medium": 0.30, "small": 0.10}[tier]
+        else:  # aggregate_only
+            # Only annual totals — can see thin margins but not trends
+            bad_detection_rate = {"large": 0.40, "medium": 0.15, "small": 0.05}[tier]
     catches_bad = _deterministic_rand(lid, bid, "bad") < bad_detection_rate
 
     if outcome == "bad" and catches_bad:
@@ -161,6 +180,25 @@ def _evaluate_mock(
             "BRW-009": "Clear declining revenue trend: deposits dropped from $182K to $100K over 12 "
                        "months (-45%). Expenses have not declined proportionally. Business is on a "
                        "trajectory toward negative cash flow.",
+            "BRW-025": "Extreme revenue seasonality: bank statements show deposits ranging from $92K "
+                       "(December) to $335K (July). Five months show withdrawals exceeding deposits "
+                       "by $25-40K. Monthly loan service of ~$18.5K is unsustainable during the "
+                       "off-season cash burn period (November-March).",
+            "BRW-026": "Cash conversion crisis: despite profitable quarterly income, bank statement "
+                       "ending balances erode month-over-month. Deposits barely exceed withdrawals "
+                       "in most months (surplus <$5K in 6 of 12 months). Receivables lag suggests "
+                       "60-90 day collection cycle while payroll obligations are immediate. "
+                       "Insufficient cash cushion to absorb additional debt service.",
+            "BRW-027": "Severe seasonal cash cliff: bank statements reveal near-zero deposits "
+                       "($45-62K) from November through March while fixed costs remain at "
+                       "$112-118K/month. Five consecutive months of $50-70K cash burn exhausts "
+                       "reserves built during peak season. Debt service would accelerate insolvency "
+                       "during winter months.",
+            "BRW-028": "Deteriorating cash conversion cycle: monthly ending balances decline steadily "
+                       "from $145K to sub-$40K over 12 months despite every month showing positive "
+                       "net income on quarterly statements. Supplier payments precede customer "
+                       "collections, creating a widening cash gap. Additional debt service would "
+                       "push working capital negative.",
         }
         return LenderDecision(
             lender_id=lid, borrower_id=bid, decision="REJECT",

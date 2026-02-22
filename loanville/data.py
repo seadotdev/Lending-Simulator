@@ -1,8 +1,10 @@
 """
 Hard-coded borrower dataset and lender configurations.
 
-Contains 12 businesses: 5 good, 4 bad, 3 fraudulent.
+Contains 28 businesses: 10 good, 14 bad (4 standard, 6 over-leverage,
+4 cash-conversion/seasonality), 4 fraudulent.
 Contains 3 lender personas with distinct risk profiles.
+10 mix presets control the good/bad/fraud ratio of each simulation run.
 """
 
 import random
@@ -38,6 +40,8 @@ SECTORS = [
     "Green Energy",
     "Urban Agriculture",
     "Digital Media",
+    "Hospitality Services",
+    "Marine Services",
 ]
 
 
@@ -1147,6 +1151,209 @@ def _build_borrowers() -> list[Borrower]:
         months_before_default=11,
     ))
 
+    # ===== BAD BUSINESSES - CASH CONVERSION / SEASONALITY (4) =====
+    # Legitimate businesses whose quarterly income statements look healthy
+    # (solid revenue, decent margins) but whose bank statements reveal
+    # timing mismatches that make loan service unsustainable.
+    # These are ONLY detectable by analysing raw bank statement data —
+    # quarterly P&L alone looks fine.
+
+    # BAD-CC 1: Summit Event Catering
+    # Annual financials: $2.16M revenue, $1.69M expenses, $472K net (22% margin).
+    # Looks great on paper.  But ~65% of revenue lands in May-September
+    # (wedding/event season) while expenses (staff, facility, insurance) are
+    # nearly flat year-round.  In Nov-Feb, monthly cash burn is $25K-$40K.
+    # Loan service ($400K @ ~10%/24mo ≈ $18.5K/mo) is impossible in off-season
+    # months where deposits are $90-105K but withdrawals are $125-135K.
+    monthly = [
+        (95000, 132000), (98000, 130000), (105000, 128000), (155000, 135000),
+        (245000, 155000), (310000, 170000), (335000, 175000), (290000, 165000),
+        (195000, 148000), (135000, 138000), (102000, 133000), (92000, 131000),
+    ]
+    borrowers.append(Borrower(
+        id="BRW-025",
+        dossier=FinancialDossier(
+            company_name="Summit Event Catering",
+            sector="Hospitality Services",
+            years_in_business=8,
+            annual_revenue=2157000,
+            annual_expenses=1690000,
+            net_income=467000,
+            employee_count=42,
+            bank_statements=_generate_statements(
+                monthly, 110000,
+                ["Grandview Weddings", "Metro Convention Center", "Lakeside Country Club",
+                 "Elite Event Planners", "State Fair Commission"],
+                ["US Foods Wholesale", "Kitchen Staff Payroll", "Facility Lease", "Event Insurance Co"],
+                seed=1025,
+            ),
+            quarterly_income=_build_quarterly_income(monthly),
+            narrative=(
+                "Summit Event Catering is a full-service catering company providing food and "
+                "beverage services for weddings, corporate events, and large-scale gatherings. "
+                "Founded 8 years ago, the company has built a strong reputation and a loyal client "
+                "base. Annual revenue has grown 12% YoY with consistent 22% net margins. The "
+                "company operates from a commercial kitchen facility and maintains relationships "
+                "with premium venues. Seeking capital to build a second prep kitchen to handle "
+                "growing demand and reduce overtime costs during peak months."
+            ),
+            loan_request_amount=400000,
+            loan_purpose="Second commercial prep kitchen buildout",
+        ),
+        true_outcome="bad",
+        months_before_default=9,  # Off-season cash burn makes debt service impossible
+    ))
+
+    # BAD-CC 2: Pinnacle Consulting Group
+    # Annual financials: $2.40M revenue, $1.89M expenses, $510K net (21% margin).
+    # Quarterly income trends show healthy, growing revenue.
+    # But bank statements show a dangerous receivables lag: deposits arrive
+    # 60-90 days after work is performed.  Each month, withdrawals (payroll,
+    # office lease, benefits) hit immediately while deposits are from work
+    # done 2-3 months prior.  The ending balance erodes month-over-month
+    # despite the "profitable" P&L — a classic cash conversion crisis.
+    # Key pattern: expenses ramp up as the firm scales (new hires, office),
+    # but collections lag 2-3 months behind.  By Q4, monthly withdrawals
+    # consistently exceed deposits and the balance bleeds out.
+    monthly = [
+        (165000, 155000), (168000, 158000), (162000, 162000), (170000, 168000),
+        (166000, 172000), (175000, 178000), (172000, 182000), (180000, 188000),
+        (176000, 192000), (185000, 196000), (182000, 198000), (190000, 202000),
+    ]
+    borrowers.append(Borrower(
+        id="BRW-026",
+        dossier=FinancialDossier(
+            company_name="Pinnacle Consulting Group",
+            sector="Professional Services",
+            years_in_business=10,
+            annual_revenue=2391000,
+            annual_expenses=1889000,
+            net_income=502000,
+            employee_count=35,
+            bank_statements=_generate_statements(
+                monthly, 95000,
+                ["Nationwide Insurance Corp", "Regional Health Authority", "Pacific Gas & Electric",
+                 "First Republic Bank", "County of San Mateo"],
+                ["Senior Consultant Payroll", "Office Lease - Downtown", "Benefits & Insurance",
+                 "Travel & Expenses"],
+                seed=1026,
+            ),
+            quarterly_income=_build_quarterly_income(monthly),
+            narrative=(
+                "Pinnacle Consulting Group provides management consulting and operational "
+                "improvement services to mid-market enterprises and government agencies. The "
+                "company has a 10-year track record with 90% client retention. Revenue has "
+                "grown steadily with 21% net margins. The team includes 25 senior consultants "
+                "with deep domain expertise. Clients include Fortune 1000 companies and "
+                "municipal governments. Seeking capital to hire 8 additional consultants and "
+                "open a second office to serve a newly awarded state government contract."
+            ),
+            loan_request_amount=350000,
+            loan_purpose="Hiring and second office buildout for state contract",
+        ),
+        true_outcome="bad",
+        months_before_default=11,  # Cash gap widens until debt service fails
+    ))
+
+    # BAD-CC 3: Evergreen Landscape Architecture
+    # Annual financials: $1.88M revenue, $1.49M expenses, $394K net (21% margin).
+    # Looks like a solid, profitable business.
+    # Bank statements tell a different story: revenue is almost entirely
+    # concentrated in April-October (construction season).  Nov-March deposits
+    # drop to $45-65K/mo while fixed costs (office, insurance, key staff retention)
+    # remain at $110-120K/mo.  The company burns $50-70K/mo for 5 months straight.
+    # Even with peak-season surplus, the winter cash hole is too deep to also
+    # service debt.
+    monthly = [
+        (55000, 118000), (48000, 115000), (62000, 112000), (185000, 130000),
+        (250000, 148000), (290000, 160000), (310000, 168000), (285000, 158000),
+        (215000, 142000), (115000, 125000), (45000, 116000), (52000, 114000),
+    ]
+    borrowers.append(Borrower(
+        id="BRW-027",
+        dossier=FinancialDossier(
+            company_name="Evergreen Landscape Architecture",
+            sector="Construction Services",
+            years_in_business=11,
+            annual_revenue=1912000,
+            annual_expenses=1506000,
+            net_income=406000,
+            employee_count=28,
+            bank_statements=_generate_statements(
+                monthly, 130000,
+                ["Toll Brothers Development", "City of Portland Parks", "Marriott Properties",
+                 "Stanford University Facilities", "Vulcan Real Estate"],
+                ["Nursery & Materials Supply", "Crew Payroll", "Office & Insurance", "Equipment Lease"],
+                seed=1027,
+            ),
+            quarterly_income=_build_quarterly_income(monthly),
+            narrative=(
+                "Evergreen Landscape Architecture designs and installs commercial landscaping "
+                "for property developers, municipalities, and hospitality groups. The company "
+                "has won multiple design awards and maintains long-term maintenance contracts "
+                "with several institutional clients. Revenue has been stable with 21% net "
+                "margins over the last 3 years. The team includes licensed landscape architects "
+                "and certified arborists. Seeking capital to purchase a fleet of specialized "
+                "equipment to reduce subcontractor costs on large installation projects."
+            ),
+            loan_request_amount=300000,
+            loan_purpose="Specialized landscaping equipment fleet purchase",
+        ),
+        true_outcome="bad",
+        months_before_default=8,  # Winter cash burn makes debt service impossible
+    ))
+
+    # BAD-CC 4: Tidewater Marine Supply
+    # Reported (accrual) financials: $2.94M revenue, $2.50M expenses, $438K net
+    # income (15% margin).  Looks great on paper.
+    # But bank statements (cash basis) tell a different story: the company pays
+    # suppliers on delivery while customers pay net-60.  Cash deposits total only
+    # $2.72M vs cash withdrawals of $2.71M — the $220K gap between accrual
+    # revenue and cash receipts is trapped in receivables.  Deposits are flat
+    # while withdrawals grow steadily as the company scales to fulfil orders
+    # it hasn't collected on yet.  By H2, monthly withdrawals exceed deposits
+    # in 7 of 8 months and the ending balance erodes from $145K toward zero.
+    # New debt service accelerates the balance death spiral.
+    monthly = [
+        (230000, 195000), (225000, 205000), (222000, 210000), (228000, 218000),
+        (220000, 222000), (232000, 228000), (225000, 232000), (230000, 238000),
+        (222000, 235000), (228000, 240000), (225000, 242000), (230000, 248000),
+    ]
+    borrowers.append(Borrower(
+        id="BRW-028",
+        dossier=FinancialDossier(
+            company_name="Tidewater Marine Supply",
+            sector="Marine Services",
+            years_in_business=14,
+            annual_revenue=2936000,
+            annual_expenses=2498000,
+            net_income=438000,
+            employee_count=38,
+            bank_statements=_generate_statements(
+                monthly, 145000,
+                ["Atlantic Boatworks", "Cape Fear Marina Group", "Navy Federal Contracts",
+                 "SeaTow Commercial", "Chesapeake Bay Fisheries"],
+                ["Pacific Marine Wholesale", "Dockside Warehouse Rent", "Freight & Logistics",
+                 "Marine Staff Payroll"],
+                seed=1028,
+            ),
+            quarterly_income=_build_quarterly_income(monthly),
+            narrative=(
+                "Tidewater Marine Supply distributes marine parts, equipment, and safety gear "
+                "to commercial fishing operations, marinas, and naval maintenance contractors. "
+                "The company has operated for 14 years with an established supplier network in "
+                "East Asia and domestic manufacturing. Revenue has grown 8% annually and the "
+                "company holds GSA Schedule contracts for naval supply. Seeking capital to "
+                "expand inventory and add a West Coast distribution point to serve Pacific "
+                "fleet contracts."
+            ),
+            loan_request_amount=450000,
+            loan_purpose="West Coast distribution center and inventory expansion",
+        ),
+        true_outcome="bad",
+        months_before_default=10,  # Cash conversion gap widens until default
+    ))
+
     return borrowers
 
 
@@ -1182,6 +1389,9 @@ def _build_lenders() -> list[LenderConfig]:
                 "Enterprise SaaS": 0.30,
                 "Food Distribution": 0.25,
                 "Legal Technology": 0.25,
+                "Hospitality Services": 0.25,
+                "Professional Services": 0.25,
+                "Marine Services": 0.25,
             },
             existing_portfolio=[
                 ExistingLoan("QuantumCore Inc", "Quantum Computing", 400000, 320000, 12.0, 18),
@@ -1218,6 +1428,9 @@ def _build_lenders() -> list[LenderConfig]:
                 "Enterprise SaaS": 0.20,
                 "Food Distribution": 0.25,
                 "Legal Technology": 0.25,
+                "Hospitality Services": 0.25,
+                "Professional Services": 0.25,
+                "Marine Services": 0.25,
             },
             existing_portfolio=[
                 ExistingLoan("SkyBridge Freight", "Aero-Logistics", 500000, 420000, 7.5, 24),
@@ -1254,6 +1467,9 @@ def _build_lenders() -> list[LenderConfig]:
                 "Enterprise SaaS": 0.25,
                 "Food Distribution": 0.25,
                 "Legal Technology": 0.25,
+                "Hospitality Services": 0.25,
+                "Professional Services": 0.25,
+                "Marine Services": 0.25,
             },
             existing_portfolio=[
                 ExistingLoan("SynthWave Labs", "Bio-Synthetics", 400000, 340000, 10.0, 22),
@@ -1297,7 +1513,9 @@ MIX_PRESETS: dict[str, dict[str, list[str]]] = {
     "all": {
         "good":  ["BRW-001", "BRW-002", "BRW-003", "BRW-004", "BRW-005",
                    "BRW-013", "BRW-014", "BRW-015", "BRW-016", "BRW-017"],
-        "bad":   ["BRW-006", "BRW-007", "BRW-008", "BRW-009"],
+        "bad":   ["BRW-006", "BRW-007", "BRW-008", "BRW-009",
+                   "BRW-019", "BRW-020", "BRW-021", "BRW-022", "BRW-023", "BRW-024",
+                   "BRW-025", "BRW-026", "BRW-027", "BRW-028"],
         "fraud": ["BRW-010", "BRW-011", "BRW-012", "BRW-018"],
     },
     # 16 borrowers, 0 fraud — pure financial analysis benchmark.
@@ -1334,8 +1552,31 @@ MIX_PRESETS: dict[str, dict[str, list[str]]] = {
     "stress": {
         "good":  ["BRW-001", "BRW-003", "BRW-005", "BRW-013", "BRW-015"],
         "bad":   ["BRW-006", "BRW-007", "BRW-009",
-                   "BRW-019", "BRW-020", "BRW-021", "BRW-023", "BRW-024"],
+                   "BRW-019", "BRW-020", "BRW-021", "BRW-023", "BRW-024",
+                   "BRW-025", "BRW-026", "BRW-027", "BRW-028"],
         "fraud": ["BRW-010", "BRW-011", "BRW-012", "BRW-018"],
+    },
+    # ~80% good, ~13% bad, ~7% fraud — realistic commercial lending pipeline.
+    # Most real portfolios are 75-85% performing loans.  Bad outcomes are
+    # a mix of standard red flags and subtle cash-conversion issues.
+    # Only 1 fraud in the pool — reflecting real-world fraud incidence rates.
+    "realistic": {
+        "good":  ["BRW-001", "BRW-002", "BRW-003", "BRW-004", "BRW-005",
+                   "BRW-013", "BRW-014", "BRW-015", "BRW-016", "BRW-017"],
+        "bad":   ["BRW-007", "BRW-025"],
+        "fraud": ["BRW-011"],
+    },
+    # Cash-flow analysis benchmark: good financials with hidden cash-timing
+    # bombs.  All bad businesses have healthy quarterly P&L but their bank
+    # statements reveal seasonality, slow cash conversion, or working-capital
+    # death spirals.  Models MUST analyse raw bank statement data to detect
+    # these — quarterly income alone will miss every one.
+    # Tests whether models go beyond P&L and actually read cash-flow patterns.
+    "cashflow": {
+        "good":  ["BRW-001", "BRW-002", "BRW-003", "BRW-005",
+                   "BRW-013", "BRW-014", "BRW-015", "BRW-016", "BRW-017"],
+        "bad":   ["BRW-025", "BRW-026", "BRW-027", "BRW-028"],
+        "fraud": [],
     },
 }
 
