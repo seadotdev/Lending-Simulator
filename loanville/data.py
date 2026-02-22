@@ -1,7 +1,7 @@
 """
 Hard-coded borrower dataset and lender configurations.
 
-Contains 28 businesses: 10 good, 14 bad (4 standard, 6 over-leverage,
+Contains 36 businesses: 18 good, 14 bad (4 standard, 6 over-leverage,
 4 cash-conversion/seasonality), 4 fraudulent.
 Contains 3 lender personas with distinct risk profiles.
 10 mix presets control the good/bad/fraud ratio of each simulation run.
@@ -42,6 +42,13 @@ SECTORS = [
     "Digital Media",
     "Hospitality Services",
     "Marine Services",
+    "Print Services",
+    "Healthcare Services",
+    "Furniture Manufacturing",
+    "Education Services",
+    "Auto Parts Distribution",
+    "IT Services",
+    "Property Services",
 ]
 
 
@@ -581,6 +588,306 @@ def _build_borrowers() -> list[Borrower]:
             ),
             loan_request_amount=300000,
             loan_purpose="AI document review module development",
+        ),
+        true_outcome="good",
+    ))
+
+    # GOOD 11: Metro Print & Design - established commercial printing
+    monthly = [
+        (142000, 105000), (145000, 107000), (148000, 109000), (150000, 110000),
+        (152000, 112000), (155000, 114000), (158000, 116000), (160000, 118000),
+        (162000, 119000), (164000, 120000), (166000, 122000), (168000, 124000),
+    ]
+    borrowers.append(Borrower(
+        id="BRW-029",
+        dossier=FinancialDossier(
+            company_name="Metro Print & Design",
+            sector="Print Services",
+            years_in_business=18,
+            annual_revenue=1870000,
+            annual_expenses=1376000,
+            net_income=494000,
+            employee_count=24,
+            bank_statements=_generate_statements(
+                monthly, 115000,
+                ["Marriott Hotel Group", "City Convention Bureau", "Regional Bank Marketing",
+                 "University Press Office"],
+                ["Paper & Ink Supply Co", "Press Maintenance Corp", "Print Staff Payroll"],
+                seed=1029,
+            ),
+            quarterly_income=_build_quarterly_income(monthly),
+            narrative=(
+                "Metro Print & Design provides large-format printing, marketing collateral, "
+                "and packaging solutions for hospitality, banking, and education clients. "
+                "Operating for 18 years, the company has invested in modern digital presses "
+                "that reduced waste by 40%. Revenue grows 6% annually with 26% margins. "
+                "Seeking capital to add a UV flatbed printer for rigid substrate work."
+            ),
+            loan_request_amount=250000,
+            loan_purpose="UV flatbed printer acquisition",
+        ),
+        true_outcome="good",
+    ))
+
+    # GOOD 12: Cascade Physical Therapy - multi-location PT clinics
+    monthly = [
+        (178000, 128000), (182000, 130000), (185000, 132000), (188000, 134000),
+        (190000, 136000), (192000, 137000), (195000, 139000), (198000, 141000),
+        (200000, 143000), (202000, 145000), (205000, 147000), (208000, 149000),
+    ]
+    borrowers.append(Borrower(
+        id="BRW-030",
+        dossier=FinancialDossier(
+            company_name="Cascade Physical Therapy",
+            sector="Healthcare Services",
+            years_in_business=9,
+            annual_revenue=2323000,
+            annual_expenses=1661000,
+            net_income=662000,
+            employee_count=38,
+            bank_statements=_generate_statements(
+                monthly, 140000,
+                ["BlueCross BlueShield", "Aetna PT Network", "Workers Comp Board",
+                 "Medicare Regional", "Self-Pay Patients"],
+                ["Therapist Payroll", "Clinic Lease - Eastside", "Medical Equipment Lease"],
+                seed=1030,
+            ),
+            quarterly_income=_build_quarterly_income(monthly),
+            narrative=(
+                "Cascade Physical Therapy operates three outpatient PT clinics with a "
+                "referral network of 40+ orthopedic surgeons. Patient volumes grow 10% "
+                "annually driven by an aging population and post-surgical rehab demand. "
+                "Reimbursement rates are locked via multi-year payer contracts. Net margins "
+                "are 28%. Seeking capital to open a fourth clinic in a high-demand suburb."
+            ),
+            loan_request_amount=350000,
+            loan_purpose="Fourth clinic location buildout and staffing",
+        ),
+        true_outcome="good",
+    ))
+
+    # GOOD 13: Heritage Woodworking - custom commercial furniture
+    monthly = [
+        (115000, 82000), (118000, 84000), (120000, 85000), (122000, 86000),
+        (125000, 88000), (128000, 90000), (130000, 92000), (132000, 93000),
+        (135000, 95000), (138000, 96000), (140000, 98000), (142000, 100000),
+    ]
+    borrowers.append(Borrower(
+        id="BRW-031",
+        dossier=FinancialDossier(
+            company_name="Heritage Woodworking",
+            sector="Furniture Manufacturing",
+            years_in_business=14,
+            annual_revenue=1545000,
+            annual_expenses=1089000,
+            net_income=456000,
+            employee_count=20,
+            bank_statements=_generate_statements(
+                monthly, 88000,
+                ["Restoration Hardware Trade", "Boutique Hotel Supply Co",
+                 "Architectural Interiors LLC", "Custom Home Builders Assoc"],
+                ["Hardwood Lumber Direct", "Finishing Supply Co", "Workshop Lease"],
+                seed=1031,
+            ),
+            quarterly_income=_build_quarterly_income(monthly),
+            narrative=(
+                "Heritage Woodworking crafts custom commercial furniture for boutique "
+                "hotels, high-end restaurants, and architectural firms. The company has a "
+                "14-year reputation for quality with a 6-month order backlog. Revenue grows "
+                "steadily through word-of-mouth referrals with 30% net margins. Seeking "
+                "capital to add a CNC router and expand the workshop for larger commissions."
+            ),
+            loan_request_amount=200000,
+            loan_purpose="CNC router and workshop expansion",
+        ),
+        true_outcome="good",
+    ))
+
+    # GOOD 14: Brightpath Tutoring - education services chain
+    monthly = [
+        (98000, 68000), (100000, 69000), (102000, 70000), (105000, 72000),
+        (108000, 74000), (110000, 75000), (112000, 76000), (115000, 78000),
+        (118000, 80000), (120000, 82000), (122000, 83000), (125000, 85000),
+    ]
+    borrowers.append(Borrower(
+        id="BRW-032",
+        dossier=FinancialDossier(
+            company_name="Brightpath Tutoring Centers",
+            sector="Education Services",
+            years_in_business=7,
+            annual_revenue=1335000,
+            annual_expenses=912000,
+            net_income=423000,
+            employee_count=32,
+            bank_statements=_generate_statements(
+                monthly, 72000,
+                ["Parent Direct Pay", "School District Partnership", "SAT Prep Program",
+                 "Corporate Education Benefits"],
+                ["Tutor Payroll", "Center Lease - North", "Center Lease - South"],
+                seed=1032,
+            ),
+            quarterly_income=_build_quarterly_income(monthly),
+            narrative=(
+                "Brightpath Tutoring Centers operates two locations offering K-12 tutoring, "
+                "SAT/ACT prep, and corporate-sponsored employee education programs. Revenue "
+                "is 60% recurring subscriptions with 32% margins. A school district contract "
+                "provides stable base revenue. Seeking capital to open a third location and "
+                "launch an online tutoring platform."
+            ),
+            loan_request_amount=175000,
+            loan_purpose="Third location and online platform development",
+        ),
+        true_outcome="good",
+    ))
+
+    # GOOD 15: Granite State Auto Parts - regional auto parts distribution
+    monthly = [
+        (225000, 168000), (228000, 170000), (230000, 172000), (232000, 174000),
+        (235000, 175000), (238000, 177000), (240000, 178000), (242000, 180000),
+        (245000, 182000), (248000, 184000), (250000, 186000), (252000, 188000),
+    ]
+    borrowers.append(Borrower(
+        id="BRW-033",
+        dossier=FinancialDossier(
+            company_name="Granite State Auto Parts",
+            sector="Auto Parts Distribution",
+            years_in_business=16,
+            annual_revenue=2865000,
+            annual_expenses=2134000,
+            net_income=731000,
+            employee_count=30,
+            bank_statements=_generate_statements(
+                monthly, 165000,
+                ["AutoZone Regional", "NAPA Distribution Center", "Fleet Service Depot",
+                 "Independent Garage Network", "State DOT Fleet Maintenance"],
+                ["OEM Parts Wholesale", "Warehouse Operations", "Delivery Fleet Fuel"],
+                seed=1033,
+            ),
+            quarterly_income=_build_quarterly_income(monthly),
+            narrative=(
+                "Granite State Auto Parts distributes OEM and aftermarket auto parts to "
+                "retail chains, independent garages, and government fleet operations across "
+                "New England. The company has operated for 16 years with a 98% order fill "
+                "rate. Revenue grows 5% annually with 26% margins. A recent state DOT "
+                "contract added predictable recurring revenue. Seeking capital to expand "
+                "warehouse capacity and add delivery routes."
+            ),
+            loan_request_amount=350000,
+            loan_purpose="Warehouse expansion and delivery fleet addition",
+        ),
+        true_outcome="good",
+    ))
+
+    # GOOD 16: Silverline HVAC - commercial HVAC services
+    monthly = [
+        (155000, 112000), (158000, 114000), (162000, 116000), (168000, 120000),
+        (175000, 125000), (182000, 130000), (188000, 134000), (185000, 132000),
+        (178000, 128000), (170000, 122000), (162000, 118000), (158000, 115000),
+    ]
+    borrowers.append(Borrower(
+        id="BRW-034",
+        dossier=FinancialDossier(
+            company_name="Silverline HVAC Services",
+            sector="Construction Services",
+            years_in_business=12,
+            annual_revenue=2041000,
+            annual_expenses=1466000,
+            net_income=575000,
+            employee_count=35,
+            bank_statements=_generate_statements(
+                monthly, 108000,
+                ["Property Management Alliance", "Hospital Facilities Dept",
+                 "School District Maintenance", "Commercial Realty Group"],
+                ["HVAC Parts Wholesale", "Technician Payroll", "Fleet & Insurance"],
+                seed=1034,
+            ),
+            quarterly_income=_build_quarterly_income(monthly),
+            narrative=(
+                "Silverline HVAC Services provides commercial heating, ventilation, and air "
+                "conditioning installation and maintenance. The company holds maintenance "
+                "contracts with hospitals, schools, and commercial property managers. Revenue "
+                "is mildly seasonal (summer peak) but 55% comes from recurring maintenance "
+                "contracts. Net margins are 28%. Seeking capital for inventory and two "
+                "additional service vans to support new hospital contracts."
+            ),
+            loan_request_amount=225000,
+            loan_purpose="Inventory and fleet expansion for hospital contracts",
+        ),
+        true_outcome="good",
+    ))
+
+    # GOOD 17: Clearwater IT Services - managed IT services
+    monthly = [
+        (148000, 102000), (150000, 104000), (152000, 105000), (155000, 107000),
+        (158000, 109000), (160000, 110000), (162000, 112000), (165000, 114000),
+        (168000, 116000), (170000, 118000), (172000, 119000), (175000, 121000),
+    ]
+    borrowers.append(Borrower(
+        id="BRW-035",
+        dossier=FinancialDossier(
+            company_name="Clearwater IT Services",
+            sector="IT Services",
+            years_in_business=8,
+            annual_revenue=1935000,
+            annual_expenses=1337000,
+            net_income=598000,
+            employee_count=26,
+            bank_statements=_generate_statements(
+                monthly, 120000,
+                ["Regional Credit Union", "Law Firm Consortium", "Medical Practice Group",
+                 "County Government IT", "Manufacturing Co-op"],
+                ["Cloud Infrastructure Costs", "Engineer Payroll", "Office & Licensing"],
+                seed=1035,
+            ),
+            quarterly_income=_build_quarterly_income(monthly),
+            narrative=(
+                "Clearwater IT Services provides managed IT support, cybersecurity, and "
+                "cloud migration for small and mid-size businesses. Revenue is 85% recurring "
+                "monthly contracts with 31% net margins. Client churn is under 5% annually. "
+                "The company recently achieved SOC 2 Type II certification, opening access to "
+                "regulated industries. Seeking capital to hire security engineers and expand "
+                "the managed detection & response practice."
+            ),
+            loan_request_amount=275000,
+            loan_purpose="Security engineering team expansion",
+        ),
+        true_outcome="good",
+    ))
+
+    # GOOD 18: Redstone Property Maintenance - commercial property services
+    monthly = [
+        (132000, 95000), (135000, 97000), (138000, 98000), (140000, 100000),
+        (142000, 101000), (145000, 103000), (148000, 105000), (150000, 107000),
+        (152000, 108000), (155000, 110000), (158000, 112000), (160000, 114000),
+    ]
+    borrowers.append(Borrower(
+        id="BRW-036",
+        dossier=FinancialDossier(
+            company_name="Redstone Property Maintenance",
+            sector="Property Services",
+            years_in_business=10,
+            annual_revenue=1755000,
+            annual_expenses=1250000,
+            net_income=505000,
+            employee_count=45,
+            bank_statements=_generate_statements(
+                monthly, 98000,
+                ["Simon Property Group", "Brookfield Asset Mgmt", "CBRE Facilities",
+                 "Prologis Warehouse Division", "Lincoln Property Co"],
+                ["Crew Payroll", "Equipment & Supplies", "Vehicle Fleet Lease"],
+                seed=1036,
+            ),
+            quarterly_income=_build_quarterly_income(monthly),
+            narrative=(
+                "Redstone Property Maintenance provides janitorial, grounds keeping, and "
+                "facility maintenance to commercial real estate firms managing office parks, "
+                "shopping centers, and industrial warehouses. Revenue is 95% recurring via "
+                "annual service contracts with automatic renewals. Net margins are 29%. "
+                "Client retention exceeds 92%. Seeking capital to acquire a competitor's "
+                "contract book covering 12 additional properties."
+            ),
+            loan_request_amount=300000,
+            loan_purpose="Competitor contract book acquisition",
         ),
         true_outcome="good",
     ))
@@ -1392,6 +1699,13 @@ def _build_lenders() -> list[LenderConfig]:
                 "Hospitality Services": 0.25,
                 "Professional Services": 0.25,
                 "Marine Services": 0.25,
+                "Print Services": 0.25,
+                "Healthcare Services": 0.25,
+                "Furniture Manufacturing": 0.25,
+                "Education Services": 0.25,
+                "Auto Parts Distribution": 0.25,
+                "IT Services": 0.30,
+                "Property Services": 0.25,
             },
             existing_portfolio=[
                 ExistingLoan("QuantumCore Inc", "Quantum Computing", 400000, 320000, 12.0, 18),
@@ -1431,6 +1745,13 @@ def _build_lenders() -> list[LenderConfig]:
                 "Hospitality Services": 0.25,
                 "Professional Services": 0.25,
                 "Marine Services": 0.25,
+                "Print Services": 0.20,
+                "Healthcare Services": 0.30,
+                "Furniture Manufacturing": 0.20,
+                "Education Services": 0.25,
+                "Auto Parts Distribution": 0.25,
+                "IT Services": 0.20,
+                "Property Services": 0.30,
             },
             existing_portfolio=[
                 ExistingLoan("SkyBridge Freight", "Aero-Logistics", 500000, 420000, 7.5, 24),
@@ -1470,6 +1791,13 @@ def _build_lenders() -> list[LenderConfig]:
                 "Hospitality Services": 0.25,
                 "Professional Services": 0.25,
                 "Marine Services": 0.25,
+                "Print Services": 0.25,
+                "Healthcare Services": 0.25,
+                "Furniture Manufacturing": 0.25,
+                "Education Services": 0.25,
+                "Auto Parts Distribution": 0.25,
+                "IT Services": 0.25,
+                "Property Services": 0.25,
             },
             existing_portfolio=[
                 ExistingLoan("SynthWave Labs", "Bio-Synthetics", 400000, 340000, 10.0, 22),
@@ -1512,7 +1840,9 @@ MIX_PRESETS: dict[str, dict[str, list[str]]] = {
     # Full pool — everything
     "all": {
         "good":  ["BRW-001", "BRW-002", "BRW-003", "BRW-004", "BRW-005",
-                   "BRW-013", "BRW-014", "BRW-015", "BRW-016", "BRW-017"],
+                   "BRW-013", "BRW-014", "BRW-015", "BRW-016", "BRW-017",
+                   "BRW-029", "BRW-030", "BRW-031", "BRW-032", "BRW-033",
+                   "BRW-034", "BRW-035", "BRW-036"],
         "bad":   ["BRW-006", "BRW-007", "BRW-008", "BRW-009",
                    "BRW-019", "BRW-020", "BRW-021", "BRW-022", "BRW-023", "BRW-024",
                    "BRW-025", "BRW-026", "BRW-027", "BRW-028"],
@@ -1556,14 +1886,16 @@ MIX_PRESETS: dict[str, dict[str, list[str]]] = {
                    "BRW-025", "BRW-026", "BRW-027", "BRW-028"],
         "fraud": ["BRW-010", "BRW-011", "BRW-012", "BRW-018"],
     },
-    # ~80% good, ~13% bad, ~7% fraud — realistic commercial lending pipeline.
-    # Most real portfolios are 75-85% performing loans.  Bad outcomes are
-    # a mix of standard red flags and subtle cash-conversion issues.
-    # Only 1 fraud in the pool — reflecting real-world fraud incidence rates.
+    # 90% good, 5% bad, 5% fraud — realistic commercial lending pipeline.
+    # Most real portfolios are 85-95% performing loans.  The single bad
+    # outcome is a subtle cash-conversion case (only visible from bank
+    # statements) and the single fraud is circular transfers.
     "realistic": {
         "good":  ["BRW-001", "BRW-002", "BRW-003", "BRW-004", "BRW-005",
-                   "BRW-013", "BRW-014", "BRW-015", "BRW-016", "BRW-017"],
-        "bad":   ["BRW-007", "BRW-025"],
+                   "BRW-013", "BRW-014", "BRW-015", "BRW-016", "BRW-017",
+                   "BRW-029", "BRW-030", "BRW-031", "BRW-032", "BRW-033",
+                   "BRW-034", "BRW-035", "BRW-036"],
+        "bad":   ["BRW-025"],
         "fraud": ["BRW-011"],
     },
     # Cash-flow analysis benchmark: good financials with hidden cash-timing
