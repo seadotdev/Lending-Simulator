@@ -16,10 +16,11 @@ Key mechanics:
     "missed" the risk-free return, giving it a negative relative score.
   - Funding cost: deployed capital incurs a cost-of-funds charge
     (principal x funding_rate x term).  Lending must beat the cost of money.
-  - RAROC: profit is penalized by loss volatility (lambda * sigma * n).
+  - RAROC: profit is penalized by loss volatility (lambda * sigma * sqrt(n)).
     A portfolio with highly variable per-loan outcomes is riskier and scores
-    lower, even if the mean P&L is identical.  The penalty scales with per-loan
-    sigma, not aggregate portfolio size — avoiding penalizing diversification.
+    lower, even if the mean P&L is identical.  The penalty uses sigma * sqrt(n)
+    (portfolio standard deviation scaling) rather than sigma * n, which would
+    double-count scale.  This is analogous to a portfolio VaR-style term.
   - Volume floor: models must deploy at least 20% of available capital.
     Under-deployment incurs a quadratic penalty, preventing gaming by
     declining everything to avoid risk.
@@ -303,6 +304,278 @@ def calculate_perfect_score(
     return 0.0
 
 
+def compute_heuristic_baseline(
+    lender: LenderConfig,
+    borrowers: list[Borrower],
+) -> float:
+    """Calculate score using a simple DSCR + margin + leverage heuristic.
+
+    This baseline shows the task is solvable by straightforward financial
+    analysis — it doesn't require LLM-specific reasoning.
+
+    Heuristic rules:
+      - Reject if net margin < 10%
+      - Reject if DSCR < 1.25 (annual net income / annual debt service)
+      - Reject if loan amount > 1.5x annual net income
+      - Approve everything else at target yield
+    """
+    existing_deployed = sum(l.remaining_balance for l in lender.existing_portfolio)
+    available_capital = lender.total_capital - existing_deployed
+
+    sector_exposure: dict[str, float] = {}
+    for loan in lender.existing_portfolio:
+        sector_exposure[loan.sector] = sector_exposure.get(loan.sector, 0) + loan.remaining_balance
+
+    rate = lender.target_yield_pct
+    term = SIM_HORIZON_MONTHS
+    monthly_rate = rate / 100.0 / 12.0
+
+    # Compute annual debt service for the standard loan
+    if monthly_rate > 0:
+        std_payment = 1.0 * (monthly_rate * (1 + monthly_rate) ** term) / \
+                      ((1 + monthly_rate) ** term - 1)
+    else:
+        std_payment = 1.0 / term if term > 0 else 0.0
+    annual_debt_service_per_dollar = std_payment * 12
+
+    total_interest = 0.0
+    total_principal_lost = 0.0
+    total_funding_cost = 0.0
+    capital_remaining = available_capital
+
+    for b in borrowers:
+        principal = b.dossier.loan_request_amount
+        net_margin = (b.dossier.net_income / b.dossier.annual_revenue * 100) if b.dossier.annual_revenue > 0 else 0
+        annual_ds = principal * annual_debt_service_per_dollar
+        dscr = b.dossier.net_income / annual_ds if annual_ds > 0 else 0
+        leverage = principal / b.dossier.net_income if b.dossier.net_income > 0 else float('inf')
+
+        # Heuristic: reject if margin, DSCR, or leverage fail
+        if net_margin < 10 or dscr < 1.25 or leverage > 1.5:
+            continue
+
+        if principal > lender.max_single_loan:
+            continue
+        if principal > capital_remaining:
+            continue
+
+        sector = b.dossier.sector
+        current = sector_exposure.get(sector, 0)
+        limit = lender.sector_limits.get(sector, 0.25)
+        max_allowed = lender.total_capital * limit
+        if current + principal > max_allowed:
+            continue
+
+        capital_remaining -= principal
+        sector_exposure[sector] = current + principal
+
+        # Compute payoff
+        result = compute_loan_payoff(
+            principal=principal,
+            interest_rate=rate,
+            term_months=term,
+            true_outcome=b.true_outcome,
+            months_before_default=b.months_before_default,
+        )
+        total_interest += result["interest_earned"]
+        total_principal_lost += result["principal_lost"]
+        total_funding_cost += result["funding_cost"]
+
+    net_pnl = total_interest - total_principal_lost - total_funding_cost
+    if available_capital > 0:
+        actual_return_pct = (net_pnl / available_capital) * 100
+        benchmark_pct = RISK_FREE_RATE * (SIM_HORIZON_MONTHS / 12) * 100
+        return actual_return_pct - benchmark_pct
+    return 0.0
+
+
+def compute_confusion_matrix(
+    decisions: list[LenderDecision],
+    borrowers: list[Borrower],
+) -> dict[str, dict[str, int]]:
+    """Compute confusion matrix of approve/reject decisions by borrower ground truth.
+
+    Returns:
+        {
+            "good":  {"approved": N, "rejected": N},
+            "bad":   {"approved": N, "rejected": N},
+            "fraud": {"approved": N, "rejected": N},
+        }
+    """
+    borrower_map = {b.id: b for b in borrowers}
+    matrix: dict[str, dict[str, int]] = {
+        "good": {"approved": 0, "rejected": 0},
+        "bad": {"approved": 0, "rejected": 0},
+        "fraud": {"approved": 0, "rejected": 0},
+    }
+    for d in decisions:
+        b = borrower_map.get(d.borrower_id)
+        if not b:
+            continue
+        outcome = b.true_outcome
+        if d.decision == "APPROVE":
+            matrix[outcome]["approved"] += 1
+        else:
+            matrix[outcome]["rejected"] += 1
+    return matrix
+
+
+def compute_penalty_decomposition(
+    lender: LenderConfig,
+    lender_outcomes: list[LoanOutcome],
+    booked_loans: list[BookedLoan],
+    all_booked_loans: list[BookedLoan],
+) -> dict[str, float]:
+    """Compute per-penalty-type dollar amounts for a lender.
+
+    Returns dict with keys: funding_cost, fraud_penalty, concentration_penalty,
+    yield_drag, risk_penalty, volume_penalty, hard_constraint_penalty.
+    """
+    lender_loans = [l for l in booked_loans if l.lender_id == lender.id]
+    existing_deployed = sum(l.remaining_balance for l in lender.existing_portfolio)
+    available_capital = lender.total_capital - existing_deployed
+
+    # Funding cost
+    funding_cost = 0.0
+    for loan in lender_loans:
+        outcome = next((o for o in lender_outcomes if o.loan_id == loan.id), None)
+        months_active = loan.term_months
+        if outcome:
+            months_active = outcome.months_paid if outcome.defaulted else loan.term_months
+        monthly_rate = loan.interest_rate / 100.0 / 12.0
+        if monthly_rate > 0:
+            pmt = loan.principal * (monthly_rate * (1 + monthly_rate) ** loan.term_months) / \
+                  ((1 + monthly_rate) ** loan.term_months - 1)
+        else:
+            pmt = loan.principal / loan.term_months if loan.term_months > 0 else 0.0
+        remaining = loan.principal
+        for _ in range(months_active):
+            funding_cost += remaining * FUNDING_RATE / 12.0
+            if monthly_rate > 0:
+                pp = pmt - remaining * monthly_rate
+            else:
+                pp = pmt
+            remaining -= pp
+
+    # Fraud penalty
+    fraud_penalty = sum(o.principal * 0.25 for o in lender_outcomes if o.was_fraud)
+
+    # Concentration penalty
+    concentration_penalty = _concentration_penalty_dollars(lender, all_booked_loans)
+
+    # Yield drag
+    yield_drag = 0.0
+    for loan in lender_loans:
+        if loan.interest_rate < lender.target_yield_pct:
+            shortfall_pct = (lender.target_yield_pct - loan.interest_rate) / 100.0
+            yield_drag += loan.principal * shortfall_pct * (loan.term_months / 12)
+
+    # Per-loan profits for risk penalty
+    per_loan_profits: list[float] = []
+    for loan in lender_loans:
+        outcome = next((o for o in lender_outcomes if o.loan_id == loan.id), None)
+        if outcome:
+            months_active = outcome.months_paid if outcome.defaulted else loan.term_months
+            loan_mr = loan.interest_rate / 100.0 / 12.0
+            if loan_mr > 0:
+                loan_pmt = loan.principal * (loan_mr * (1 + loan_mr) ** loan.term_months) / \
+                           ((1 + loan_mr) ** loan.term_months - 1)
+            else:
+                loan_pmt = loan.principal / loan.term_months if loan.term_months > 0 else 0.0
+            loan_fc = 0.0
+            loan_rem = loan.principal
+            for _ in range(months_active):
+                loan_fc += loan_rem * FUNDING_RATE / 12.0
+                if loan_mr > 0:
+                    loan_pp = loan_pmt - loan_rem * loan_mr
+                else:
+                    loan_pp = loan_pmt
+                loan_rem -= loan_pp
+            loan_fp = loan.principal * 0.25 if outcome.was_fraud else 0.0
+            per_loan_profits.append(outcome.total_interest_paid - outcome.principal_lost - loan_fc - loan_fp)
+
+    # Risk penalty
+    loss_vol = 0.0
+    if len(per_loan_profits) > 1:
+        mean_p = sum(per_loan_profits) / len(per_loan_profits)
+        var = sum((p - mean_p) ** 2 for p in per_loan_profits) / (len(per_loan_profits) - 1)
+        loss_vol = math.sqrt(var)
+    n_loans = len(per_loan_profits)
+    risk_penalty = RISK_LAMBDA * loss_vol * math.sqrt(n_loans) if n_loans > 0 else 0.0
+
+    # Volume penalty
+    total_deployed = sum(o.principal for o in lender_outcomes)
+    deployment_ratio = total_deployed / available_capital if available_capital > 0 else 0.0
+    if deployment_ratio < MIN_DEPLOYMENT_RATIO:
+        shortfall = MIN_DEPLOYMENT_RATIO - deployment_ratio
+        volume_penalty = VOLUME_PENALTY_LAMBDA * (shortfall ** 2) * available_capital
+    else:
+        volume_penalty = 0.0
+
+    # Hard constraint penalty
+    deals_won = len(lender_loans)
+    defaults_count = sum(1 for o in lender_outcomes if o.defaulted)
+    default_rate = defaults_count / deals_won if deals_won > 0 else 0.0
+    net_pnl = sum(o.total_interest_paid - o.principal_lost for o in lender_outcomes)
+    roe_pct = (net_pnl / total_deployed * 100) if total_deployed > 0 else 0.0
+
+    hard_constraint_penalty = 0.0
+    if deals_won > 0 and default_rate > MAX_DEFAULT_RATE:
+        overshoot = (default_rate - MAX_DEFAULT_RATE) / MAX_DEFAULT_RATE
+        hard_constraint_penalty += HARD_CONSTRAINT_BASE_PCT * (1 + overshoot ** 2) / 100.0 * available_capital
+    if total_deployed > 0 and roe_pct < MIN_ROE_THRESHOLD * 100:
+        undershoot = abs(roe_pct - MIN_ROE_THRESHOLD * 100) / 100.0
+        hard_constraint_penalty += HARD_CONSTRAINT_BASE_PCT * (1 + undershoot ** 2) / 100.0 * available_capital
+
+    return {
+        "funding_cost": round(funding_cost, 2),
+        "fraud_penalty": round(fraud_penalty, 2),
+        "concentration_penalty": round(concentration_penalty, 2),
+        "yield_drag": round(yield_drag, 2),
+        "risk_penalty": round(risk_penalty, 2),
+        "volume_penalty": round(volume_penalty, 2),
+        "hard_constraint_penalty": round(hard_constraint_penalty, 2),
+    }
+
+
+def bootstrap_raroc_interval(
+    lender_outcomes: list[LoanOutcome],
+    available_capital: float,
+    n_bootstrap: int = 1000,
+    confidence: float = 0.95,
+) -> tuple[float, float]:
+    """Bootstrap confidence interval for RAROC score.
+
+    Resamples loan outcomes with replacement and computes the RAROC
+    distribution to estimate uncertainty.
+
+    Returns (lower_bound, upper_bound) as percentages.
+    """
+    if not lender_outcomes or available_capital <= 0:
+        return (0.0, 0.0)
+
+    import random as _rng
+    benchmark_pct = RISK_FREE_RATE * (SIM_HORIZON_MONTHS / 12) * 100
+    scores: list[float] = []
+
+    for _ in range(n_bootstrap):
+        sample = _rng.choices(lender_outcomes, k=len(lender_outcomes))
+        net_pnl = sum(o.total_interest_paid - o.principal_lost for o in sample)
+        total_deployed = sum(o.principal for o in sample)
+        # Simplified: just net P&L vs benchmark, no penalties
+        if total_deployed > 0:
+            ret_pct = (net_pnl / available_capital) * 100
+            scores.append(ret_pct - benchmark_pct)
+        else:
+            scores.append(-benchmark_pct)
+
+    scores.sort()
+    alpha = (1 - confidence) / 2
+    lo_idx = int(alpha * len(scores))
+    hi_idx = int((1 - alpha) * len(scores))
+    return (scores[lo_idx], scores[min(hi_idx, len(scores) - 1)])
+
+
 def score_lenders(
     lenders: list[LenderConfig],
     all_decisions: dict[str, list[LenderDecision]],
@@ -410,10 +683,11 @@ def score_lenders(
             variance = sum((p - mean_profit) ** 2 for p in per_loan_profits) / (len(per_loan_profits) - 1)
             loss_volatility = math.sqrt(variance)
 
-        # Risk penalty: lambda * sigma (penalizes per-loan outcome variance,
-        # not aggregate portfolio size — avoids penalizing diversification)
+        # Risk penalty: lambda * sigma * sqrt(n) (portfolio volatility scaling).
+        # Uses sqrt(n) rather than n to avoid double-counting scale — analogous
+        # to how portfolio standard deviation scales with sqrt(n) assets.
         n_loans = len(per_loan_profits)
-        risk_penalty_dollars = RISK_LAMBDA * loss_volatility * n_loans if n_loans > 0 else 0.0
+        risk_penalty_dollars = RISK_LAMBDA * loss_volatility * math.sqrt(n_loans) if n_loans > 0 else 0.0
 
         # Volume penalty: quadratic penalty for deploying less than the floor
         deployment_ratio = total_deployed / available_capital if available_capital > 0 else 0.0

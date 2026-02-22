@@ -1,41 +1,24 @@
-# Loanville Elo vs RAROC Benchmark: Full Write-Up
+# Loanville Benchmark: Design & Methodology
 
 ## 1. Overview
 
-Loanville is a synthetic commercial lending simulation that benchmarks LLM models as autonomous middle-market loan underwriters. Each model receives the same loan applications, analyses financial data, and makes approve/reject decisions with proposed terms. Models are then scored on a **RAROC (Risk-Adjusted Return on Capital)** basis and ranked via an **Elo tournament** system with per-applicant pairwise comparisons.
+Loanville is a synthetic commercial lending simulation that benchmarks LLM models as autonomous middle-market loan underwriters. Each model receives the same loan applications, analyses financial data, and makes approve/reject decisions with proposed terms. Models are scored on **RAROC (Risk-Adjusted Return on Capital)** and ranked via a **three-Elo tournament** system with per-applicant pairwise comparisons.
 
-**Tournament Run Metadata:**
+### Three-Elo Rating System
 
-| Field | Value |
-|---|---|
-| Date | 2026-02-22 |
-| Models | 6 |
-| Matches | 20 (3-way head-to-head) |
-| Borrower Mix | `analyst` (16 businesses: 10 good, 6 bad, 0 fraud) |
-| Total API Cost | $0.79 |
-| K-factor | 32 |
-| Initial Elo | 1500 |
-| Capital per Lender | $3,500,000 |
-| Sim Horizon | 24 months |
+The benchmark tracks three separate Elo ratings per model, each measuring a different dimension of underwriting quality:
+
+| Rating | What It Measures | Win Condition (per borrower) |
+|---|---|---|
+| **Profit Elo** | Economic utility — aligned with RAROC | Higher risk-adjusted utility (realized profit or benchmark return) |
+| **Credit Elo** | Decision correctness vs ground truth | Correct approve/reject given borrower's true outcome |
+| **DealShare Elo** | Market participation / bid aggressiveness | Won the deal (regardless of profitability) |
+
+**Profit Elo** is the recommended headline ranking — it aligns Elo with RAROC economics while preserving the fast convergence of per-applicant pairwise signals.
 
 ---
 
-## 2. The Models
-
-Six models competed, spanning budget to mid-range on OpenRouter:
-
-| Model | Approx. Output $/M tokens |
-|---|---|
-| GPT-4.1 Nano | $0.40 |
-| GPT-4o Mini | $0.60 |
-| Gemini 2.5 Flash | $2.50 |
-| Qwen3-30B | $0.28 |
-| Llama 3 8B | $0.05 |
-| Mistral Nemo | $0.04 |
-
----
-
-## 3. How Businesses Are Created
+## 2. How Businesses Are Created
 
 Borrowers are **hand-crafted synthetic businesses** defined in `loanville/data.py`. Each has:
 
@@ -47,38 +30,56 @@ Borrowers are **hand-crafted synthetic businesses** defined in `loanville/data.p
 - **Narrative**: A 3-5 sentence pitch describing the business and loan purpose
 - **Ground truth**: `true_outcome` ("good", "bad", or "fraud") and `months_before_default` — hidden from models
 
+### 24 Borrowers Total
+
+| Category | Count | IDs | Challenge |
+|---|---|---|---|
+| Good | 10 | BRW-001 to BRW-005, BRW-013 to BRW-017 | Healthy businesses that will fully repay |
+| Bad (standard) | 4 | BRW-006 to BRW-009 | Customer concentration, margin compression, grant dependency, declining revenue |
+| Bad (over-leverage) | 6 | BRW-019 to BRW-024 | Legitimate revenue but DSCR < 1.0 — loan creates unsustainable debt |
+| Fraud | 4 | BRW-010 to BRW-012, BRW-018 | Round numbers, circular transfers, fabricated statements, structuring |
+
 ### Sample Good Business
 
 > **SkyFreight Solutions** (Aero-Logistics, 8 years, 45 employees)
-> Annual revenue $2.44M, net income $659K (27% margin). Steady monthly growth from $185K to $222K deposits. Requesting $500K for fleet expansion. Customers: Meridian Airways, TransGlobal Shipping, etc.
+> Annual revenue $2.44M, net income $659K (27% margin). Steady monthly growth from $185K to $222K deposits. Requesting $500K for fleet expansion.
 > True outcome: **good** (full repayment)
 
 ### Sample Bad Business (Over-Leverage)
 
 > **Pacific Rim Importers** (Import/Distribution, 13 years, 22 employees)
-> Revenue $3.49M looks impressive but net margin is 5.1% ($177K net income). Requesting $500K — debt service ($276K/yr) would exceed net income. DSCR approximately 0.64.
+> Revenue $3.49M looks impressive but net margin is 5.1% ($177K net income). Requesting $500K — debt service ($276K/yr) would exceed net income. DSCR ~0.64.
 > True outcome: **bad** (defaults at month 11)
 
-### Fraud Types (not in this mix, but in the system)
+### Fraud Types
 
-Four fraud patterns are supported:
+| Pattern | Borrower | Detection Method |
+|---|---|---|
+| **Round-number deposits** | BRW-010 (CloudNet Logistics) | All deposits are $50K, $75K, $100K, etc. |
+| **Circular transfers** | BRW-011 (BioGenesis Research) | 70% of deposits from related entities |
+| **Fabricated consistency** | BRW-012 (QubitTech Solutions) | Monthly figures vary by <$400 (statistically implausible) |
+| **Structuring (smurfing)** | BRW-018 (Orion Fleet Services) | All deposits broken into sub-$10K transactions |
 
-- **Round-number deposits**: All deposits are suspiciously round ($50K, $75K, $100K)
-- **Circular transfers**: 70% of deposits come from related entities (e.g., "BioGenesis Holdings LLC", "BGH Capital Partners")
-- **Fabricated statements**: Monthly figures are unnaturally consistent with near-zero variance
-- **Structured deposits (smurfing)**: Large sums broken into many sub-$10K transactions to avoid Currency Transaction Report thresholds
+---
 
-### The "Analyst" Mix
+## 3. Scenario Suites
 
-The `analyst` preset used in this tournament contains **no fraud** — all 6 "bad" businesses are legitimate companies where the **requested loan would create unsustainable debt service** relative to free cash flow. This specifically tests whether models can compute DSCR, spot margin compression, and recognize thin-margin businesses that can't absorb new debt.
+Borrowers are grouped into **mix presets** that test different capabilities:
 
-The 16 borrowers:
+| Mix | Good | Bad | Fraud | Total | Primary Test |
+|---|---|---|---|---|---|
+| `analyst` | 10 | 6 (over-leverage) | 0 | 16 | DSCR analysis, margin compression |
+| `fraud` | 5 | 0 | 4 | 9 | Bank statement fraud detection |
+| `easy` | 9 | 2 | 1 | 12 | Realistic commercial pipeline |
+| `balanced` | 7 | 4 | 4 | 15 | Stressed market with all risk types |
+| `hard` | 5 | 4 | 4 | 13 | Adversarial stress test |
+| `concentration` | 10 | 4 | 2 | 16 | Sector limit management |
+| `stress` | 5 | 8 | 4 | 17 | Kitchen-sink: all risk types combined |
+| `all` | 10 | 4 | 4 | 18 | Complete pool (no over-leverage bad) |
 
-| Category | Count | IDs | Challenge |
-|---|---|---|---|
-| Good | 10 | BRW-001 through BRW-005, BRW-013 through BRW-017 | Healthy businesses that will fully repay |
-| Bad (over-leverage) | 6 | BRW-019 through BRW-024 | Legitimate revenue but DSCR < 1.0 — loan would be unsustainable |
-| Fraud | 0 | — | Not present in this mix |
+### Borrower Sampling
+
+To reduce overfitting to fixed borrower pools, the `--sample-borrowers N` flag randomly samples N borrowers per match using **stratified sampling** (maintaining the good/bad/fraud ratio). This introduces match-to-match variation so Elo reflects general underwriting skill rather than memorization of 16 specific businesses.
 
 ---
 
@@ -88,7 +89,7 @@ Each model is instantiated as a lender agent via OpenRouter's API (`loanville/ll
 
 1. **System prompt**: Sets the lender persona, target yield (11%), capital ($3.5M), sector limits (25% each), max single loan ($700K), and analysis instructions
 2. **User prompt**: Presents the full financial dossier — quarterly income statements, annual totals, company narrative, and loan request
-3. **Tool use**: Models can call `run_bash` to execute sandboxed `jq` queries against the borrower's raw 12-month bank statements at `/data/bank_statements.json` (powered by `just-bash`)
+3. **Tool use**: Models can call `run_bash` to execute sandboxed `jq` queries against the borrower's raw 12-month bank statements at `/data/bank_statements.json`
 4. **Decision**: Model returns a JSON object:
 
 ```json
@@ -103,17 +104,21 @@ Each model is instantiated as a lender agent via OpenRouter's API (`loanville/ll
 }
 ```
 
-Up to 3 tool-call rounds are allowed; models are forced to produce a final answer on the last round. All evaluations for all lenders run concurrently via `asyncio`.
+Up to 3 tool-call rounds are allowed; models are forced to produce a final answer on the last round. All evaluations run concurrently via `asyncio`.
 
 ### Deal Adjudication (Competitive Market)
 
-When multiple models approve the same borrower, the borrower **picks the lowest interest rate** (breaking ties by highest loan amount). Only one lender wins each deal — this is not parallel-universe underwriting; it simulates competitive market dynamics. Capital limits are enforced: if the preferred lender lacks capacity, the deal falls to the next-best offer.
+When multiple models approve the same borrower, the borrower **picks the lowest interest rate** (breaking ties by highest loan amount). Only one lender wins each deal — this simulates competitive market dynamics. Capital limits are enforced: if the preferred lender lacks capacity, the deal falls to the next-best offer.
+
+### Scope: Application-Level Underwriting
+
+Each match starts with a **clean book** ($0 deployed, $3.5M available). Capital and exposures do **not** carry forward across matches. This benchmarks application-level underwriting judgment, not portfolio lifecycle management. Models are not tested on capital rationing over time, path dependency, or concentration management across sequential deals.
 
 ---
 
 ## 5. RAROC Scoring
 
-The final score (`loanville/scoring.py`) is **RAROC vs a risk-free benchmark**, computed as:
+The final score (`loanville/scoring.py`) is **RAROC vs a risk-free benchmark**:
 
 ```
 Score = (Adjusted_PnL / Available_Capital) * 100 - Benchmark%
@@ -128,48 +133,94 @@ Where:
 | Component | Formula / Mechanism | Constants |
 |---|---|---|
 | **Net P&L** | Interest earned minus principal lost (amortizing schedule) | — |
-| **Funding cost** | Outstanding balance x 4% annual, computed per-month on amortizing principal | `FUNDING_RATE = 0.04` |
-| **Risk penalty** | lambda x sigma x n (penalizes per-loan outcome variance, not portfolio size) | `RISK_LAMBDA = 0.5` |
-| **Volume floor** | Must deploy >= 20% of capital; penalty = lambda x shortfall^2 x capital | `MIN_DEPLOYMENT_RATIO = 0.20` |
-| **Default rate cap** | Default rate > 30% triggers quadratic penalty scaling with severity | `MAX_DEFAULT_RATE = 0.30` |
+| **Funding cost** | Outstanding balance x 4% annual, per-month on amortizing principal | `FUNDING_RATE = 0.04` |
+| **Risk penalty** | lambda x sigma x sqrt(n) — portfolio volatility scaling | `RISK_LAMBDA = 0.5` |
+| **Volume floor** | Deploy >= 20% of capital; penalty = lambda x shortfall^2 x capital | `MIN_DEPLOYMENT_RATIO = 0.20` |
+| **Default rate cap** | Default rate > 30% triggers quadratic penalty | `MAX_DEFAULT_RATE = 0.30` |
 | **Min ROE** | ROE below -10% triggers quadratic penalty | `MIN_ROE_THRESHOLD = -0.10` |
 | **Fraud penalty** | 25% of principal on fraud loans (regulatory/reputational cost) | — |
 | **Concentration penalty** | 5% of excess exposure above sector limits | — |
 | **Yield drag** | Penalty for loans priced below target yield, proportional to shortfall | — |
 
+### Risk Penalty: Why `sigma x sqrt(n)`
+
+The risk penalty uses `sigma x sqrt(n)` rather than `sigma x n`. This is analogous to portfolio standard deviation scaling: the standard deviation of the mean of n independent observations scales with `sqrt(n)`, not `n`. Using `sigma x n` would double-count scale and excessively penalize diversified portfolios. The `sqrt(n)` formulation is closer to a portfolio VaR-style term.
+
 ### Scoring Dynamics
 
 - A model that **rejects everything** gets a volume penalty plus the opportunity cost of missing the risk-free benchmark — scoring approximately **-10%**.
 - A model that **approves everything** gets crushed by defaults, risk penalties, and hard-constraint penalties.
-- The optimal strategy requires selective approval of creditworthy borrowers at appropriate rates — balancing deployment volume against default risk.
+- The optimal strategy requires selective approval of creditworthy borrowers at appropriate rates.
+
+### Baselines
+
+Two baselines validate that the scoring system is well-calibrated:
+
+| Baseline | Method | Purpose |
+|---|---|---|
+| **Oracle** | Perfect foresight: approves all good, rejects all bad/fraud, prices at target yield | Upper bound — shows the theoretical max under constraints |
+| **Heuristic** | Simple rules: reject if net margin < 10%, DSCR < 1.25, or leverage > 1.5x net income | Shows the task is solvable by straightforward financial analysis, not LLM-specific reasoning |
 
 ### Per-Loan Payoff Computation
 
 Each loan outcome is computed via `compute_loan_payoff()`:
 
-- **Good loans**: Full amortization schedule, all payments made. Profit = total interest earned - funding cost.
+- **Good loans**: Full amortization schedule. Profit = total interest earned - funding cost.
 - **Bad loans**: Partial payments for `months_before_default` months, then remaining principal is lost. Profit = interest earned - principal lost - funding cost.
 - **Fraud loans**: Immediate total loss of principal, plus 25% fraud penalty. Profit = -(principal + funding cost + fraud penalty).
 
 ---
 
-## 6. Elo System
+## 6. Three-Elo Rating System
 
-### Per-Applicant Pairwise Elo
+### Why Three Ratings?
 
-Rather than comparing models only on aggregate match score, the system (`elo_benchmark.py`) generates **per-borrower Elo signals**. For each of the 16 borrowers in each 3-way match, every pair of models is compared:
+A single Elo rating conflates multiple dimensions of lending performance. The original system ("won deal = win") produced rankings anti-correlated with RAROC — aggressive bidders dominated Elo while losing money. Rather than patch one Elo formula, we track three orthogonal ratings:
 
-| State (Model A vs B) | Outcome |
-|---|---|
-| Both declined | Tie (0.5 / 0.5) |
-| A won deal, B declined | A wins (1.0 / 0.0) |
-| A won deal, B lost (outbid) | A wins (1.0 / 0.0) |
-| Both lost to third model | Tie (0.5 / 0.5) |
-| A lost, B declined | Tie (0.5 / 0.5) |
+### 6.1 Profit Elo (Recommended Ranking)
 
-**K-factor scaling**: `pair_k = K / ((n-1) * n_borrowers)` = 32 / (2 x 16) = 1.0 per borrower-pair, keeping total Elo movement per match bounded at approximately K.
+**Measures: Economic utility per borrower, aligned with RAROC.**
 
-This generates **16 x C(3,2) = 48 pairwise signals per match** instead of a single aggregate comparison, providing dramatically faster Elo convergence.
+For each borrower, each model's utility is:
+- **Won deal**: Realized net profit (can be negative for bad loans)
+- **Declined**: Risk-free benchmark return on the notional capital (`principal x risk_free_rate x term/12`)
+- **Lost deal (outbid)**: Same as declined (capital wasn't deployed)
+
+Pairwise comparison:
+- A wins if `Utility(A) > Utility(B) + epsilon` (epsilon = $500)
+- Tie if `|Utility(A) - Utility(B)| <= epsilon`
+- B wins otherwise
+
+**Why this works**: Correctly declining a bad borrower earns the benchmark return (~$50K on a $500K loan over 2 years), which beats the large negative profit from funding a defaulting borrower. This eliminates the participation bias of the original system.
+
+### 6.2 Credit Elo (Decision Quality)
+
+**Measures: Correctness of approve/reject decisions vs ground truth.**
+
+For each borrower:
+- **Correct decision**: Approve good borrowers, reject bad/fraud
+- **Incorrect decision**: Reject good borrowers, approve bad/fraud
+
+Pairwise: correct beats incorrect; same correctness = tie.
+
+**Why this is useful**: Pure signal on underwriting judgment, independent of pricing, competitive dynamics, or market share. Directly measures whether the model can distinguish creditworthy from uncreditworthy borrowers.
+
+### 6.3 DealShare Elo (Market Participation)
+
+**Measures: Who wins deals, regardless of profitability.**
+
+Pairwise: winning a deal = 1.0 vs any non-winner; all non-winners tie.
+
+**Why this is useful**: Characterizes bidding aggressiveness and pricing competitiveness. High DealShare + low Profit = aggressive volume player. Low DealShare + high Profit = conservative optimizer.
+
+### Per-Applicant Pairwise Signals
+
+All three Elo systems use per-applicant pairwise signals rather than aggregate match comparisons. For N borrowers in a 3-way match:
+- Each pair of models generates N pairwise signals (one per borrower)
+- Total: `N x C(3,2) = N x 3` signals per match
+- K-factor scaling: `pair_k = K / ((n-1) x N)` keeps total Elo movement per match bounded at ~K
+
+This provides dramatically faster convergence than single aggregate comparisons.
 
 ### Standard Elo Formula
 
@@ -178,103 +229,120 @@ Expected score: E(A) = 1 / (1 + 10^((R_B - R_A) / 400))
 Rating update:  R_A' = R_A + pair_k * (S_A - E(A))
 ```
 
-Where S_A is the actual outcome (1.0 for win, 0.5 for tie, 0.0 for loss).
-
 ### Matchup Generation
 
-Triplets are drawn with balanced participation — models with fewer scheduled matches get priority. Each model appeared in exactly **10 of the 20 matches**.
+Triplets are drawn with balanced participation — models with fewer scheduled matches get priority.
 
 ---
 
-## 7. Results
+## 7. Reporting
 
-### Final Elo Standings
+### Confusion Matrix
 
-| Rank | Model | Elo | Matches | Wins | Win% | Avg Score |
-|---:|---|---:|---:|---:|---:|---:|
-| 1 | **GPT-4.1 Nano** | **1565** | 10 | 2 | 20% | -41.80% |
-| 2 | **Llama 3 8B** | **1528** | 10 | 0 | 0% | -54.85% |
-| 3 | **Gemini 2.5 Flash** | **1485** | 10 | 3 | 30% | -32.60% |
-| 4 | **GPT-4o Mini** | **1479** | 10 | 2 | 20% | -41.82% |
-| 5 | **Qwen3-30B** | **1477** | 10 | 5 | 50% | -23.95% |
-| 6 | **Mistral Nemo** | **1467** | 10 | 8 | 80% | -17.81% |
+For each model, the system tracks a confusion matrix by borrower ground truth:
 
-### The Elo vs RAROC Tension
-
-| Model | Elo Rank | RAROC Rank | Avg Approvals | Avg Deals Won | Avg Defaults | Avg Deployed | Avg P&L |
-|---|---|---|---|---|---|---|---|
-| GPT-4.1 Nano | 1st | 4th | 12.1 | 9.0 | 2.2 | $3,155,000 | -$269,083 |
-| Llama 3 8B | 2nd | 6th (worst) | 10.1 | 6.9 | 3.1 | $2,750,000 | -$535,874 |
-| Gemini 2.5 Flash | 3rd | 3rd | 8.4 | 3.5 | 1.1 | $1,327,500 | -$155,521 |
-| GPT-4o Mini | 4th | 5th | 11.2 | 3.5 | 1.6 | $1,320,000 | -$306,746 |
-| Qwen3-30B | 5th | 2nd | 9.7 | 3.0 | 0.8 | $1,105,000 | -$101,890 |
-| Mistral Nemo | 6th | 1st (best) | 2.2 | 1.9 | 0.2 | $602,500 | +$1,957 |
-
-### Key Observations
-
-**Elo rating and RAROC score diverge significantly**, and this is the central finding:
-
-- **Mistral Nemo** has the best RAROC score (-17.81% avg) and highest win rate (80%) but the **lowest Elo** (1467). Why? It approves only ~2.2 out of 16 applicants per match, deploying just $602K on average. It is cautious and profitable when it lends, but the per-applicant Elo system rewards models that **win deals** — and Mistral Nemo declines most borrowers, generating neutral "tie" (0.5/0.5) signals on the vast majority of applications.
-
-- **GPT-4.1 Nano** has the highest Elo (1565) despite a poor RAROC (-41.80%). It approves 12.1/16 applicants, deploys $3.15M on average, and wins 9.0 deals per match. In per-applicant Elo, it accumulates "win" signals on many borrowers because it simply bids on and wins more deals — even though some of those deals default.
-
-- **Llama 3 8B** ranks #2 by Elo despite the worst RAROC (-54.85%) and zero outright match wins. Its high Elo comes from aggressive deployment (10.1 approvals, $2.75M deployed), which generates many "won deal" Elo signals even though the financial outcomes are poor.
-
-- **Qwen3-30B** occupies the middle ground — moderate approval rate (9.7/16), low defaults (0.8 avg), and the second-best RAROC. It also has the highest match win rate at 50%, suggesting it balances selectivity with profitability. Its Elo is held back because it loses deals competitively to more aggressive bidders.
-
-### Cost Efficiency
-
-| Model | API Cost (20 matches) | Cost per Match |
+|  | Good Borrowers | Bad/Fraud Borrowers |
 |---|---|---|
-| Mistral Nemo | $0.018 | $0.002 |
-| Llama 3 8B | $0.038 | $0.004 |
-| GPT-4.1 Nano | $0.099 | $0.010 |
-| GPT-4o Mini | $0.145 | $0.014 |
-| Qwen3-30B | $0.150 | $0.015 |
-| Gemini 2.5 Flash | $0.340 | $0.034 |
+| **Approved** | True Positive (correct) | False Positive (error) |
+| **Rejected** | False Negative (missed opportunity) | True Negative (correct) |
 
-### Why All Scores Are Negative
+This is reported in the standings as `Good✓` (good borrowers correctly approved) and `Bad✓` (bad/fraud borrowers correctly rejected).
 
-All RAROC scores are negative because the `analyst` mix is intentionally challenging — 37.5% of borrowers (6/16) are designed to default through over-leverage, and even perfect foresight only scores around +5-8% above the risk-free benchmark. The over-leverage businesses present realistic-looking financials where the default risk is hidden in DSCR analysis that requires careful computation.
+### Penalty Decomposition
+
+Per-model breakdown of which RAROC penalties are driving negative scores:
+
+- Funding cost, fraud penalty, concentration penalty, yield drag
+- Risk penalty (volatility), volume penalty (under-deployment)
+- Hard constraint penalty (default rate or ROE violations)
+
+This identifies whether a model's poor score comes from bad credit decisions (defaults) vs bad pricing (yield drag) vs insufficient deployment (volume penalty).
+
+### Bootstrap Confidence Intervals
+
+RAROC scores include bootstrap 95% confidence intervals computed by resampling loan outcomes with replacement (1000 iterations). This quantifies scoring uncertainty — particularly important with small portfolio sizes where a single default can swing the score dramatically.
+
+### Pricing Analysis
+
+The system tracks interest rates offered by each model per borrower, enabling analysis of:
+- Average rate on good vs bad borrowers (does the model price risk correctly?)
+- Rate distributions and outliers
+- Competitive pricing dynamics (who is consistently cheapest?)
 
 ---
 
 ## 8. Methodology Notes
 
-- **Controlled conditions**: All lenders in each match get identical config (persona, capital, limits). The only variable is the model.
-- **Deterministic borrowers**: The same 16 businesses appear in every match; outcomes are fixed by ground truth.
-- **Stochastic matchups**: Which 3 of 6 models face off varies, with balanced participation.
-- **No existing portfolio**: Tournament lenders start with a clean book ($0 deployed, $3.5M available) — no legacy position bias.
-- **Tool access**: Models can query raw bank statement JSON via sandboxed bash/jq, but tool usage varies by model.
-- **Temperature**: 0.3 for all models.
-- **Total decisions**: 20 matches x 3 models x 16 borrowers = **960 individual underwriting decisions** across the tournament.
+### Controlled Conditions
+All lenders in each match get identical config (persona, capital, limits). The only variable is the model.
+
+### Capital Resets
+Each match starts with a clean book. This benchmarks **application-level underwriting**, not portfolio lifecycle management. Models are not tested on capital rationing over time or path dependency.
+
+### Deterministic Outcomes
+Borrower ground truth is fixed — the same business always has the same outcome. Variation comes from:
+- Which 3 of N models face off (stochastic matchups with balanced participation)
+- Optional borrower sampling per match (`--sample-borrowers`)
+- Model stochasticity (temperature 0.3)
+
+### Temperature
+All models use temperature 0.3 — low enough for consistent analysis, high enough for some pricing variation.
 
 ---
 
 ## 9. Architecture
 
 ```
-elo_benchmark.py          # Tournament runner, Elo math, matchup generation
+elo_benchmark.py          # 3-Elo tournament runner, matchup generation
 benchmark_models.py       # Model lists, single-run benchmark, Pareto analysis
 loanville/
-  data.py                 # 24 hand-crafted borrowers, mix presets, statement generation
+  data.py                 # 24 hand-crafted borrowers, 8 mix presets, statement generation
   models.py               # Dataclasses: Borrower, LenderConfig, LenderDecision, LenderScore, etc.
   engine.py               # SimulationEngine: origination, adjudication, booking, resolution
   llm.py                  # OpenRouter client, prompt construction, tool-use loop, cost tracking
-  scoring.py              # RAROC scoring, per-loan payoff, penalties, final report
+  scoring.py              # RAROC scoring, baselines, confusion matrix, bootstrap CI, penalties
   mock_llm.py             # Deterministic mock for testing without API calls
 ```
 
 ---
 
-## 10. Conclusions
+## 10. Design Decisions & Trade-offs
 
-1. **Per-applicant Elo rewards market participation over profitability.** Models that bid aggressively accumulate Elo even when deals lose money. This mirrors real lending markets where volume-focused lenders can dominate market share while sacrificing risk-adjusted returns.
+### Why Three Elo Ratings Instead of One
 
-2. **RAROC correctly captures economic value.** Mistral Nemo — the only model to achieve positive average P&L (+$1,957) — ranks first on RAROC despite last on Elo. Its extreme selectivity (2.2/16 approvals) is rewarded by the financial scoring but penalized by the competitive Elo framework.
+A single "utility Elo" would be simpler but loses information. The divergence between ratings is itself diagnostic:
 
-3. **The analyst mix exposes DSCR blindness.** Most models struggle to distinguish healthy businesses from over-leveraged ones when the revenue looks strong but debt-service capacity is inadequate. This is a realistic failure mode — revenue alone does not determine creditworthiness.
+| Pattern | Interpretation |
+|---|---|
+| High Profit + High Credit + Low DealShare | Conservative optimizer: makes correct decisions but loses deals on pricing |
+| High DealShare + Low Profit + Low Credit | Aggressive volume player: wins deals but picks bad borrowers |
+| High Credit + High Profit + High DealShare | Ideal: correct decisions, good pricing, wins deals |
+| Low everything | Weak model: bad decisions, bad pricing, loses deals |
 
-4. **Cost does not predict performance.** Gemini 2.5 Flash ($0.34 total) does not outperform GPT-4.1 Nano ($0.10) or Qwen3-30B ($0.15) on either metric, suggesting diminishing returns in the budget-to-midrange tier for structured financial analysis tasks.
+### Why Benchmark Return for Declines (Profit Elo)
 
-5. **The tension between Elo and RAROC is itself informative.** A model's position in both rankings characterizes its "lending personality" — aggressive market-taker (high Elo, low RAROC) vs conservative portfolio optimizer (low Elo, high RAROC). Real lending institutions face this same trade-off between market share and risk-adjusted returns.
+In Profit Elo, declining a borrower earns the risk-free benchmark return on the notional capital, not zero. This reflects the opportunity cost framing: capital not deployed in a bad deal is available for risk-free investment. Setting decline utility to zero would under-reward correct rejections and re-introduce the participation bias.
+
+### Why `sqrt(n)` for Risk Penalty
+
+The original `sigma x n` formulation was flagged as unusual — standard portfolio theory says the standard deviation of the portfolio mean scales with `sqrt(n)`, not linearly. The `sqrt(n)` formulation means:
+- A well-diversified portfolio of 10 loans is penalized less than the old formula
+- A concentrated portfolio of 2-3 loans is penalized more (relatively)
+- This better captures the actual risk reduction from diversification
+
+### Why Fixed Borrower Pools (and How to Mitigate)
+
+The system uses 24 hand-crafted borrowers rather than procedural generation because:
+- Each borrower encodes a specific analytical challenge (DSCR, concentration, fraud pattern)
+- Procedural generation risks unrealistic financial profiles
+- Quality control is easier with curated data
+
+**Mitigation for overfitting**: The `--sample-borrowers` flag randomly samples a subset per match, and multiple mix presets test different skill dimensions.
+
+### Why Separate Scenario Suites
+
+Fraud detection, DSCR analysis, and concentration management are distinct skills. Lumping them into one mix makes it impossible to diagnose model weaknesses. The scenario suites (`analyst`, `fraud`, `concentration`, `stress`) isolate each capability:
+- `analyst`: Can the model compute debt service ratios?
+- `fraud`: Can the model detect bank statement anomalies?
+- `concentration`: Does the model respect portfolio limits?
+- `stress`: How does the model handle all risk types simultaneously?

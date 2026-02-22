@@ -6,10 +6,22 @@ Instead of testing each model against fixed competitors, models compete
 head-to-head in randomly matched triplets.  All three lenders get identical
 parameters (capital, limits, persona) so the only variable is the model.
 
-Elo ratings are computed per-applicant: for each borrower, every pair of
-models is compared on their hypothetical profit (approve at their terms vs
-reject).  This gives N_borrowers x C(3,2) pairwise signals per match
-instead of a single aggregate comparison — dramatically faster convergence.
+THREE SEPARATE ELO RATINGS are tracked per model:
+
+  1. DealShare Elo  — "who wins deals?"  Measures market participation and
+     bid aggressiveness.  Winning a deal = 1.0, regardless of whether the
+     loan is profitable.  This is the original Elo formulation.
+
+  2. Profit Elo     — "who earns more per-borrower?"  Compares realized
+     utility (net profit if deal won, risk-free benchmark return if declined
+     or outbid).  Aligns Elo rankings with RAROC economics.
+
+  3. Credit Elo     — "who makes correct approve/reject decisions?"  Uses
+     borrower ground truth: correctly declining a bad borrower beats
+     approving it; correctly approving a good borrower beats declining it.
+     Measures pure underwriting judgment.
+
+All three use per-applicant pairwise signals for fast convergence.
 
 Usage:
   python elo_benchmark.py --mix analyst --matches 50
@@ -22,6 +34,7 @@ import asyncio
 import contextlib
 import io
 import json
+import math
 import os
 import random
 import sys
@@ -36,13 +49,20 @@ from loanville.data import get_borrowers, MIX_PRESETS
 from loanville.engine import SimulationEngine
 from loanville.llm import MODEL_PRICING, clear_usage, get_cost_summary, get_token_usage
 from loanville.models import Borrower, LenderConfig
-from loanville.scoring import compute_loan_payoff, score_lenders
+from loanville.scoring import (
+    RISK_FREE_RATE, SIM_HORIZON_MONTHS,
+    compute_confusion_matrix, compute_heuristic_baseline, compute_loan_payoff,
+    compute_penalty_decomposition, bootstrap_raroc_interval, score_lenders,
+)
 
 # Import model lists from benchmark_models
 from benchmark_models import SMALL_MODELS, BENCHMARK_MODELS
 
 DEFAULT_K = 32
 INITIAL_ELO = 1500
+
+# Epsilon for utility comparison ties (Profit Elo)
+UTILITY_EPSILON = 500.0  # $500 — within this range counts as a tie
 
 
 # ---------------------------------------------------------------------------
@@ -84,44 +104,47 @@ def _compute_per_applicant_payoffs(
     lenders: list[LenderConfig],
     models: list[tuple[str, str]],
     engine: "SimulationEngine",
-) -> dict[str, dict[str, float]]:
-    """Compute competitive per-borrower profit for each model.
+) -> dict[str, dict]:
+    """Compute competitive per-borrower data for each model.
 
     Implements a per-borrower allocation rule (winner-takes-deal):
       1. Each model submits (approve/decline, APR).
-      2. If nobody approves → all get 0 (no deal).
-      3. If one or more approve → borrower takes the lowest APR offer.
-      4. Only the winner gets realized payoff; losers get 0.
-      5. Decline = 0 (distinct from losing a deal you bid on).
-
-    This makes per-applicant Elo a "market share × profitability" competition,
-    not just parallel-universe underwriting.
+      2. If nobody approves -> all get benchmark utility.
+      3. If one or more approve -> borrower takes the lowest APR offer.
+      4. Only the winner gets realized payoff; losers get benchmark utility.
+      5. Decline = benchmark return on the capital that would have been deployed.
 
     Returns:
-      model_id -> {borrower_id -> payoff}
-      Also includes a "decision" key per borrower for tie-rule logic:
-        "declined", "won", "lost"
+      model_id -> {
+          borrower_id -> payoff (realized net profit or 0),
+          "_decision_states" -> {borrower_id -> "declined"/"won"/"lost"},
+          "_ground_truth"    -> {borrower_id -> "good"/"bad"/"fraud"},
+          "_utility"         -> {borrower_id -> utility for Profit Elo},
+          "_rates_offered"   -> {borrower_id -> rate or None},
+      }
     """
-    borrower_map = {b.id: b for b in borrowers}
+    # Benchmark return per dollar deployed (risk-free over standard term)
+    benchmark_rate_per_dollar = RISK_FREE_RATE * (SIM_HORIZON_MONTHS / 12.0)
 
-    # First pass: collect all decisions indexed by borrower
-    # model_id -> lender decision for that borrower
-    model_decisions: dict[str, dict[str, "LenderDecision"]] = {}
-    model_id_for_lender: dict[str, str] = {}
+    # Collect all decisions indexed by borrower
+    model_decisions: dict[str, dict[str, object]] = {}
     for lender, (model_id, _) in zip(lenders, models):
-        model_id_for_lender[lender.id] = model_id
         decisions = engine.all_decisions.get(lender.id, [])
         dec_map = {}
         for d in decisions:
             dec_map[d.borrower_id] = d
         model_decisions[model_id] = dec_map
 
-    payoffs: dict[str, dict[str, float]] = {mid: {} for mid, _ in models}
-    # Also track decision states for Elo tie rules
+    payoffs: dict[str, dict] = {mid: {} for mid, _ in models}
     decision_states: dict[str, dict[str, str]] = {mid: {} for mid, _ in models}
+    ground_truth: dict[str, dict[str, str]] = {mid: {} for mid, _ in models}
+    utility: dict[str, dict[str, float]] = {mid: {} for mid, _ in models}
+    rates_offered: dict[str, dict] = {mid: {} for mid, _ in models}
 
     for b in borrowers:
         bid = b.id
+        notional = b.dossier.loan_request_amount
+        benchmark_return = notional * benchmark_rate_per_dollar
 
         # Collect approvals with their rates
         approvals = []  # (model_id, decision, rate)
@@ -129,15 +152,20 @@ def _compute_per_applicant_payoffs(
             d = model_decisions[model_id].get(bid)
             if d and d.decision == "APPROVE" and d.term_sheet:
                 approvals.append((model_id, d, d.term_sheet.interest_rate))
+                rates_offered[model_id][bid] = d.term_sheet.interest_rate
+            else:
+                rates_offered[model_id][bid] = None
 
         if not approvals:
-            # Nobody approved — all declined, all get 0
+            # Nobody approved — all declined
             for model_id, _ in models:
                 payoffs[model_id][bid] = 0.0
                 decision_states[model_id][bid] = "declined"
+                ground_truth[model_id][bid] = b.true_outcome
+                utility[model_id][bid] = benchmark_return
             continue
 
-        # Winner = lowest APR (ties broken by higher loan amount, matching engine.py)
+        # Winner = lowest APR (ties broken by higher loan amount)
         approvals.sort(key=lambda x: (x[2], -x[1].term_sheet.loan_amount))
         winner_model_id, winner_decision, _ = approvals[0]
 
@@ -152,21 +180,28 @@ def _compute_per_applicant_payoffs(
 
         for model_id, _ in models:
             d = model_decisions[model_id].get(bid)
+            ground_truth[model_id][bid] = b.true_outcome
+
             if model_id == winner_model_id:
                 payoffs[model_id][bid] = result["net_profit"]
                 decision_states[model_id][bid] = "won"
+                utility[model_id][bid] = result["net_profit"]
             elif d and d.decision == "APPROVE" and d.term_sheet:
-                # Approved but lost the deal — bid cost = 0, but distinct state
                 payoffs[model_id][bid] = 0.0
                 decision_states[model_id][bid] = "lost"
+                lost_notional = d.term_sheet.loan_amount
+                utility[model_id][bid] = lost_notional * benchmark_rate_per_dollar
             else:
-                # Declined
                 payoffs[model_id][bid] = 0.0
                 decision_states[model_id][bid] = "declined"
+                utility[model_id][bid] = benchmark_return
 
-    # Attach decision_states alongside payoffs for Elo tie-rule logic
+    # Attach metadata for Elo logic
     for model_id, _ in models:
         payoffs[model_id]["_decision_states"] = decision_states[model_id]
+        payoffs[model_id]["_ground_truth"] = ground_truth[model_id]
+        payoffs[model_id]["_utility"] = utility[model_id]
+        payoffs[model_id]["_rates_offered"] = rates_offered[model_id]
 
     return payoffs
 
@@ -175,9 +210,38 @@ def run_match(
     models: list[tuple[str, str]],
     mix: str,
     api_key: str,
+    sample_borrowers: int | None = None,
+    rng: random.Random | None = None,
 ) -> list[dict]:
-    """Run a single 3-way match.  Returns per-model results sorted by score."""
+    """Run a single 3-way match.  Returns per-model results sorted by score.
+
+    If sample_borrowers is set, randomly samples that many borrowers from the
+    pool each match (stratified: maintains good/bad/fraud ratio).
+    """
     borrowers = get_borrowers(mix)
+
+    # Optional borrower sampling per match
+    if sample_borrowers and sample_borrowers < len(borrowers):
+        if rng is None:
+            rng = random.Random()
+        # Stratified sampling: maintain category ratios
+        good = [b for b in borrowers if b.true_outcome == "good"]
+        bad = [b for b in borrowers if b.true_outcome == "bad"]
+        fraud = [b for b in borrowers if b.true_outcome == "fraud"]
+        total = len(borrowers)
+        n_good = max(1, round(len(good) / total * sample_borrowers))
+        n_bad = max(0, round(len(bad) / total * sample_borrowers))
+        n_fraud = max(0, sample_borrowers - n_good - n_bad)
+        # Clamp to available
+        n_good = min(n_good, len(good))
+        n_bad = min(n_bad, len(bad))
+        n_fraud = min(n_fraud, len(fraud))
+        sampled = (
+            rng.sample(good, n_good) +
+            rng.sample(bad, n_bad) +
+            (rng.sample(fraud, n_fraud) if fraud else [])
+        )
+        borrowers = sampled
 
     lenders = [
         make_lender(i + 1, model_id, name)
@@ -207,6 +271,12 @@ def run_match(
         borrowers, lenders, models, engine,
     )
 
+    # Compute confusion matrices per model
+    confusion_matrices = {}
+    for lender, (model_id, _) in zip(lenders, models):
+        decisions = engine.all_decisions.get(lender.id, [])
+        confusion_matrices[model_id] = compute_confusion_matrix(decisions, borrowers)
+
     results = []
     for lender, (model_id, display_name) in zip(lenders, models):
         sc = next(s for s in scores if s.lender_id == lender.id)
@@ -226,13 +296,15 @@ def run_match(
             "approvals": approvals,
             "cost": costs.get(model_id, 0.0),
             "per_applicant_payoffs": per_applicant.get(model_id, {}),
+            "confusion_matrix": confusion_matrices.get(model_id, {}),
+            "n_borrowers": len(borrowers),
         })
 
     return results
 
 
 # ---------------------------------------------------------------------------
-# Elo math
+# Elo math — three rating systems
 # ---------------------------------------------------------------------------
 
 def expected_score(rating_a: float, rating_b: float) -> float:
@@ -240,25 +312,206 @@ def expected_score(rating_a: float, rating_b: float) -> float:
     return 1.0 / (1.0 + 10.0 ** ((rating_b - rating_a) / 400.0))
 
 
+def _get_borrower_ids(match_results: list[dict]) -> set[str]:
+    """Extract all borrower IDs from match results (excluding metadata keys)."""
+    ids: set[str] = set()
+    for r in match_results:
+        for key in r.get("per_applicant_payoffs", {}):
+            if not key.startswith("_"):
+                ids.add(key)
+    return ids
+
+
+def _apply_elo_update(
+    ratings: dict[str, float],
+    mi: str, mj: str,
+    actual_i: float, actual_j: float,
+    pair_k: float,
+) -> None:
+    """Apply a single pairwise Elo update in-place."""
+    exp_i = expected_score(ratings[mi], ratings[mj])
+    exp_j = 1.0 - exp_i
+    ratings[mi] += pair_k * (actual_i - exp_i)
+    ratings[mj] += pair_k * (actual_j - exp_j)
+
+
+def update_dealshare_elo(
+    ratings: dict[str, float],
+    match_results: list[dict],
+    k: float = DEFAULT_K,
+) -> dict[str, float]:
+    """DealShare Elo: rewards winning deals (market participation).
+
+    Per borrower, for models A vs B:
+      - Both declined          -> tie (0.5 / 0.5)
+      - One won, other anything -> winner wins (1.0 / 0.0)
+      - Both lost (third won)  -> tie (0.5 / 0.5)
+      - One lost, other declined -> tie (0.5 / 0.5)
+
+    This measures who captures market share, regardless of profitability.
+    """
+    all_bids = _get_borrower_ids(match_results)
+    if not all_bids:
+        return dict(ratings)
+
+    new_ratings = dict(ratings)
+    n = len(match_results)
+    pair_k = k / ((n - 1) * len(all_bids))
+
+    for bid in all_bids:
+        for i in range(n):
+            for j in range(i + 1, n):
+                mi = match_results[i]["model"]
+                mj = match_results[j]["model"]
+
+                states_i = match_results[i]["per_applicant_payoffs"].get("_decision_states", {})
+                states_j = match_results[j]["per_applicant_payoffs"].get("_decision_states", {})
+                si = states_i.get(bid, "declined")
+                sj = states_j.get(bid, "declined")
+
+                if si == "won" and sj != "won":
+                    actual_i, actual_j = 1.0, 0.0
+                elif sj == "won" and si != "won":
+                    actual_i, actual_j = 0.0, 1.0
+                else:
+                    # Both declined, both lost, or both won (impossible) -> tie
+                    actual_i, actual_j = 0.5, 0.5
+
+                _apply_elo_update(new_ratings, mi, mj, actual_i, actual_j, pair_k)
+
+    return new_ratings
+
+
+def update_profit_elo(
+    ratings: dict[str, float],
+    match_results: list[dict],
+    k: float = DEFAULT_K,
+    epsilon: float = UTILITY_EPSILON,
+) -> dict[str, float]:
+    """Profit Elo: rewards economic utility per borrower.
+
+    Per borrower, for models A vs B:
+      - Compare Utility(A) vs Utility(B)
+      - Utility if won deal = realized net profit (can be negative for bad loans)
+      - Utility if declined or lost = risk-free benchmark return on notional capital
+      - A wins if Utility(A) > Utility(B) + epsilon
+      - Tie if |Utility(A) - Utility(B)| <= epsilon
+      - B wins otherwise
+
+    This aligns Elo with RAROC: correctly declining a bad loan earns benchmark
+    return, which beats the negative profit from funding a defaulting borrower.
+    """
+    all_bids = _get_borrower_ids(match_results)
+    if not all_bids:
+        return dict(ratings)
+
+    new_ratings = dict(ratings)
+    n = len(match_results)
+    pair_k = k / ((n - 1) * len(all_bids))
+
+    for bid in all_bids:
+        for i in range(n):
+            for j in range(i + 1, n):
+                mi = match_results[i]["model"]
+                mj = match_results[j]["model"]
+
+                util_i = match_results[i]["per_applicant_payoffs"].get("_utility", {}).get(bid, 0.0)
+                util_j = match_results[j]["per_applicant_payoffs"].get("_utility", {}).get(bid, 0.0)
+
+                diff = util_i - util_j
+                if diff > epsilon:
+                    actual_i, actual_j = 1.0, 0.0
+                elif diff < -epsilon:
+                    actual_i, actual_j = 0.0, 1.0
+                else:
+                    actual_i, actual_j = 0.5, 0.5
+
+                _apply_elo_update(new_ratings, mi, mj, actual_i, actual_j, pair_k)
+
+    return new_ratings
+
+
+def update_credit_elo(
+    ratings: dict[str, float],
+    match_results: list[dict],
+    k: float = DEFAULT_K,
+) -> dict[str, float]:
+    """Credit Elo: rewards correct approve/reject decisions vs ground truth.
+
+    Per borrower, for models A vs B:
+      - Correct decision:
+          * Borrower is "good" and model approves (with non-usurious rate) -> correct
+          * Borrower is "bad" or "fraud" and model declines -> correct
+      - Incorrect decision:
+          * Borrower is "good" and model declines -> incorrect
+          * Borrower is "bad"/"fraud" and model approves -> incorrect
+
+      - Model with correct decision wins vs model with incorrect decision
+      - Both correct or both incorrect -> tie
+
+    This measures pure underwriting judgment, independent of pricing or
+    competitive dynamics.
+    """
+    all_bids = _get_borrower_ids(match_results)
+    if not all_bids:
+        return dict(ratings)
+
+    new_ratings = dict(ratings)
+    n = len(match_results)
+    pair_k = k / ((n - 1) * len(all_bids))
+
+    for bid in all_bids:
+        for i in range(n):
+            for j in range(i + 1, n):
+                mi = match_results[i]["model"]
+                mj = match_results[j]["model"]
+
+                gt_i = match_results[i]["per_applicant_payoffs"].get("_ground_truth", {}).get(bid, "good")
+                states_i = match_results[i]["per_applicant_payoffs"].get("_decision_states", {})
+                states_j = match_results[j]["per_applicant_payoffs"].get("_decision_states", {})
+                si = states_i.get(bid, "declined")
+                sj = states_j.get(bid, "declined")
+
+                # Ground truth is same for both models on same borrower
+                gt = gt_i
+
+                # Determine correctness
+                def is_correct(state: str, ground_truth: str) -> bool:
+                    approved = state in ("won", "lost")  # both mean model said APPROVE
+                    if ground_truth == "good":
+                        return approved
+                    else:  # "bad" or "fraud"
+                        return not approved
+
+                correct_i = is_correct(si, gt)
+                correct_j = is_correct(sj, gt)
+
+                if correct_i and not correct_j:
+                    actual_i, actual_j = 1.0, 0.0
+                elif correct_j and not correct_i:
+                    actual_i, actual_j = 0.0, 1.0
+                else:
+                    actual_i, actual_j = 0.5, 0.5
+
+                _apply_elo_update(new_ratings, mi, mj, actual_i, actual_j, pair_k)
+
+    return new_ratings
+
+
+# Legacy compatibility
 def update_elo_batch(
     ratings: dict[str, float],
     match_results: list[dict],
     k: float = DEFAULT_K,
 ) -> dict[str, float]:
-    """Update Elo ratings using aggregate score (legacy batch mode).
-
-    Every pair of players in the match generates a pairwise Elo update.
-    K is scaled by 1/(n-1) so the total adjustment per match stays bounded.
-    """
+    """Update Elo ratings using aggregate score (legacy batch mode)."""
     new_ratings = dict(ratings)
     n = len(match_results)
     pair_k = k / (n - 1)
-
     for i in range(n):
         for j in range(i + 1, n):
             mi = match_results[i]["model"]
             mj = match_results[j]["model"]
-
             si = match_results[i]["score"]
             sj = match_results[j]["score"]
             if si > sj:
@@ -267,113 +520,7 @@ def update_elo_batch(
                 actual_i, actual_j = 0.5, 0.5
             else:
                 actual_i, actual_j = 0.0, 1.0
-
-            exp_i = expected_score(ratings[mi], ratings[mj])
-            exp_j = 1.0 - exp_i
-
-            new_ratings[mi] += pair_k * (actual_i - exp_i)
-            new_ratings[mj] += pair_k * (actual_j - exp_j)
-
-    return new_ratings
-
-
-def update_elo(
-    ratings: dict[str, float],
-    match_results: list[dict],
-    k: float = DEFAULT_K,
-) -> dict[str, float]:
-    """Update Elo ratings using per-applicant pairwise comparisons.
-
-    For each borrower, every pair of models generates an Elo signal based
-    on competitive outcomes (not hypothetical parallel-universe payoffs).
-
-    Tie rules (per borrower, for models A vs B):
-      - Both declined          → tie (0.5 / 0.5) — neither acted
-      - One won, other declined → winner wins, decliner loses
-      - One won, other lost    → winner wins, loser loses
-      - Both lost (third model won) → tie — neither earned anything
-      - One lost, other declined → tie — neither earned, but losing
-        a deal you bid on is not worse than not bidding
-
-    K is scaled so total Elo movement per match stays bounded:
-      pair_k = K / ((n-1) * n_borrowers)
-
-    Falls back to batch mode if per_applicant_payoffs are not available.
-    """
-    # Check if per-applicant data is available
-    if not match_results or "per_applicant_payoffs" not in match_results[0]:
-        return update_elo_batch(ratings, match_results, k=k)
-
-    # Collect all borrower IDs (union across all models, excluding metadata keys)
-    all_borrower_ids: set[str] = set()
-    for r in match_results:
-        for key in r.get("per_applicant_payoffs", {}):
-            if not key.startswith("_"):
-                all_borrower_ids.add(key)
-
-    if not all_borrower_ids:
-        return update_elo_batch(ratings, match_results, k=k)
-
-    new_ratings = dict(ratings)
-    n = len(match_results)
-    n_borrowers = len(all_borrower_ids)
-
-    # Scale K: total Elo movement per match ≈ K (same as batch)
-    pair_k = k / ((n - 1) * n_borrowers)
-
-    for bid in all_borrower_ids:
-        for i in range(n):
-            for j in range(i + 1, n):
-                mi = match_results[i]["model"]
-                mj = match_results[j]["model"]
-
-                pi = match_results[i]["per_applicant_payoffs"].get(bid, 0.0)
-                pj = match_results[j]["per_applicant_payoffs"].get(bid, 0.0)
-
-                # Get decision states for tie-rule logic
-                states_i = match_results[i]["per_applicant_payoffs"].get("_decision_states", {})
-                states_j = match_results[j]["per_applicant_payoffs"].get("_decision_states", {})
-                si = states_i.get(bid, "declined")
-                sj = states_j.get(bid, "declined")
-
-                # Apply tie rules
-                if si == "declined" and sj == "declined":
-                    # Both declined → tie
-                    actual_i, actual_j = 0.5, 0.5
-                elif si == "won" and sj == "won":
-                    # Shouldn't happen (only one winner), but defensive
-                    actual_i, actual_j = 0.5, 0.5
-                elif si == "won":
-                    # i won the deal: compare on realized payoff vs 0
-                    # Winner always "wins" the Elo matchup (even if payoff is
-                    # negative — winning a bad deal is the model's fault)
-                    actual_i, actual_j = 1.0, 0.0
-                elif sj == "won":
-                    actual_i, actual_j = 0.0, 1.0
-                elif si == "lost" and sj == "lost":
-                    # Both approved but a third model won → tie
-                    actual_i, actual_j = 0.5, 0.5
-                elif si == "lost" and sj == "declined":
-                    # i bid and lost, j didn't bid → tie
-                    # (not bidding is not better or worse than losing)
-                    actual_i, actual_j = 0.5, 0.5
-                elif si == "declined" and sj == "lost":
-                    actual_i, actual_j = 0.5, 0.5
-                else:
-                    # Fallback: compare on payoff
-                    if pi > pj:
-                        actual_i, actual_j = 1.0, 0.0
-                    elif pi == pj:
-                        actual_i, actual_j = 0.5, 0.5
-                    else:
-                        actual_i, actual_j = 0.0, 1.0
-
-                exp_i = expected_score(ratings[mi], ratings[mj])
-                exp_j = 1.0 - exp_i
-
-                new_ratings[mi] += pair_k * (actual_i - exp_i)
-                new_ratings[mj] += pair_k * (actual_j - exp_j)
-
+            _apply_elo_update(new_ratings, mi, mj, actual_i, actual_j, pair_k)
     return new_ratings
 
 
@@ -421,30 +568,48 @@ def run_tournament(
     k: float = DEFAULT_K,
     output_file: str = "elo_results.json",
     resume_data: dict | None = None,
+    sample_borrowers: int | None = None,
 ) -> dict:
-    """Run the full Elo tournament."""
-    ratings = {m[0]: float(INITIAL_ELO) for m in models}
+    """Run the full Elo tournament with three rating systems."""
+    init = {m[0]: float(INITIAL_ELO) for m in models}
+    dealshare_ratings = dict(init)
+    profit_ratings = dict(init)
+    credit_ratings = dict(init)
     match_log: list[dict] = []
     total_cost = 0.0
     completed = 0
 
     if resume_data:
-        ratings = {k_: float(v) for k_, v in resume_data.get("ratings", {}).items()}
+        # Load all three rating types (fall back to legacy "ratings" key)
+        legacy = resume_data.get("ratings", {})
+        dealshare_ratings = {k_: float(v) for k_, v in resume_data.get("dealshare_ratings", legacy).items()}
+        profit_ratings = {k_: float(v) for k_, v in resume_data.get("profit_ratings", legacy).items()}
+        credit_ratings = {k_: float(v) for k_, v in resume_data.get("credit_ratings", legacy).items()}
         match_log = list(resume_data.get("match_log", []))
         total_cost = resume_data.get("total_cost", 0.0)
         completed = len(match_log)
+        # Ensure new models get initial ratings
+        for m_id, _ in models:
+            dealshare_ratings.setdefault(m_id, float(INITIAL_ELO))
+            profit_ratings.setdefault(m_id, float(INITIAL_ELO))
+            credit_ratings.setdefault(m_id, float(INITIAL_ELO))
 
     remaining = n_matches - completed
     if remaining <= 0:
         print(f"Already completed {completed} matches.  Nothing to do.")
-        return _build_output(ratings, match_log, models, mix, total_cost)
+        return _build_output(
+            dealshare_ratings, profit_ratings, credit_ratings,
+            match_log, models, mix, total_cost,
+        )
 
     matchups = generate_matchups(models, remaining, seed=42 + completed)
-    display_map = {m[0]: m[1] for m in models}
+    match_rng = random.Random(1337 + completed)
 
     print(f"\n{'='*70}")
-    print(f"  LOANVILLE ELO TOURNAMENT")
+    print(f"  LOANVILLE ELO TOURNAMENT (3-Rating System)")
     print(f"  Models: {len(models)} | Mix: {mix} | Matches: {n_matches} | K={k}")
+    if sample_borrowers:
+        print(f"  Borrower sampling: {sample_borrowers} per match")
     if completed:
         print(f"  Resuming from match {completed + 1}")
     print(f"{'='*70}\n")
@@ -457,31 +622,46 @@ def run_tournament(
 
         try:
             t0 = time.time()
-            results = run_match(triplet, mix, api_key)
+            results = run_match(
+                triplet, mix, api_key,
+                sample_borrowers=sample_borrowers,
+                rng=match_rng,
+            )
             elapsed = time.time() - t0
 
-            old_ratings = dict(ratings)
-            ratings = update_elo(ratings, results, k=k)
+            # Update all three rating systems
+            old_ds = dict(dealshare_ratings)
+            old_pr = dict(profit_ratings)
+            old_cr = dict(credit_ratings)
+
+            dealshare_ratings = update_dealshare_elo(dealshare_ratings, results, k=k)
+            profit_ratings = update_profit_elo(profit_ratings, results, k=k)
+            credit_ratings = update_credit_elo(credit_ratings, results, k=k)
 
             match_cost = sum(r["cost"] for r in results)
             total_cost += match_cost
 
             ranked = sorted(results, key=lambda r: r["score"], reverse=True)
-            winner = ranked[0]
-            delta_w = ratings[winner["model"]] - old_ratings[winner["model"]]
 
             print(f"[{elapsed:.0f}s ${match_cost:.3f}]")
             for r in ranked:
-                d = ratings[r["model"]] - old_ratings[r["model"]]
+                mid = r["model"]
+                d_ds = dealshare_ratings[mid] - old_ds[mid]
+                d_pr = profit_ratings[mid] - old_pr[mid]
+                d_cr = credit_ratings[mid] - old_cr[mid]
                 print(f"    {r['display_name']:<28s} "
-                      f"score={r['score']:+7.2f}%  won={r['deals_won']}  "
-                      f"Elo {old_ratings[r['model']]:.0f}→{ratings[r['model']]:.0f} ({d:+.1f})")
+                      f"RAROC={r['score']:+7.2f}%  won={r['deals_won']}  "
+                      f"DS:{dealshare_ratings[mid]:.0f}({d_ds:+.1f}) "
+                      f"PR:{profit_ratings[mid]:.0f}({d_pr:+.1f}) "
+                      f"CR:{credit_ratings[mid]:.0f}({d_cr:+.1f})")
 
             # Strip per_applicant_payoffs from logged results (too large for JSON)
-            logged_results = [
-                {k: v for k, v in r.items() if k != "per_applicant_payoffs"}
-                for r in results
-            ]
+            logged_results = []
+            for r in results:
+                logged = {k_: v for k_, v in r.items()
+                          if k_ != "per_applicant_payoffs"}
+                logged_results.append(logged)
+
             match_log.append({
                 "match": match_num,
                 "models": [m[0] for m in triplet],
@@ -499,24 +679,39 @@ def run_tournament(
             })
 
         # Incremental save
-        output = _build_output(ratings, match_log, models, mix, total_cost)
+        output = _build_output(
+            dealshare_ratings, profit_ratings, credit_ratings,
+            match_log, models, mix, total_cost,
+        )
         _save_results(output, output_file)
 
         # Print standings every 10 matches
         if match_num % 10 == 0:
-            print_standings(ratings, models, match_log)
+            print_standings(
+                dealshare_ratings, profit_ratings, credit_ratings,
+                models, match_log,
+            )
 
-    return _build_output(ratings, match_log, models, mix, total_cost)
+    return _build_output(
+        dealshare_ratings, profit_ratings, credit_ratings,
+        match_log, models, mix, total_cost,
+    )
 
 
-def _build_output(ratings, match_log, models, mix, total_cost):
+def _build_output(dealshare_ratings, profit_ratings, credit_ratings,
+                  match_log, models, mix, total_cost):
     return {
         "timestamp": datetime.now().isoformat(),
         "mix": mix,
         "n_models": len(models),
         "n_matches": len(match_log),
         "total_cost": round(total_cost, 4),
-        "ratings": {k: round(v, 1) for k, v in ratings.items()},
+        # Three rating systems
+        "dealshare_ratings": {k: round(v, 1) for k, v in dealshare_ratings.items()},
+        "profit_ratings": {k: round(v, 1) for k, v in profit_ratings.items()},
+        "credit_ratings": {k: round(v, 1) for k, v in credit_ratings.items()},
+        # Legacy compatibility: "ratings" points to profit_ratings (the recommended default)
+        "ratings": {k: round(v, 1) for k, v in profit_ratings.items()},
         "display_names": {m[0]: m[1] for m in models},
         "match_log": match_log,
     }
@@ -531,46 +726,81 @@ def _save_results(output, filename="elo_results.json"):
 # Display
 # ---------------------------------------------------------------------------
 
-def print_standings(ratings, models, match_log):
-    """Print current Elo standings table."""
+def print_standings(dealshare_ratings, profit_ratings, credit_ratings,
+                    models, match_log):
+    """Print current standings with all three Elo systems."""
     display_map = {m[0]: m[1] for m in models}
 
     match_counts: dict[str, int] = {m[0]: 0 for m in models}
     win_counts: dict[str, float] = {m[0]: 0.0 for m in models}
     total_scores: dict[str, float] = {m[0]: 0.0 for m in models}
+    # Aggregate confusion matrices
+    agg_cm: dict[str, dict[str, dict[str, int]]] = {}
+    for m_id, _ in models:
+        agg_cm[m_id] = {
+            "good": {"approved": 0, "rejected": 0},
+            "bad": {"approved": 0, "rejected": 0},
+            "fraud": {"approved": 0, "rejected": 0},
+        }
 
     for entry in match_log:
         results = entry.get("results")
         if not results:
             continue
         for r in results:
-            match_counts[r["model"]] += 1
-            total_scores[r["model"]] += r["score"]
+            mid = r["model"]
+            match_counts[mid] += 1
+            total_scores[mid] += r["score"]
+            # Aggregate confusion matrices
+            cm = r.get("confusion_matrix", {})
+            for category in ("good", "bad", "fraud"):
+                cat_data = cm.get(category, {})
+                agg_cm[mid][category]["approved"] += cat_data.get("approved", 0)
+                agg_cm[mid][category]["rejected"] += cat_data.get("rejected", 0)
 
         best_score = max(r["score"] for r in results)
         winners = [r for r in results if r["score"] == best_score]
         for w in winners:
             win_counts[w["model"]] += 1.0 / len(winners)
 
-    ranked = sorted(ratings.items(), key=lambda x: x[1], reverse=True)
+    # Sort by Profit Elo (the recommended ranking)
+    ranked = sorted(profit_ratings.items(), key=lambda x: x[1], reverse=True)
 
-    print(f"\n{'='*80}")
+    print(f"\n{'='*100}")
     print(f"  ELO STANDINGS — {len(match_log)} matches played")
-    print(f"{'='*80}")
-    print(f"  {'#':>3s}  {'Model':<28s} {'Elo':>6s}  {'Matches':>7s}  "
-          f"{'Wins':>5s}  {'Win%':>5s}  {'AvgScore':>9s}")
-    print(f"  {'─'*72}")
+    print(f"  Sorted by Profit Elo (recommended ranking)")
+    print(f"{'='*100}")
+    print(f"  {'#':>3s}  {'Model':<24s} {'Profit':>7s} {'Credit':>7s} {'DealSh':>7s}  "
+          f"{'Matches':>7s}  {'Win%':>5s}  {'AvgRAROC':>9s}  "
+          f"{'Good✓':>6s} {'Bad✓':>6s}")
+    print(f"  {'─'*90}")
 
-    for rank, (model_id, elo) in enumerate(ranked, 1):
+    for rank, (model_id, profit_elo) in enumerate(ranked, 1):
         name = display_map.get(model_id, model_id.split("/")[-1])
+        ds_elo = dealshare_ratings.get(model_id, INITIAL_ELO)
+        cr_elo = credit_ratings.get(model_id, INITIAL_ELO)
         matches = match_counts.get(model_id, 0)
         wins = win_counts.get(model_id, 0)
         win_pct = (wins / matches * 100) if matches > 0 else 0
         avg_score = (total_scores.get(model_id, 0) / matches) if matches > 0 else 0
-        print(f"  {rank:>3d}  {name:<28s} {elo:>6.0f}  {matches:>7d}  "
-              f"{wins:>5.1f}  {win_pct:>4.1f}%  {avg_score:>+8.2f}%")
 
-    print(f"{'='*80}")
+        # Confusion matrix summary
+        cm = agg_cm.get(model_id, {})
+        good_total = cm["good"]["approved"] + cm["good"]["rejected"]
+        good_correct = cm["good"]["approved"]  # approving good = correct
+        good_pct = f"{good_correct}/{good_total}" if good_total > 0 else "—"
+
+        bad_total = cm["bad"]["approved"] + cm["bad"]["rejected"]
+        bad_correct = cm["bad"]["rejected"]  # rejecting bad = correct
+        bad_pct = f"{bad_correct}/{bad_total}" if bad_total > 0 else "—"
+
+        print(f"  {rank:>3d}  {name:<24s} {profit_elo:>7.0f} {cr_elo:>7.0f} {ds_elo:>7.0f}  "
+              f"{matches:>7d}  {win_pct:>4.1f}%  {avg_score:>+8.2f}%  "
+              f"{good_pct:>6s} {bad_pct:>6s}")
+
+    print(f"{'='*100}")
+    print(f"  Legend: Profit=Profit Elo, Credit=Credit Elo, DealSh=DealShare Elo")
+    print(f"  Good✓=good borrowers correctly approved, Bad✓=bad/fraud correctly rejected")
 
 
 # ---------------------------------------------------------------------------
@@ -579,7 +809,7 @@ def print_standings(ratings, models, match_log):
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Loanville Elo tournament benchmark"
+        description="Loanville Elo tournament benchmark (3-rating system)"
     )
     parser.add_argument("--mix", type=str, default="analyst",
                         help="Borrower mix preset (default: analyst)")
@@ -597,13 +827,18 @@ def main():
                         help="Use full 35-model set instead of small models")
     parser.add_argument("--models", type=str, nargs="+", default=None,
                         help="Specific model IDs to include (overrides --full)")
+    parser.add_argument("--sample-borrowers", type=int, default=None,
+                        help="Sample N borrowers per match from the pool (introduces variation)")
     args = parser.parse_args()
 
     if args.standings:
         with open(args.standings) as f:
             data = json.load(f)
         models = list(data["display_names"].items())
-        print_standings(data["ratings"], models, data["match_log"])
+        ds = data.get("dealshare_ratings", data.get("ratings", {}))
+        pr = data.get("profit_ratings", data.get("ratings", {}))
+        cr = data.get("credit_ratings", data.get("ratings", {}))
+        print_standings(ds, pr, cr, models, data["match_log"])
         return
 
     api_key = os.environ.get("OPENROUTER_API_KEY", "")
@@ -639,10 +874,16 @@ def main():
         models, args.matches, args.mix, api_key,
         k=args.k, output_file=args.output,
         resume_data=resume_data,
+        sample_borrowers=args.sample_borrowers,
     )
 
     _save_results(output, args.output)
-    print_standings(output["ratings"], models, output["match_log"])
+    print_standings(
+        output["dealshare_ratings"],
+        output["profit_ratings"],
+        output["credit_ratings"],
+        models, output["match_log"],
+    )
 
     print(f"\nTournament complete. {output['n_matches']} matches played.")
     print(f"Total API cost: ${output['total_cost']:.2f}")

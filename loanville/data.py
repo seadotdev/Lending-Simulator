@@ -1311,6 +1311,32 @@ MIX_PRESETS: dict[str, dict[str, list[str]]] = {
         "bad":   ["BRW-019", "BRW-020", "BRW-021", "BRW-022", "BRW-023", "BRW-024"],
         "fraud": [],
     },
+    # Fraud-heavy: 5 good, 0 standard bad, 4 fraud — tests fraud detection.
+    # All bad outcomes come from fraud patterns (round numbers, circular
+    # transfers, fabricated statements, structuring).  Models must use bank
+    # statement analysis / tool-use to detect anomalies.
+    "fraud": {
+        "good":  ["BRW-001", "BRW-003", "BRW-005", "BRW-015", "BRW-017"],
+        "bad":   [],
+        "fraud": ["BRW-010", "BRW-011", "BRW-012", "BRW-018"],
+    },
+    # Sector concentration stress: loads sectors that already have heavy
+    # existing portfolio exposure for the built-in lender personas.
+    # Tests whether models respect concentration limits under pressure.
+    "concentration": {
+        "good":  ["BRW-001", "BRW-002", "BRW-003", "BRW-004", "BRW-005",
+                   "BRW-013", "BRW-014", "BRW-015", "BRW-016", "BRW-017"],
+        "bad":   ["BRW-006", "BRW-007", "BRW-008", "BRW-009"],
+        "fraud": ["BRW-010", "BRW-011"],
+    },
+    # Kitchen-sink stress: every borrower type present, highest difficulty.
+    # Combines over-leverage bad businesses, standard bad, all fraud types.
+    "stress": {
+        "good":  ["BRW-001", "BRW-003", "BRW-005", "BRW-013", "BRW-015"],
+        "bad":   ["BRW-006", "BRW-007", "BRW-009",
+                   "BRW-019", "BRW-020", "BRW-021", "BRW-023", "BRW-024"],
+        "fraud": ["BRW-010", "BRW-011", "BRW-012", "BRW-018"],
+    },
 }
 
 
