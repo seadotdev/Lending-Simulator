@@ -1,0 +1,325 @@
+{
+  "timestamp": "2026-02-22T08:08:58.704195",
+  "mix": "analyst",
+  "n_models": 3,
+  "n_matches": 6,
+  "total_cost": 0.0784,
+  "ratings": {
+    "openai/gpt-4.1-nano": 1555.7,
+    "mistralai/mistral-small-3.2-24b-instruct": 1472.7,
+    "google/gemma-3-27b-it": 1471.6
+  },
+  "display_names": {
+    "openai/gpt-4.1-nano": "GPT-4.1 Nano",
+    "mistralai/mistral-small-3.2-24b-instruct": "Mistral Small 3.2",
+    "google/gemma-3-27b-it": "Gemma 3 27B"
+  },
+  "match_log": [
+    {
+      "match": 1,
+      "models": [
+        "google/gemma-3-27b-it",
+        "openai/gpt-4.1-nano",
+        "mistralai/mistral-small-3.2-24b-instruct"
+      ],
+      "results": [
+        {
+          "model": "google/gemma-3-27b-it",
+          "display_name": "Gemma 3 27B",
+          "score": -12.0,
+          "raroc_score": -12.0,
+          "deals_won": 0,
+          "frauds_funded": 0,
+          "defaults": 0,
+          "deployed": 0,
+          "net_pnl": 0,
+          "approvals": 0,
+          "cost": 0.0
+        },
+        {
+          "model": "openai/gpt-4.1-nano",
+          "display_name": "GPT-4.1 Nano",
+          "score": -42.073948554499474,
+          "raroc_score": -42.073948554499474,
+          "deals_won": 10,
+          "frauds_funded": 0,
+          "defaults": 2,
+          "deployed": 3425000.0,
+          "net_pnl": -258326.14999999997,
+          "approvals": 12,
+          "cost": 0.0121
+        },
+        {
+          "model": "mistralai/mistral-small-3.2-24b-instruct",
+          "display_name": "Mistral Small 3.2",
+          "score": -34.52382030581124,
+          "raroc_score": -34.52382030581124,
+          "deals_won": 2,
+          "frauds_funded": 0,
+          "defaults": 1,
+          "deployed": 1150000.0,
+          "net_pnl": -162190.31,
+          "approvals": 3,
+          "cost": 0.006
+        }
+      ],
+      "elapsed": 11.8,
+      "cost": 0.018099999999999998
+    },
+    {
+      "match": 2,
+      "models": [
+        "google/gemma-3-27b-it",
+        "openai/gpt-4.1-nano",
+        "mistralai/mistral-small-3.2-24b-instruct"
+      ],
+      "results": [
+        {
+          "model": "google/gemma-3-27b-it",
+          "display_name": "Gemma 3 27B",
+          "score": -12.0,
+          "raroc_score": -12.0,
+          "deals_won": 0,
+          "frauds_funded": 0,
+          "defaults": 0,
+          "deployed": 0,
+          "net_pnl": 0,
+          "approvals": 0,
+          "cost": 0.0
+        },
+        {
+          "model": "openai/gpt-4.1-nano",
+          "display_name": "GPT-4.1 Nano",
+          "score": -10.340242078881912,
+          "raroc_score": -10.340242078881912,
+          "deals_won": 9,
+          "frauds_funded": 0,
+          "defaults": 0,
+          "deployed": 3425000.0,
+          "net_pnl": 317990.81,
+          "approvals": 13,
+          "cost": 0.0084
+        },
+        {
+          "model": "mistralai/mistral-small-3.2-24b-instruct",
+          "display_name": "Mistral Small 3.2",
+          "score": -56.55540949367033,
+          "raroc_score": -56.55540949367033,
+          "deals_won": 1,
+          "frauds_funded": 0,
+          "defaults": 1,
+          "deployed": 400000.0,
+          "net_pnl": -251596.67,
+          "approvals": 2,
+          "cost": 0.0057
+        }
+      ],
+      "elapsed": 11.8,
+      "cost": 0.0141
+    },
+    {
+      "match": 3,
+      "models": [
+        "mistralai/mistral-small-3.2-24b-instruct",
+        "openai/gpt-4.1-nano",
+        "google/gemma-3-27b-it"
+      ],
+      "results": [
+        {
+          "model": "mistralai/mistral-small-3.2-24b-instruct",
+          "display_name": "Mistral Small 3.2",
+          "score": -12.0,
+          "raroc_score": -12.0,
+          "deals_won": 0,
+          "frauds_funded": 0,
+          "defaults": 0,
+          "deployed": 0,
+          "net_pnl": 0,
+          "approvals": 1,
+          "cost": 0.0067
+        },
+        {
+          "model": "openai/gpt-4.1-nano",
+          "display_name": "GPT-4.1 Nano",
+          "score": -59.20613608531711,
+          "raroc_score": -59.20613608531711,
+          "deals_won": 9,
+          "frauds_funded": 0,
+          "defaults": 3,
+          "deployed": 3350000.0,
+          "net_pnl": -505461.08999999997,
+          "approvals": 10,
+          "cost": 0.0084
+        },
+        {
+          "model": "google/gemma-3-27b-it",
+          "display_name": "Gemma 3 27B",
+          "score": -12.0,
+          "raroc_score": -12.0,
+          "deals_won": 0,
+          "frauds_funded": 0,
+          "defaults": 0,
+          "deployed": 0,
+          "net_pnl": 0,
+          "approvals": 0,
+          "cost": 0.0
+        }
+      ],
+      "elapsed": 11.4,
+      "cost": 0.015099999999999999
+    },
+    {
+      "match": 4,
+      "models": [
+        "google/gemma-3-27b-it",
+        "openai/gpt-4.1-nano",
+        "mistralai/mistral-small-3.2-24b-instruct"
+      ],
+      "results": [
+        {
+          "model": "google/gemma-3-27b-it",
+          "display_name": "Gemma 3 27B",
+          "score": -12.0,
+          "raroc_score": -12.0,
+          "deals_won": 0,
+          "frauds_funded": 0,
+          "defaults": 0,
+          "deployed": 0,
+          "net_pnl": 0,
+          "approvals": 0,
+          "cost": 0.0
+        },
+        {
+          "model": "openai/gpt-4.1-nano",
+          "display_name": "GPT-4.1 Nano",
+          "score": -34.31021928742494,
+          "raroc_score": -34.31021928742494,
+          "deals_won": 10,
+          "frauds_funded": 0,
+          "defaults": 2,
+          "deployed": 3425000.0,
+          "net_pnl": -121442.54999999999,
+          "approvals": 12,
+          "cost": 0.01
+        },
+        {
+          "model": "mistralai/mistral-small-3.2-24b-instruct",
+          "display_name": "Mistral Small 3.2",
+          "score": -12.0,
+          "raroc_score": -12.0,
+          "deals_won": 0,
+          "frauds_funded": 0,
+          "defaults": 0,
+          "deployed": 0,
+          "net_pnl": 0,
+          "approvals": 0,
+          "cost": 0.0
+        }
+      ],
+      "elapsed": 10.2,
+      "cost": 0.01
+    },
+    {
+      "match": 5,
+      "models": [
+        "google/gemma-3-27b-it",
+        "mistralai/mistral-small-3.2-24b-instruct",
+        "openai/gpt-4.1-nano"
+      ],
+      "results": [
+        {
+          "model": "google/gemma-3-27b-it",
+          "display_name": "Gemma 3 27B",
+          "score": -12.0,
+          "raroc_score": -12.0,
+          "deals_won": 0,
+          "frauds_funded": 0,
+          "defaults": 0,
+          "deployed": 0,
+          "net_pnl": 0,
+          "approvals": 0,
+          "cost": 0.0
+        },
+        {
+          "model": "mistralai/mistral-small-3.2-24b-instruct",
+          "display_name": "Mistral Small 3.2",
+          "score": -12.0,
+          "raroc_score": -12.0,
+          "deals_won": 0,
+          "frauds_funded": 0,
+          "defaults": 0,
+          "deployed": 0,
+          "net_pnl": 0,
+          "approvals": 0,
+          "cost": 0.0
+        },
+        {
+          "model": "openai/gpt-4.1-nano",
+          "display_name": "GPT-4.1 Nano",
+          "score": -30.734721721306595,
+          "raroc_score": -30.734721721306595,
+          "deals_won": 9,
+          "frauds_funded": 0,
+          "defaults": 2,
+          "deployed": 2775000.0,
+          "net_pnl": -140981.89999999997,
+          "approvals": 9,
+          "cost": 0.0115
+        }
+      ],
+      "elapsed": 12.4,
+      "cost": 0.0115
+    },
+    {
+      "match": 6,
+      "models": [
+        "google/gemma-3-27b-it",
+        "mistralai/mistral-small-3.2-24b-instruct",
+        "openai/gpt-4.1-nano"
+      ],
+      "results": [
+        {
+          "model": "google/gemma-3-27b-it",
+          "display_name": "Gemma 3 27B",
+          "score": -12.0,
+          "raroc_score": -12.0,
+          "deals_won": 0,
+          "frauds_funded": 0,
+          "defaults": 0,
+          "deployed": 0,
+          "net_pnl": 0,
+          "approvals": 0,
+          "cost": 0.0
+        },
+        {
+          "model": "mistralai/mistral-small-3.2-24b-instruct",
+          "display_name": "Mistral Small 3.2",
+          "score": -12.0,
+          "raroc_score": -12.0,
+          "deals_won": 0,
+          "frauds_funded": 0,
+          "defaults": 0,
+          "deployed": 0,
+          "net_pnl": 0,
+          "approvals": 0,
+          "cost": 0.0
+        },
+        {
+          "model": "openai/gpt-4.1-nano",
+          "display_name": "GPT-4.1 Nano",
+          "score": -41.24240178624306,
+          "raroc_score": -41.24240178624306,
+          "deals_won": 10,
+          "frauds_funded": 0,
+          "defaults": 2,
+          "deployed": 3425000.0,
+          "net_pnl": -256185.03999999998,
+          "approvals": 12,
+          "cost": 0.0096
+        }
+      ],
+      "elapsed": 10.8,
+      "cost": 0.0096
+    }
+  ]
+}
