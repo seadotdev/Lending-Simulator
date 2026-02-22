@@ -51,7 +51,8 @@ from loanville.llm import MODEL_PRICING, clear_usage, get_cost_summary, get_toke
 from loanville.models import Borrower, LenderConfig
 from loanville.scoring import (
     RISK_FREE_RATE, SIM_HORIZON_MONTHS,
-    compute_confusion_matrix, compute_heuristic_baseline, compute_loan_payoff,
+    calculate_perfect_score, compute_confusion_matrix,
+    compute_heuristic_baseline, compute_loan_payoff,
     compute_penalty_decomposition, bootstrap_raroc_interval, score_lenders,
 )
 
@@ -571,6 +572,12 @@ def run_tournament(
     sample_borrowers: int | None = None,
 ) -> dict:
     """Run the full Elo tournament with three rating systems."""
+    # Compute baselines once (they only depend on the mix + standard lender config)
+    baseline_lender = make_lender(1, "baseline", "baseline")
+    all_borrowers = get_borrowers(mix)
+    oracle_score = calculate_perfect_score(baseline_lender, all_borrowers)
+    heuristic_score = compute_heuristic_baseline(baseline_lender, all_borrowers)
+
     init = {m[0]: float(INITIAL_ELO) for m in models}
     dealshare_ratings = dict(init)
     profit_ratings = dict(init)
@@ -578,6 +585,12 @@ def run_tournament(
     match_log: list[dict] = []
     total_cost = 0.0
     completed = 0
+
+    # Accumulate rate stats across matches (per_applicant_payoffs are stripped from log)
+    # model_id -> {"good_rates": [floats], "bad_rates": [floats]}
+    rate_stats: dict[str, dict[str, list[float]]] = {
+        m[0]: {"good_rates": [], "bad_rates": []} for m in models
+    }
 
     if resume_data:
         # Load all three rating types (fall back to legacy "ratings" key)
@@ -600,6 +613,8 @@ def run_tournament(
         return _build_output(
             dealshare_ratings, profit_ratings, credit_ratings,
             match_log, models, mix, total_cost,
+            oracle_score=oracle_score, heuristic_score=heuristic_score,
+            rate_stats=rate_stats,
         )
 
     matchups = generate_matchups(models, remaining, seed=42 + completed)
@@ -655,6 +670,23 @@ def run_tournament(
                       f"PR:{profit_ratings[mid]:.0f}({d_pr:+.1f}) "
                       f"CR:{credit_ratings[mid]:.0f}({d_cr:+.1f})")
 
+            # Accumulate rate stats before stripping per_applicant_payoffs
+            for r in results:
+                mid = r["model"]
+                pap = r.get("per_applicant_payoffs", {})
+                rates = pap.get("_rates_offered", {})
+                gt = pap.get("_ground_truth", {})
+                for bid, rate in rates.items():
+                    if rate is None:
+                        continue  # model declined — no rate offered
+                    outcome = gt.get(bid, "good")
+                    if mid not in rate_stats:
+                        rate_stats[mid] = {"good_rates": [], "bad_rates": []}
+                    if outcome == "good":
+                        rate_stats[mid]["good_rates"].append(rate)
+                    else:  # bad or fraud
+                        rate_stats[mid]["bad_rates"].append(rate)
+
             # Strip per_applicant_payoffs from logged results (too large for JSON)
             logged_results = []
             for r in results:
@@ -682,6 +714,8 @@ def run_tournament(
         output = _build_output(
             dealshare_ratings, profit_ratings, credit_ratings,
             match_log, models, mix, total_cost,
+            oracle_score=oracle_score, heuristic_score=heuristic_score,
+            rate_stats=rate_stats,
         )
         _save_results(output, output_file)
 
@@ -690,17 +724,22 @@ def run_tournament(
             print_standings(
                 dealshare_ratings, profit_ratings, credit_ratings,
                 models, match_log,
+                baselines=(oracle_score, heuristic_score),
+                rate_stats=rate_stats,
             )
 
     return _build_output(
         dealshare_ratings, profit_ratings, credit_ratings,
         match_log, models, mix, total_cost,
+        oracle_score=oracle_score, heuristic_score=heuristic_score,
+        rate_stats=rate_stats,
     )
 
 
 def _build_output(dealshare_ratings, profit_ratings, credit_ratings,
-                  match_log, models, mix, total_cost):
-    return {
+                  match_log, models, mix, total_cost,
+                  oracle_score=None, heuristic_score=None, rate_stats=None):
+    out = {
         "timestamp": datetime.now().isoformat(),
         "mix": mix,
         "n_models": len(models),
@@ -715,6 +754,24 @@ def _build_output(dealshare_ratings, profit_ratings, credit_ratings,
         "display_names": {m[0]: m[1] for m in models},
         "match_log": match_log,
     }
+    if oracle_score is not None:
+        out["baselines"] = {
+            "oracle_raroc": round(oracle_score, 2),
+            "heuristic_raroc": round(heuristic_score, 2),
+        }
+    if rate_stats:
+        # Summarize rate stats for JSON output
+        out["rate_analysis"] = {}
+        for mid, stats in rate_stats.items():
+            good = stats["good_rates"]
+            bad = stats["bad_rates"]
+            out["rate_analysis"][mid] = {
+                "avg_rate_good": round(sum(good) / len(good), 2) if good else None,
+                "avg_rate_bad": round(sum(bad) / len(bad), 2) if bad else None,
+                "n_good_offers": len(good),
+                "n_bad_offers": len(bad),
+            }
+    return out
 
 
 def _save_results(output, filename="elo_results.json"):
@@ -727,8 +784,8 @@ def _save_results(output, filename="elo_results.json"):
 # ---------------------------------------------------------------------------
 
 def print_standings(dealshare_ratings, profit_ratings, credit_ratings,
-                    models, match_log):
-    """Print current standings with all three Elo systems."""
+                    models, match_log, baselines=None, rate_stats=None):
+    """Print current standings with all three Elo systems, baselines, and rate analysis."""
     display_map = {m[0]: m[1] for m in models}
 
     match_counts: dict[str, int] = {m[0]: 0 for m in models}
@@ -766,14 +823,14 @@ def print_standings(dealshare_ratings, profit_ratings, credit_ratings,
     # Sort by Profit Elo (the recommended ranking)
     ranked = sorted(profit_ratings.items(), key=lambda x: x[1], reverse=True)
 
-    print(f"\n{'='*100}")
+    print(f"\n{'='*110}")
     print(f"  ELO STANDINGS — {len(match_log)} matches played")
     print(f"  Sorted by Profit Elo (recommended ranking)")
-    print(f"{'='*100}")
+    print(f"{'='*110}")
     print(f"  {'#':>3s}  {'Model':<24s} {'Profit':>7s} {'Credit':>7s} {'DealSh':>7s}  "
           f"{'Matches':>7s}  {'Win%':>5s}  {'AvgRAROC':>9s}  "
           f"{'Good✓':>6s} {'Bad✓':>6s}")
-    print(f"  {'─'*90}")
+    print(f"  {'─'*100}")
 
     for rank, (model_id, profit_elo) in enumerate(ranked, 1):
         name = display_map.get(model_id, model_id.split("/")[-1])
@@ -798,9 +855,52 @@ def print_standings(dealshare_ratings, profit_ratings, credit_ratings,
               f"{matches:>7d}  {win_pct:>4.1f}%  {avg_score:>+8.2f}%  "
               f"{good_pct:>6s} {bad_pct:>6s}")
 
-    print(f"{'='*100}")
+    # Baselines section
+    if baselines:
+        oracle_score, heuristic_score = baselines
+        print(f"  {'─'*100}")
+        print(f"  {'':>3s}  {'Oracle (perfect info)':24s} {'':>7s} {'':>7s} {'':>7s}  "
+              f"{'':>7s}  {'':>5s}  {oracle_score:>+8.2f}%  {'':>6s} {'':>6s}")
+        print(f"  {'':>3s}  {'Heuristic (DSCR rules)':24s} {'':>7s} {'':>7s} {'':>7s}  "
+              f"{'':>7s}  {'':>5s}  {heuristic_score:>+8.2f}%  {'':>6s} {'':>6s}")
+
+    print(f"{'='*110}")
     print(f"  Legend: Profit=Profit Elo, Credit=Credit Elo, DealSh=DealShare Elo")
     print(f"  Good✓=good borrowers correctly approved, Bad✓=bad/fraud correctly rejected")
+
+    # Rate analysis section
+    if rate_stats and any(s["good_rates"] or s["bad_rates"] for s in rate_stats.values()):
+        print(f"\n  PRICING ANALYSIS — avg rate offered by borrower quality")
+        print(f"  {'─'*80}")
+        print(f"  {'Model':<24s}  {'Rate→Good':>10s} {'(n)':>5s}  "
+              f"{'Rate→Bad':>10s} {'(n)':>5s}  {'Spread':>8s}  {'Signal?':>8s}")
+        print(f"  {'─'*80}")
+
+        for model_id, _ in sorted(ranked, key=lambda x: x[1], reverse=True):
+            name = display_map.get(model_id, model_id.split("/")[-1])
+            stats = rate_stats.get(model_id, {"good_rates": [], "bad_rates": []})
+            good = stats["good_rates"]
+            bad = stats["bad_rates"]
+            avg_good = sum(good) / len(good) if good else 0
+            avg_bad = sum(bad) / len(bad) if bad else 0
+            n_good = len(good)
+            n_bad = len(bad)
+
+            if good and bad:
+                spread = avg_bad - avg_good
+                # Signal = model charges more for bad credits (positive spread = good)
+                signal = "YES" if spread > 0.5 else ("weak" if spread > 0 else "NO")
+                print(f"  {name:<24s}  {avg_good:>9.1f}% {n_good:>5d}  "
+                      f"{avg_bad:>9.1f}% {n_bad:>5d}  {spread:>+7.1f}%  {signal:>8s}")
+            elif good:
+                print(f"  {name:<24s}  {avg_good:>9.1f}% {n_good:>5d}  "
+                      f"{'—':>10s} {n_bad:>5d}  {'—':>8s}  {'decl all':>8s}")
+            else:
+                print(f"  {name:<24s}  {'—':>10s} {n_good:>5d}  "
+                      f"{'—':>10s} {n_bad:>5d}  {'—':>8s}  {'no data':>8s}")
+
+        print(f"  {'─'*80}")
+        print(f"  Spread = (avg rate on bad) − (avg rate on good). Positive = risk-aware pricing.")
 
 
 # ---------------------------------------------------------------------------
@@ -840,7 +940,38 @@ def main():
         ds = data.get("dealshare_ratings", data.get("ratings", {}))
         pr = data.get("profit_ratings", data.get("ratings", {}))
         cr = data.get("credit_ratings", data.get("ratings", {}))
-        print_standings(ds, pr, cr, models, data["match_log"])
+        # Load baselines from saved results (if available), otherwise compute
+        bl = data.get("baselines")
+        baselines = None
+        if bl:
+            baselines = (bl["oracle_raroc"], bl["heuristic_raroc"])
+        else:
+            # Recompute from the mix
+            mix_name = data.get("mix", "analyst")
+            if mix_name in MIX_PRESETS:
+                bl_lender = make_lender(1, "baseline", "baseline")
+                bl_borrowers = get_borrowers(mix_name)
+                baselines = (
+                    calculate_perfect_score(bl_lender, bl_borrowers),
+                    compute_heuristic_baseline(bl_lender, bl_borrowers),
+                )
+        # Load rate analysis from saved results (if available)
+        ra = data.get("rate_analysis")
+        loaded_rate_stats = None
+        if ra:
+            # Convert JSON summary back to the format print_standings expects
+            loaded_rate_stats = {}
+            for mid, info in ra.items():
+                avg_g = info.get("avg_rate_good")
+                avg_b = info.get("avg_rate_bad")
+                n_g = info.get("n_good_offers", 0)
+                n_b = info.get("n_bad_offers", 0)
+                loaded_rate_stats[mid] = {
+                    "good_rates": [avg_g] * n_g if avg_g is not None else [],
+                    "bad_rates": [avg_b] * n_b if avg_b is not None else [],
+                }
+        print_standings(ds, pr, cr, models, data["match_log"],
+                        baselines=baselines, rate_stats=loaded_rate_stats)
         return
 
     api_key = os.environ.get("OPENROUTER_API_KEY", "")
@@ -884,11 +1015,28 @@ def main():
     )
 
     _save_results(output, args.output)
+    bl = output.get("baselines")
+    baselines = (bl["oracle_raroc"], bl["heuristic_raroc"]) if bl else None
+    # Reconstruct rate_stats from output for final display
+    ra = output.get("rate_analysis")
+    final_rate_stats = None
+    if ra:
+        final_rate_stats = {}
+        for mid, info in ra.items():
+            avg_g = info.get("avg_rate_good")
+            avg_b = info.get("avg_rate_bad")
+            n_g = info.get("n_good_offers", 0)
+            n_b = info.get("n_bad_offers", 0)
+            final_rate_stats[mid] = {
+                "good_rates": [avg_g] * n_g if avg_g is not None else [],
+                "bad_rates": [avg_b] * n_b if avg_b is not None else [],
+            }
     print_standings(
         output["dealshare_ratings"],
         output["profit_ratings"],
         output["credit_ratings"],
         models, output["match_log"],
+        baselines=baselines, rate_stats=final_rate_stats,
     )
 
     print(f"\nTournament complete. {output['n_matches']} matches played.")
