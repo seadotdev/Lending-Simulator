@@ -886,6 +886,267 @@ def _build_borrowers() -> list[Borrower]:
         true_outcome="fraud",
     ))
 
+    # ===== BAD BUSINESSES - OVER-LEVERAGE (6) =====
+    # Legitimate businesses with real revenue, but the requested loan would
+    # create unsustainable debt service relative to free cash flow.
+    # No fraud — defaults stem purely from financial over-extension.
+
+    # BAD-OL 1: Ridgeline Equipment Rentals
+    # Thin margins (~6.2%), existing heavy equipment lease costs visible in
+    # withdrawals.  Loan service ($400K @ ~10%/24mo ≈ $222K/yr) exceeds
+    # annual net income ($153K).  DSCR ≈ 0.69.
+    monthly = [
+        (195000, 183000), (198000, 185000), (200000, 188000), (203000, 190000),
+        (205000, 192000), (208000, 195000), (210000, 197000), (212000, 198000),
+        (215000, 200000), (210000, 198000), (208000, 196000), (205000, 194000),
+    ]
+    borrowers.append(Borrower(
+        id="BRW-019",
+        dossier=FinancialDossier(
+            company_name="Ridgeline Equipment Rentals",
+            sector="Construction Services",
+            years_in_business=9,
+            annual_revenue=2469000,
+            annual_expenses=2316000,
+            net_income=153000,
+            employee_count=34,
+            bank_statements=_generate_statements(
+                monthly, 85000,
+                ["Atlas Construction", "Summit Builders Group", "Metro Paving Corp", "Ridgeview Developers"],
+                ["Heavy Equipment Lease Co", "Diesel & Fleet Maintenance", "Yard Lease Payment"],
+                seed=1019,
+            ),
+            quarterly_income=_build_quarterly_income(monthly),
+            narrative=(
+                "Ridgeline Equipment Rentals provides excavators, loaders, and heavy "
+                "machinery on short- and medium-term rental contracts to regional "
+                "construction firms. The company has operated for 9 years with a loyal "
+                "client base and maintains a fleet of 22 machines. Utilization rates "
+                "average 78%. Revenue has grown modestly as infrastructure spending "
+                "increases. Seeking capital to acquire 3 additional excavators to meet "
+                "demand from two new highway projects."
+            ),
+            loan_request_amount=400000,
+            loan_purpose="Acquisition of 3 additional excavators for highway projects",
+        ),
+        true_outcome="bad",
+        months_before_default=8,
+    ))
+
+    # BAD-OL 2: Crestview Medical Group
+    # Multi-location clinic chain with clear margin compression: expenses
+    # growing ~17% over the year while revenue grows only ~5%.  Quarterly
+    # margins decline from 12% → 4%.  Loan service ($500K ≈ $276K/yr)
+    # exceeds compressed net income ($226K).  DSCR ≈ 0.82.
+    monthly = [
+        (242000, 210000), (245000, 215000), (243000, 218000), (248000, 222000),
+        (246000, 226000), (250000, 230000), (248000, 232000), (252000, 236000),
+        (250000, 238000), (253000, 241000), (251000, 243000), (255000, 246000),
+    ]
+    borrowers.append(Borrower(
+        id="BRW-020",
+        dossier=FinancialDossier(
+            company_name="Crestview Medical Group",
+            sector="Healthcare Services",
+            years_in_business=7,
+            annual_revenue=2983000,
+            annual_expenses=2757000,
+            net_income=226000,
+            employee_count=52,
+            bank_statements=_generate_statements(
+                monthly, 120000,
+                ["BlueCross Regional", "Aetna Claims Processing", "Medicare Reimbursement", "United Health Group"],
+                ["Medical Staff Payroll", "Clinic Lease - Westside", "Clinic Lease - Downtown"],
+                seed=1020,
+            ),
+            quarterly_income=_build_quarterly_income(monthly),
+            narrative=(
+                "Crestview Medical Group operates three urgent care clinics in the "
+                "metropolitan area. Patient volumes have grown consistently and the group "
+                "recently signed preferred provider agreements with two additional insurers. "
+                "The newest clinic (opened 10 months ago) is ramping toward profitability. "
+                "Seeking capital to open a fourth location in an underserved suburban "
+                "corridor where demographic analysis shows strong demand."
+            ),
+            loan_request_amount=500000,
+            loan_purpose="Fourth clinic location buildout and initial staffing",
+        ),
+        true_outcome="bad",
+        months_before_default=12,
+    ))
+
+    # BAD-OL 3: Northwind Brewing Co
+    # Revenue growing 23% but expenses growing 38% — raw material and
+    # distribution costs accelerating.  Margins compress from 15.9% → 5.6%.
+    # Loan service ($350K ≈ $194K/yr) vs net income ($204K) gives DSCR ≈ 1.05.
+    # A single slow month triggers default.
+    monthly = [
+        (145000, 122000), (148000, 126000), (152000, 130000), (155000, 134000),
+        (158000, 139000), (162000, 143000), (165000, 148000), (168000, 153000),
+        (170000, 157000), (172000, 160000), (175000, 164000), (178000, 168000),
+    ]
+    borrowers.append(Borrower(
+        id="BRW-021",
+        dossier=FinancialDossier(
+            company_name="Northwind Brewing Co",
+            sector="Food & Beverage",
+            years_in_business=5,
+            annual_revenue=1948000,
+            annual_expenses=1744000,
+            net_income=204000,
+            employee_count=26,
+            bank_statements=_generate_statements(
+                monthly, 72000,
+                ["Craft Distributors NW", "Whole Foods Tap Program", "Regional Pub Alliance", "Festival Vendors Inc"],
+                ["Grain & Hops Supply Co", "Bottling Line Lease", "Cold Storage Freight"],
+                seed=1021,
+            ),
+            quarterly_income=_build_quarterly_income(monthly),
+            narrative=(
+                "Northwind Brewing Co is a craft brewery producing IPAs and seasonal ales "
+                "distributed across three states. Taproom revenue supplements wholesale. "
+                "The brand has won regional awards and demand has outpaced production "
+                "capacity for two consecutive years. Seeking capital to add a second "
+                "fermentation line and expand cold storage to support retail chain "
+                "distribution deals currently in negotiation."
+            ),
+            loan_request_amount=350000,
+            loan_purpose="Second fermentation line and cold storage expansion",
+        ),
+        true_outcome="bad",
+        months_before_default=9,
+    ))
+
+    # BAD-OL 4: Velocity Staffing Partners
+    # Highly lumpy month-to-month cash flow (staffing: pay weekly, collect
+    # net-60).  Several months show deposits barely exceeding withdrawals
+    # (<$3K surplus).  "Working capital" loan purpose is itself a flag.
+    # Loan service ($300K ≈ $166K/yr) vs net ($178K) gives DSCR ≈ 1.07,
+    # but monthly volatility means debt service is unserviceable in lean months.
+    monthly = [
+        (188000, 172000), (195000, 175000), (180000, 178000), (202000, 180000),
+        (185000, 179000), (198000, 176000), (183000, 181000), (208000, 182000),
+        (186000, 180000), (200000, 178000), (182000, 179000), (215000, 184000),
+    ]
+    borrowers.append(Borrower(
+        id="BRW-022",
+        dossier=FinancialDossier(
+            company_name="Velocity Staffing Partners",
+            sector="Professional Services",
+            years_in_business=6,
+            annual_revenue=2322000,
+            annual_expenses=2144000,
+            net_income=178000,
+            employee_count=18,
+            bank_statements=_generate_statements(
+                monthly, 62000,
+                ["Meridian Health System", "TechStart Inc", "County Admin Office",
+                 "Greenfield Manufacturing", "Beacon Logistics"],
+                ["Contractor Payroll ADP", "Staffing Insurance Pool", "Office Lease"],
+                seed=1022,
+            ),
+            quarterly_income=_build_quarterly_income(monthly),
+            narrative=(
+                "Velocity Staffing Partners places temporary and contract workers in "
+                "healthcare, light industrial, and administrative roles. The company has "
+                "built a reliable pipeline of both clients and candidates over 6 years. "
+                "Billing rates have increased 5% year-over-year. Seeking working capital "
+                "to bridge the gap between payroll obligations and client payment cycles "
+                "as the company scales into two new metro markets."
+            ),
+            loan_request_amount=300000,
+            loan_purpose="Working capital for market expansion and payroll bridge",
+        ),
+        true_outcome="bad",
+        months_before_default=7,
+    ))
+
+    # BAD-OL 5: Atlas Precision Components
+    # Existing debt visible in withdrawals ("First National Term Loan",
+    # "Equipment Financing Corp").  Net income $185K is after existing debt
+    # service.  New loan ($450K ≈ $250K/yr) alone exceeds annual net income.
+    # DSCR ≈ 0.74.
+    monthly = [
+        (215000, 198000), (218000, 202000), (220000, 204000), (216000, 200000),
+        (222000, 206000), (224000, 208000), (220000, 205000), (225000, 210000),
+        (222000, 208000), (228000, 213000), (224000, 210000), (230000, 215000),
+    ]
+    borrowers.append(Borrower(
+        id="BRW-023",
+        dossier=FinancialDossier(
+            company_name="Atlas Precision Components",
+            sector="Advanced Manufacturing",
+            years_in_business=11,
+            annual_revenue=2664000,
+            annual_expenses=2479000,
+            net_income=185000,
+            employee_count=48,
+            bank_statements=_generate_statements(
+                monthly, 105000,
+                ["Lockheed Martin Sub-Tier", "Honeywell Aerospace Div", "John Deere Parts", "Siemens Energy"],
+                ["First National Term Loan", "Equipment Financing Corp", "Raw Steel Supply"],
+                seed=1023,
+            ),
+            quarterly_income=_build_quarterly_income(monthly),
+            narrative=(
+                "Atlas Precision Components manufactures high-tolerance machined parts for "
+                "aerospace, defense, and industrial OEMs. The company holds AS9100D and "
+                "ITAR certifications and operates from a 35,000 sq ft facility. A recent "
+                "multi-year supply agreement with a major defense prime has increased "
+                "order visibility. Seeking capital to add a wire EDM machine and expand "
+                "the facility to meet contract deliverables."
+            ),
+            loan_request_amount=450000,
+            loan_purpose="Wire EDM machine and facility expansion for defense contract",
+        ),
+        true_outcome="bad",
+        months_before_default=10,
+    ))
+
+    # BAD-OL 6: Pacific Rim Importers
+    # High-volume distribution with razor-thin 5.1% net margins.  Revenue
+    # looks impressive ($3.49M) but net income is only $177K.  Loan service
+    # ($500K ≈ $276K/yr) exceeds net income by $99K.  DSCR ≈ 0.64.
+    # The clearest over-leverage case: big revenue ≠ ability to service debt.
+    monthly = [
+        (278000, 264000), (282000, 268000), (285000, 270000), (290000, 275000),
+        (288000, 273000), (292000, 277000), (295000, 280000), (290000, 276000),
+        (293000, 278000), (298000, 283000), (295000, 280000), (300000, 285000),
+    ]
+    borrowers.append(Borrower(
+        id="BRW-024",
+        dossier=FinancialDossier(
+            company_name="Pacific Rim Importers",
+            sector="Import/Distribution",
+            years_in_business=13,
+            annual_revenue=3486000,
+            annual_expenses=3309000,
+            net_income=177000,
+            employee_count=22,
+            bank_statements=_generate_statements(
+                monthly, 95000,
+                ["Costco Wholesale Region 7", "Restaurant Depot West", "Asian Mart Chain",
+                 "Pacific Foods Wholesale", "H Mart Distribution"],
+                ["Shenzhen Export Trading Co", "Import Duty & Customs", "Warehouse Lease"],
+                seed=1024,
+            ),
+            quarterly_income=_build_quarterly_income(monthly),
+            narrative=(
+                "Pacific Rim Importers sources specialty food products, kitchenware, and "
+                "consumer goods from East Asian manufacturers for distribution to grocery "
+                "chains, restaurant suppliers, and e-commerce channels across the West Coast. "
+                "The company has operated for 13 years with long-standing supplier "
+                "relationships and reliable logistics. Revenue has grown steadily as Asian "
+                "food popularity increases. Seeking capital to expand into frozen and "
+                "refrigerated product lines requiring new warehouse infrastructure."
+            ),
+            loan_request_amount=500000,
+            loan_purpose="Refrigerated warehouse buildout for frozen product line expansion",
+        ),
+        true_outcome="bad",
+        months_before_default=11,
+    ))
+
     return borrowers
 
 
@@ -941,7 +1202,7 @@ def _build_lenders() -> list[LenderConfig]:
                 "You offer lower interest rates but demand higher creditworthiness. "
                 "You prefer longer terms (24-36 months) with moderate rates."
             ),
-            model="qwen/qwen3-235b-a22b-07-25",
+            model="qwen/qwen3-235b-a22b",
             target_yield_pct=8.0,
             max_single_loan=600000,
             total_capital=4000000,
@@ -1037,6 +1298,43 @@ MIX_PRESETS: dict[str, dict[str, list[str]]] = {
         "good":  ["BRW-001", "BRW-002", "BRW-003", "BRW-004", "BRW-005",
                    "BRW-013", "BRW-014", "BRW-015", "BRW-016", "BRW-017"],
         "bad":   ["BRW-006", "BRW-007", "BRW-008", "BRW-009"],
+        "fraud": ["BRW-010", "BRW-011", "BRW-012", "BRW-018"],
+    },
+    # 16 borrowers, 0 fraud — pure financial analysis benchmark.
+    # Defaults come from subtle over-leverage: businesses are legitimate but
+    # the requested loan creates unsustainable debt service relative to cash flow.
+    # Tests whether models can compute DSCR, spot margin compression, and
+    # recognize thin-margin businesses that can't absorb new debt.
+    "analyst": {
+        "good":  ["BRW-001", "BRW-002", "BRW-003", "BRW-004", "BRW-005",
+                   "BRW-013", "BRW-014", "BRW-015", "BRW-016", "BRW-017"],
+        "bad":   ["BRW-019", "BRW-020", "BRW-021", "BRW-022", "BRW-023", "BRW-024"],
+        "fraud": [],
+    },
+    # Fraud-heavy: 5 good, 0 standard bad, 4 fraud — tests fraud detection.
+    # All bad outcomes come from fraud patterns (round numbers, circular
+    # transfers, fabricated statements, structuring).  Models must use bank
+    # statement analysis / tool-use to detect anomalies.
+    "fraud": {
+        "good":  ["BRW-001", "BRW-003", "BRW-005", "BRW-015", "BRW-017"],
+        "bad":   [],
+        "fraud": ["BRW-010", "BRW-011", "BRW-012", "BRW-018"],
+    },
+    # Sector concentration stress: loads sectors that already have heavy
+    # existing portfolio exposure for the built-in lender personas.
+    # Tests whether models respect concentration limits under pressure.
+    "concentration": {
+        "good":  ["BRW-001", "BRW-002", "BRW-003", "BRW-004", "BRW-005",
+                   "BRW-013", "BRW-014", "BRW-015", "BRW-016", "BRW-017"],
+        "bad":   ["BRW-006", "BRW-007", "BRW-008", "BRW-009"],
+        "fraud": ["BRW-010", "BRW-011"],
+    },
+    # Kitchen-sink stress: every borrower type present, highest difficulty.
+    # Combines over-leverage bad businesses, standard bad, all fraud types.
+    "stress": {
+        "good":  ["BRW-001", "BRW-003", "BRW-005", "BRW-013", "BRW-015"],
+        "bad":   ["BRW-006", "BRW-007", "BRW-009",
+                   "BRW-019", "BRW-020", "BRW-021", "BRW-023", "BRW-024"],
         "fraud": ["BRW-010", "BRW-011", "BRW-012", "BRW-018"],
     },
 }

@@ -27,13 +27,13 @@ from .scoring import print_final_report, score_lenders
 # Model rotation pools — cheap frontier models with strong tool-use support
 # ---------------------------------------------------------------------------
 
-# All models verified: ZDR-compatible + tool-use support on OpenRouter
+# All models verified: tool-use support on OpenRouter
 ROTATION_POOL = [
     "deepseek/deepseek-chat-v3-0324",
-    "qwen/qwen3-235b-a22b-07-25",
+    "qwen/qwen3-235b-a22b",
     "meta-llama/llama-3.3-70b-instruct",
     "nvidia/llama-3.3-nemotron-super-49b-v1.5",
-    "qwen/qwen3-30b-a3b-04-28",
+    "qwen/qwen3-30b-a3b",
     "meta-llama/llama-3.1-8b-instruct",
 ]
 
@@ -115,7 +115,7 @@ def run_compare(mix: str):
     big_lenders = get_lenders()
     big_lenders[0].model = "deepseek/deepseek-chat-v3-0324"
     big_lenders[0].name = "Velocity Capital [DeepSeek V3]"
-    big_lenders[1].model = "qwen/qwen3-235b-a22b-07-25"
+    big_lenders[1].model = "qwen/qwen3-235b-a22b"
     big_lenders[1].name = "Heritage Trust [Qwen3-235B]"
     big_lenders[2].model = "meta-llama/llama-3.3-70b-instruct"
     big_lenders[2].name = "Meridian Partners [Llama-3.3-70B]"
@@ -131,7 +131,7 @@ def run_compare(mix: str):
     small_lenders[0].name = "Velocity Capital [Llama-8B]"
     small_lenders[1].model = "qwen/qwen-2.5-7b-instruct"
     small_lenders[1].name = "Heritage Trust [Qwen-7B]"
-    small_lenders[2].model = "qwen/qwen3-30b-a3b-04-28"
+    small_lenders[2].model = "qwen/qwen3-30b-a3b"
     small_lenders[2].name = "Meridian Partners [Qwen3-30B]"
 
     print("\n\n" + "#" * 70)

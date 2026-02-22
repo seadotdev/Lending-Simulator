@@ -1,0 +1,185 @@
+{
+  "timestamp": "2026-02-21T17:44:48.433816",
+  "mix": "analyst",
+  "n_models": 14,
+  "n_matches": 3,
+  "total_cost": 0.0912,
+  "ratings": {
+    "deepseek/deepseek-chat-v3-0324": 1500.0,
+    "google/gemini-2.5-flash": 1500.0,
+    "openai/gpt-4o-mini": 1484.0,
+    "openai/gpt-4.1-nano": 1484.0,
+    "nvidia/llama-3.3-nemotron-super-49b-v1.5": 1500.0,
+    "meta-llama/llama-3.3-70b-instruct": 1500.0,
+    "qwen/qwq-32b": 1500.0,
+    "qwen/qwen3-30b-a3b": 1484.0,
+    "mistralai/mistral-small-3.2-24b-instruct": 1500.0,
+    "google/gemma-3-27b-it": 1516.0,
+    "mistralai/mistral-nemo": 1516.0,
+    "meta-llama/llama-3.1-8b-instruct": 1500.0,
+    "qwen/qwen-2.5-7b-instruct": 1516.0,
+    "meta-llama/llama-3-8b-instruct": 1500.0
+  },
+  "display_names": {
+    "deepseek/deepseek-chat-v3-0324": "DeepSeek V3 0324",
+    "google/gemini-2.5-flash": "Gemini 2.5 Flash",
+    "openai/gpt-4o-mini": "GPT-4o Mini",
+    "openai/gpt-4.1-nano": "GPT-4.1 Nano",
+    "nvidia/llama-3.3-nemotron-super-49b-v1.5": "Nemotron Super 49B",
+    "meta-llama/llama-3.3-70b-instruct": "Llama 3.3 70B",
+    "qwen/qwq-32b": "QwQ-32B",
+    "qwen/qwen3-30b-a3b": "Qwen3-30B",
+    "mistralai/mistral-small-3.2-24b-instruct": "Mistral Small 3.2",
+    "google/gemma-3-27b-it": "Gemma 3 27B",
+    "mistralai/mistral-nemo": "Mistral Nemo",
+    "meta-llama/llama-3.1-8b-instruct": "Llama 3.1 8B",
+    "qwen/qwen-2.5-7b-instruct": "Qwen 2.5 7B",
+    "meta-llama/llama-3-8b-instruct": "Llama 3 8B"
+  },
+  "match_log": [
+    {
+      "match": 1,
+      "models": [
+        "qwen/qwen-2.5-7b-instruct",
+        "qwen/qwen3-30b-a3b",
+        "mistralai/mistral-small-3.2-24b-instruct"
+      ],
+      "results": [
+        {
+          "model": "qwen/qwen-2.5-7b-instruct",
+          "display_name": "Qwen 2.5 7B",
+          "score": -10.0,
+          "deals_won": 0,
+          "frauds_funded": 0,
+          "defaults": 0,
+          "deployed": 0,
+          "net_pnl": 0,
+          "approvals": 0,
+          "cost": 0.0034
+        },
+        {
+          "model": "qwen/qwen3-30b-a3b",
+          "display_name": "Qwen3-30B",
+          "score": -22.17726657142857,
+          "deals_won": 10,
+          "frauds_funded": 0,
+          "defaults": 3,
+          "deployed": 3475000.0,
+          "net_pnl": -414704.33,
+          "approvals": 11,
+          "cost": 0.0156
+        },
+        {
+          "model": "mistralai/mistral-small-3.2-24b-instruct",
+          "display_name": "Mistral Small 3.2",
+          "score": -17.023080285714286,
+          "deals_won": 1,
+          "frauds_funded": 0,
+          "defaults": 1,
+          "deployed": 450000.0,
+          "net_pnl": -241307.81,
+          "approvals": 1,
+          "cost": 0.0089
+        }
+      ],
+      "elapsed": 136.7,
+      "cost": 0.0279
+    },
+    {
+      "match": 2,
+      "models": [
+        "openai/gpt-4o-mini",
+        "meta-llama/llama-3-8b-instruct",
+        "mistralai/mistral-nemo"
+      ],
+      "results": [
+        {
+          "model": "openai/gpt-4o-mini",
+          "display_name": "GPT-4o Mini",
+          "score": -27.69008885714286,
+          "deals_won": 6,
+          "frauds_funded": 0,
+          "defaults": 3,
+          "deployed": 2325000.0,
+          "net_pnl": -619153.1100000001,
+          "approvals": 11,
+          "cost": 0.0145
+        },
+        {
+          "model": "meta-llama/llama-3-8b-instruct",
+          "display_name": "Llama 3 8B",
+          "score": -22.696071142857143,
+          "deals_won": 9,
+          "frauds_funded": 0,
+          "defaults": 3,
+          "deployed": 3400000.0,
+          "net_pnl": -383362.49000000005,
+          "approvals": 12,
+          "cost": 0.0035
+        },
+        {
+          "model": "mistralai/mistral-nemo",
+          "display_name": "Mistral Nemo",
+          "score": -9.590638,
+          "deals_won": 1,
+          "frauds_funded": 0,
+          "defaults": 0,
+          "deployed": 350000.0,
+          "net_pnl": 31827.67,
+          "approvals": 1,
+          "cost": 0.0017
+        }
+      ],
+      "elapsed": 45.3,
+      "cost": 0.019700000000000002
+    },
+    {
+      "match": 3,
+      "models": [
+        "google/gemma-3-27b-it",
+        "google/gemini-2.5-flash",
+        "openai/gpt-4.1-nano"
+      ],
+      "results": [
+        {
+          "model": "google/gemma-3-27b-it",
+          "display_name": "Gemma 3 27B",
+          "score": -10.0,
+          "deals_won": 0,
+          "frauds_funded": 0,
+          "defaults": 0,
+          "deployed": 0,
+          "net_pnl": 0,
+          "approvals": 0,
+          "cost": 0.0
+        },
+        {
+          "model": "google/gemini-2.5-flash",
+          "display_name": "Gemini 2.5 Flash",
+          "score": -16.86470657142857,
+          "deals_won": 1,
+          "frauds_funded": 0,
+          "defaults": 1,
+          "deployed": 450000.0,
+          "net_pnl": -240264.73,
+          "approvals": 6,
+          "cost": 0.0336
+        },
+        {
+          "model": "openai/gpt-4.1-nano",
+          "display_name": "GPT-4.1 Nano",
+          "score": -34.908388,
+          "deals_won": 10,
+          "frauds_funded": 0,
+          "defaults": 4,
+          "deployed": 3175000.0,
+          "net_pnl": -754106.0800000001,
+          "approvals": 12,
+          "cost": 0.01
+        }
+      ],
+      "elapsed": 12.6,
+      "cost": 0.0436
+    }
+  ]
+}
