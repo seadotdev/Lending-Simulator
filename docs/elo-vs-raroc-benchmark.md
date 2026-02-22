@@ -85,12 +85,55 @@ To reduce overfitting to fixed borrower pools, the `--sample-borrowers N` flag r
 
 ## 4. How Underwriting Works
 
-Each model is instantiated as a lender agent via OpenRouter's API (`loanville/llm.py`). The flow per application:
+Each model is instantiated as a lender agent via OpenRouter's API (`loanville/llm.py`). All evaluations run concurrently via `asyncio`.
 
-1. **System prompt**: Sets the lender persona, target yield (11%), capital ($3.5M), sector limits (25% each), max single loan ($700K), and analysis instructions
-2. **User prompt**: Presents the full financial dossier — quarterly income statements, annual totals, company narrative, and loan request
-3. **Tool use**: Models can call `run_bash` to execute sandboxed `jq` queries against the borrower's raw 12-month bank statements at `/data/bank_statements.json`
-4. **Decision**: Model returns a JSON object:
+### 4.1 Prompt Architecture
+
+**System prompt** configures the lender identity and constraints:
+- Lender persona and analytical philosophy
+- Target yield (11%), total capital ($3.5M), max single loan ($700K)
+- Sector concentration limits (25% per sector) with current exposure
+- Existing portfolio summary (in tournament mode: clean book)
+- Detailed instructions: assess creditworthiness, detect fraud, evaluate portfolio fit
+- Data mode configuration (controls what financial evidence is visible)
+
+**User prompt** presents the borrower's full financial dossier:
+- Company name, sector, years in business, employee count
+- Quarterly income statements (4 quarters: revenue, expenses, gross profit, margins, net income)
+- Annual totals (revenue, expenses, net income)
+- Business narrative (3-5 sentence pitch describing operations and loan purpose)
+- Loan request amount and stated purpose
+
+### 4.2 Data Modes
+
+The `data_mode` parameter controls what financial evidence models can access, testing how well they analyze different levels of detail:
+
+| Mode | Quarterly Statements | Bank Statements | Tool Access | Use Case |
+|---|---|---|---|---|
+| `full` (default) | In prompt | Via bash tool | `run_bash` to query JSON | Full analysis with investigation |
+| `statements_inline` | In prompt | Embedded in prompt | None | All data visible, no tool use needed |
+| `quarterly_only` | In prompt | Hidden | None | Can the model detect risk from summaries alone? |
+| `aggregate_only` | Annual totals only | Hidden | None | Minimal information — tests judgment under uncertainty |
+
+This matters because fraud signals live in raw transaction patterns (round numbers, circular transfers, structuring) that are invisible in quarterly summaries. Bad-business signals (margin compression, revenue decline) appear in quarterly trends. Removing data removes evidence.
+
+### 4.3 Tool Use (Full Mode)
+
+In `full` data mode, models receive a `run_bash` tool that executes sandboxed commands against the borrower's raw 12-month bank statements stored at `/data/bank_statements.json`:
+
+```
+# Example: Check for round-number deposits
+jq '[.monthly_statements[].deposits[] | .amount] | map(. % 1000 == 0) | length' /data/bank_statements.json
+
+# Example: Find top depositors by volume
+jq '[.monthly_statements[].deposits[] | .description] | group_by(.) | map({name: .[0], count: length}) | sort_by(.count) | reverse[:5]' /data/bank_statements.json
+```
+
+Models can call the tool up to 3 rounds (with up to 5 parallel tool calls per round) to investigate transaction patterns, compute statistics, check for anomalies, and verify narrative claims against actual cash flows. After the final round, the model is forced to produce a decision.
+
+### 4.4 Decision Extraction
+
+The model returns a JSON decision:
 
 ```json
 {
@@ -104,13 +147,13 @@ Each model is instantiated as a lender agent via OpenRouter's API (`loanville/ll
 }
 ```
 
-Up to 3 tool-call rounds are allowed; models are forced to produce a final answer on the last round. All evaluations run concurrently via `asyncio`.
+The extraction pipeline handles markdown code fences, partial JSON, and fallback field-level parsing. Invalid or unparseable responses are auto-rejected with a system error note — this means models with unreliable JSON output are penalized in practice.
 
-### Deal Adjudication (Competitive Market)
+### 4.5 Deal Adjudication (Competitive Market)
 
 When multiple models approve the same borrower, the borrower **picks the lowest interest rate** (breaking ties by highest loan amount). Only one lender wins each deal — this simulates competitive market dynamics. Capital limits are enforced: if the preferred lender lacks capacity, the deal falls to the next-best offer.
 
-### Scope: Application-Level Underwriting
+### 4.6 Scope: Application-Level Underwriting
 
 Each match starts with a **clean book** ($0 deployed, $3.5M available). Capital and exposures do **not** carry forward across matches. This benchmarks application-level underwriting judgment, not portfolio lifecycle management. Models are not tested on capital rationing over time, path dependency, or concentration management across sequential deals.
 
@@ -154,12 +197,23 @@ The risk penalty uses `sigma x sqrt(n)` rather than `sigma x n`. This is analogo
 
 ### Baselines
 
-Two baselines validate that the scoring system is well-calibrated:
+Two non-LLM baselines are computed at tournament start and displayed as reference lines in the standings table. Both use the same lender config (capital, limits, target yield) as the competing models.
 
 | Baseline | Method | Purpose |
 |---|---|---|
-| **Oracle** | Perfect foresight: approves all good, rejects all bad/fraud, prices at target yield | Upper bound — shows the theoretical max under constraints |
-| **Heuristic** | Simple rules: reject if net margin < 10%, DSCR < 1.25, or leverage > 1.5x net income | Shows the task is solvable by straightforward financial analysis, not LLM-specific reasoning |
+| **Oracle** | Perfect foresight: approves all good borrowers (respecting capital and sector limits), rejects all bad/fraud, prices at target yield | Upper bound — the theoretical maximum RAROC achievable with omniscient knowledge |
+| **Heuristic** | Simple DSCR + margin + leverage rules: reject if net margin < 10%, DSCR < 1.25, or loan amount > 1.5x annual net income; approve everything else at target yield | Floor — shows the task is solvable by straightforward financial analysis without LLM reasoning |
+
+In the standings output, baselines appear below the model rankings:
+
+```
+  ────────────────────────────────────────────────────────────────
+       Oracle (perfect info)                            -2.31%
+       Heuristic (DSCR rules)                           -3.80%
+  ════════════════════════════════════════════════════════════════
+```
+
+Both baselines are persisted in the JSON output under the `"baselines"` key and are loaded automatically when viewing standings via `--standings`. If the JSON predates the feature, baselines are recomputed from the mix on the fly.
 
 ### Per-Loan Payoff Computation
 
@@ -264,10 +318,26 @@ RAROC scores include bootstrap 95% confidence intervals computed by resampling l
 
 ### Pricing Analysis
 
-The system tracks interest rates offered by each model per borrower, enabling analysis of:
-- Average rate on good vs bad borrowers (does the model price risk correctly?)
-- Rate distributions and outliers
-- Competitive pricing dynamics (who is consistently cheapest?)
+The system tracks interest rates offered by each model on every approved application, categorized by the borrower's true outcome (good vs bad/fraud). During the tournament, per-applicant rate data is accumulated across all matches (since it's stripped from the JSON log for size reasons) and displayed as a dedicated section in the standings:
+
+```
+  PRICING ANALYSIS — avg rate offered by borrower quality
+  ──────────────────────────────────────────────────────────────
+  Model                     Rate→Good   (n)  Rate→Bad   (n)  Spread   Signal?
+  ──────────────────────────────────────────────────────────────
+  GPT-4o Mini                  11.5%    42     13.2%    18    +1.7%      YES
+  Llama 3 8B                   11.0%    50     11.0%    20    +0.0%       NO
+```
+
+**Key metrics:**
+- **Rate→Good / Rate→Bad**: Average interest rate offered when approving good vs bad/fraud borrowers
+- **Spread**: `avg_rate(bad) - avg_rate(good)` — positive means the model charges more for riskier credits
+- **Signal?**: Whether the model demonstrates risk-aware pricing
+  - `YES` (spread > 0.5%): Model meaningfully differentiates risk in pricing
+  - `weak` (0 < spread ≤ 0.5%): Some signal but not significant
+  - `NO` (spread ≤ 0): Model rubber-stamps the same rate regardless of risk, or charges less for bad credits
+
+A summary of rate statistics (average rates, counts) is persisted in the JSON output under the `"rate_analysis"` key for each model and loads correctly via `--standings`.
 
 ---
 
