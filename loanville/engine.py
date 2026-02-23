@@ -40,6 +40,10 @@ class SimulationEngine:
             self.client = AsyncOpenAI(
                 base_url="https://openrouter.ai/api/v1",
                 api_key=openrouter_api_key,
+                default_headers={
+                    "X-Title": "Loanville",
+                    "HTTP-Referer": "https://github.com/seadotdev/Loanville2",
+                },
             )
         else:
             self.client = None

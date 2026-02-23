@@ -630,6 +630,9 @@ async def evaluate_borrower(
                     "messages": messages,
                     "temperature": 0.3,
                     "max_tokens": 2048,
+                    "extra_body": {
+                        "provider": {"data_collection": "allow"},
+                    },
                 }
                 if round_num < MAX_TOOL_ROUNDS and data_mode == "full":
                     kwargs["tools"] = TOOLS_SANDBOX
@@ -637,7 +640,16 @@ async def evaluate_borrower(
                     # No tools: either not full mode, or final round
                     pass
 
-                response = await client.chat.completions.create(**kwargs)
+                # Retry with backoff on transient 429 rate limits
+                for _retry in range(4):
+                    try:
+                        response = await client.chat.completions.create(**kwargs)
+                        break
+                    except Exception as _rate_err:
+                        if "429" in str(_rate_err) and _retry < 3:
+                            await asyncio.sleep(2 ** (_retry + 1))
+                            continue
+                        raise
                 _track_usage(lender.model, response)
                 msg = response.choices[0].message
 

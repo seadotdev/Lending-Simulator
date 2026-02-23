@@ -47,6 +47,21 @@ The standout result is **Llama 3.3 70B**: it missed every bad business with bank
 
 **Nemotron 49B** bucked the trend — better at spotting bad businesses from raw statements (1 miss) than from quarterly financials (2 misses). This suggests some architectures extract more signal from transactional patterns than structured summaries, though Nemotron's advantage reversed on overall P&L once fraud losses were factored in.
 
+### Replication (Run 2)
+
+A second independent run of the same experiment confirmed the original findings. All four directional results replicated:
+
+| Model | Run 1 Score (Stmts → Fin) | Run 2 Score (Stmts → Fin) | Direction |
+|---|---|---|---|
+| DeepSeek v3 | -80% → -30% (Fin +50pp) | -67% → -29% (Fin +38pp) | Financials win (both) |
+| Llama 3.3 70B | -49% → -31% (Fin +18pp) | -89% → -32% (Fin +56pp) | Financials win (both) |
+| **Nemotron 49B** | **-30% → -58% (Stmt +28pp)** | **-39% → -57% (Stmt +18pp)** | **Statements win (both)** |
+| Qwen3 30B | -45% → -39% (Fin +6pp) | -54% → -42% (Fin +13pp) | Financials win (both) |
+
+Detection rates (catch %) also replicated: Nemotron 49B caught 79% with statements vs 71% with financials (run 2), remaining the only model where raw bank statements outperform structured financials. Llama 70B again showed the most dramatic gap — 46% catch with statements vs 92% with financials.
+
+The effect sizes vary between runs (expected with stochastic LLM outputs), but the rank ordering is stable: Nemotron 49B is consistently the only exception to the financials-win pattern.
+
 ### Implication
 
 For production underwriting pipelines focused on credit quality (not fraud), structured financial summaries should be the primary input. Raw bank statements add value for fraud detection (see data mode design in the [benchmark doc](elo-vs-raroc-benchmark.md#42-data-modes)) but can actually hurt business credit assessment by overwhelming models with noise.
