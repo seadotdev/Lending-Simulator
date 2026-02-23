@@ -35,7 +35,7 @@ LITE_TIERS = {
     "BRW-004": "easy",    # UrbanGrow — clear good
     "BRW-009": "easy",    # TerraVolt — obvious revenue decline
     "BRW-015": "medium",  # Apex Data — strong SaaS, requires DSCR check
-    "BRW-003": "medium",  # Helios Solar — seasonal but strong
+    "BRW-017": "medium",  # Keystone Legal — gov contracts, clear good
     "BRW-007": "medium",  # SynthaCure — margin compression in quarterly
     "BRW-024": "medium",  # Pacific Rim — thin margins, DSCR math
     "BRW-006": "hard",    # AeroTrack — customer concentration, subtle
@@ -48,7 +48,7 @@ CORRECT_ACTION = {
     "BRW-004": "APPROVE",
     "BRW-009": "REJECT",
     "BRW-015": "APPROVE",
-    "BRW-003": "APPROVE",
+    "BRW-017": "APPROVE",
     "BRW-007": "REJECT",
     "BRW-024": "REJECT",
     "BRW-006": "REJECT",

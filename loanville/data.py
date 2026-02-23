@@ -1916,16 +1916,21 @@ MIX_PRESETS: dict[str, dict[str, list[str]]] = {
     # preserve headroom.  Designed for quarterly_only or lite data_mode
     # (no tool use required).
     #
+    # Key calibration insight: for small models, APPROVE is harder than
+    # REJECT because it requires producing valid JSON with a term sheet.
+    # All loan amounts are <= $600K so every lender CAN approve.
+    # (BRW-003 Helios Solar was removed: $750K exceeded 2/3 lender limits.)
+    #
     # Easy (3):   BRW-001 (good, obvious), BRW-004 (good, obvious),
     #             BRW-009 (bad, revenue cliff visible in quarterly)
-    # Medium (4): BRW-015 (good, SaaS), BRW-003 (good, seasonal),
+    # Medium (4): BRW-015 (good, SaaS), BRW-017 (good, gov contracts),
     #             BRW-007 (bad, margin compression in quarterly),
     #             BRW-024 (bad, thin margins, DSCR math)
     # Hard (3):   BRW-006 (bad, customer concentration - subtle),
     #             BRW-012 (fraud, fabricated flat numbers),
     #             BRW-011 (fraud, circular entity names)
     "lite": {
-        "good":  ["BRW-001", "BRW-004", "BRW-015", "BRW-003"],
+        "good":  ["BRW-001", "BRW-004", "BRW-015", "BRW-017"],
         "bad":   ["BRW-009", "BRW-007", "BRW-024", "BRW-006"],
         "fraud": ["BRW-012", "BRW-011"],
     },
