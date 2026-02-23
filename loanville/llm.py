@@ -555,6 +555,56 @@ def _extract_json(text: str) -> dict | None:
     return None
 
 
+def _extract_decision_from_text(text: str, loan_amount: float) -> dict | None:
+    """Fallback: extract APPROVE/REJECT from free-form text when JSON parsing fails.
+
+    Small models (3B-7B) often can't produce valid JSON but DO write coherent
+    analysis with a clear approve/reject signal. This function extracts that
+    signal from natural language output so the model gets credit for correct
+    reasoning even without JSON compliance.
+
+    Returns a synthetic JSON dict compatible with _parse_decision, or None.
+    """
+    text_lower = text.lower()
+
+    # Look for explicit decision keywords
+    approve_signals = [
+        r"\bapprove\b", r"\bapproved\b", r"\brecommend(?:ed)?\s+(?:for\s+)?approval\b",
+        r"\baccept\b", r"\bloan\s+is\s+approved\b",
+    ]
+    reject_signals = [
+        r"\breject\b", r"\brejected\b", r"\bdeny\b", r"\bdenied\b",
+        r"\bdecline\b", r"\bdeclined\b", r"\brecommend(?:ed)?\s+(?:for\s+)?rejection\b",
+        r"\bcannot\s+(?:approve|recommend)\b", r"\bdo\s+not\s+(?:approve|recommend)\b",
+    ]
+
+    approve_count = sum(1 for p in approve_signals if re.search(p, text_lower))
+    reject_count = sum(1 for p in reject_signals if re.search(p, text_lower))
+
+    if approve_count == 0 and reject_count == 0:
+        return None  # Can't determine decision
+
+    # Use the stronger signal
+    if approve_count > reject_count:
+        # Extract a reasoning snippet (first ~200 chars of substantive text)
+        reasoning = text.strip()[:200].replace("\n", " ").strip()
+        return {
+            "decision": "APPROVE",
+            "reasoning": f"[extracted from text] {reasoning}",
+            "term_sheet": {
+                "loan_amount": loan_amount,
+                "interest_rate": 10.0,  # Default rate
+                "term_months": 24,      # Default term
+            },
+        }
+    else:
+        reasoning = text.strip()[:200].replace("\n", " ").strip()
+        return {
+            "decision": "REJECT",
+            "reasoning": f"[extracted from text] {reasoning}",
+        }
+
+
 def _parse_decision(lender_id: str, borrower_id: str, raw: dict | None) -> LenderDecision:
     """Parse a raw JSON dict into a LenderDecision, with fallback for bad data."""
     if raw is None:
@@ -719,6 +769,15 @@ async def evaluate_borrower(
                 # No tool calls — this should be the final decision
                 content = msg.content or ""
                 raw = _extract_json(content)
+
+                # Lite mode fallback: if JSON parsing failed, try extracting
+                # the decision from free-form text.  Small models (3B-7B)
+                # often write correct analysis but can't format JSON.
+                if raw is None and data_mode == "lite":
+                    raw = _extract_decision_from_text(
+                        content, borrower.dossier.loan_request_amount,
+                    )
+
                 decision = _parse_decision(lender.id, borrower.id, raw)
 
                 # Log the full trace
