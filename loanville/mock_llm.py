@@ -103,9 +103,13 @@ def _evaluate_mock(
     if data_mode in ("full", "statements_inline"):
         # Raw transaction data available — full detection capability
         fraud_detection_rate = {"large": 0.95, "medium": 0.50, "small": 0.20}[tier]
-    elif data_mode == "quarterly_only":
-        # No raw statements — can only infer from suspiciously stable quarterlies
-        fraud_detection_rate = {"large": 0.30, "medium": 0.15, "small": 0.05}[tier]
+    elif data_mode in ("quarterly_only", "lite"):
+        # No raw statements — can only infer from suspiciously stable quarterlies.
+        # Lite mode has slightly clearer instructions, boosting small model detection.
+        if data_mode == "lite":
+            fraud_detection_rate = {"large": 0.35, "medium": 0.20, "small": 0.10}[tier]
+        else:
+            fraud_detection_rate = {"large": 0.30, "medium": 0.15, "small": 0.05}[tier]
     else:  # aggregate_only
         # Only annual totals — almost impossible to detect fraud
         fraud_detection_rate = {"large": 0.10, "medium": 0.05, "small": 0.02}[tier]
@@ -148,7 +152,7 @@ def _evaluate_mock(
         # Only detectable from raw bank statements
         if data_mode in ("full", "statements_inline"):
             bad_detection_rate = {"large": 0.80, "medium": 0.35, "small": 0.10}[tier]
-        elif data_mode == "quarterly_only":
+        elif data_mode in ("quarterly_only", "lite"):
             # Quarterly P&L looks fine — nearly undetectable
             bad_detection_rate = {"large": 0.10, "medium": 0.05, "small": 0.02}[tier]
         else:  # aggregate_only
@@ -158,6 +162,11 @@ def _evaluate_mock(
         if data_mode in ("full", "quarterly_only"):
             # Quarterly trends visible — good detection of margin/revenue issues
             bad_detection_rate = {"large": 0.85, "medium": 0.40, "small": 0.15}[tier]
+        elif data_mode == "lite":
+            # Quarterly trends visible + clearer instructions for small models.
+            # Lite mode explicitly tells models to check revenue trends and DSCR,
+            # which boosts detection of obvious cases (revenue decline, thin margins).
+            bad_detection_rate = {"large": 0.85, "medium": 0.50, "small": 0.25}[tier]
         elif data_mode == "statements_inline":
             # Raw statements have the data but trends are harder to aggregate
             bad_detection_rate = {"large": 0.70, "medium": 0.30, "small": 0.10}[tier]

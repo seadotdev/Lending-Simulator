@@ -1910,6 +1910,25 @@ MIX_PRESETS: dict[str, dict[str, list[str]]] = {
         "bad":   ["BRW-025", "BRW-026", "BRW-027", "BRW-028"],
         "fraud": [],
     },
+    # Lite benchmark: 10 borrowers calibrated for small models (3B-30B).
+    # Inspired by OpenThoughts-TBLite: a subset with difficulty tiers so
+    # even tiny models get meaningful signal on easy cases while hard cases
+    # preserve headroom.  Designed for quarterly_only or lite data_mode
+    # (no tool use required).
+    #
+    # Easy (3):   BRW-001 (good, obvious), BRW-004 (good, obvious),
+    #             BRW-009 (bad, revenue cliff visible in quarterly)
+    # Medium (4): BRW-015 (good, SaaS), BRW-003 (good, seasonal),
+    #             BRW-007 (bad, margin compression in quarterly),
+    #             BRW-024 (bad, thin margins, DSCR math)
+    # Hard (3):   BRW-006 (bad, customer concentration - subtle),
+    #             BRW-012 (fraud, fabricated flat numbers),
+    #             BRW-011 (fraud, circular entity names)
+    "lite": {
+        "good":  ["BRW-001", "BRW-004", "BRW-015", "BRW-003"],
+        "bad":   ["BRW-009", "BRW-007", "BRW-024", "BRW-006"],
+        "fraud": ["BRW-012", "BRW-011"],
+    },
 }
 
 

@@ -257,6 +257,8 @@ def _format_dossier(borrower: Borrower, data_mode: str = "full") -> str:
     - "quarterly_only": quarterly income only, no raw bank data
     - "aggregate_only": just annual totals + narrative
     - "statements_inline": raw 12-month bank statements embedded in prompt
+    - "lite": compact prompt with quarterly income, optimized for small models (3B-30B).
+              Shorter instructions, no tool use, clearer structure.
     """
     d = borrower.dossier
     lines = []
@@ -276,8 +278,8 @@ def _format_dossier(borrower: Borrower, data_mode: str = "full") -> str:
     lines.append(d.narrative)
     lines.append("")
 
-    # --- Quarterly income (full, quarterly_only) ---
-    if data_mode in ("full", "quarterly_only"):
+    # --- Quarterly income (full, quarterly_only, lite) ---
+    if data_mode in ("full", "quarterly_only", "lite"):
         lines.append("--- QUARTERLY INCOME STATEMENTS ---")
         lines.append("")
         header = f"  {'':20s}"
@@ -330,6 +332,8 @@ def _format_dossier(borrower: Borrower, data_mode: str = "full") -> str:
     elif data_mode == "statements_inline":
         lines.append("NOTE: The raw 12-month bank statements are provided above for analysis.")
         lines.append("No pre-computed summaries are available — derive insights from the transactions.")
+    elif data_mode == "lite":
+        lines.append("Evaluate based on the quarterly income data and annual totals above.")
 
     return "\n".join(lines)
 
@@ -369,6 +373,29 @@ def _format_portfolio_summary(lender: LenderConfig) -> str:
 def _analysis_instructions(data_mode: str) -> str:
     """Generate mode-specific analysis instructions for the system prompt."""
     parts = []
+
+    # Lite mode: compact instructions optimized for small models
+    if data_mode == "lite":
+        parts.append("INSTRUCTIONS:")
+        parts.append("Evaluate this loan application. Check three things:")
+        parts.append("")
+        parts.append(
+            "1. REVENUE TREND: Is quarterly revenue growing, flat, or declining?\n"
+            "   Declining revenue = high risk."
+        )
+        parts.append(
+            "\n2. DEBT SERVICE: Calculate annual loan payment.\n"
+            "   If annual payment > net income, the business cannot service the debt. REJECT."
+        )
+        parts.append(
+            "\n3. RED FLAGS: Look for anything suspicious:\n"
+            "   - Revenue numbers that are unnaturally identical across quarters\n"
+            "   - Company names in the narrative that overlap with related entities\n"
+            "   - Very thin margins (net margin < 8%) combined with large loan requests\n"
+            "   - Over-reliance on a single customer or revenue source"
+        )
+        return "\n".join(parts)
+
     parts.append("INSTRUCTIONS:")
     parts.append("Evaluate the loan application below. You must analyze:")
     parts.append("")
@@ -448,6 +475,21 @@ def _analysis_instructions(data_mode: str) -> str:
 
 def _build_system_prompt(lender: LenderConfig, data_mode: str = "full") -> str:
     """Build the system prompt that defines the lender's persona and guidelines."""
+
+    # Lite mode: compact system prompt for small models
+    if data_mode == "lite":
+        return f"""You are a loan underwriter. Evaluate loan applications and decide APPROVE or REJECT.
+
+YOUR GUIDELINES:
+- Target yield: {lender.target_yield_pct}% annual
+- Max single loan: ${lender.max_single_loan:,.0f}
+- Available capital: ${lender.total_capital:,.0f}
+
+{_analysis_instructions(data_mode)}
+
+Respond with ONLY a JSON object:
+{{{{"decision": "APPROVE" or "REJECT", "reasoning": "Brief explanation", "term_sheet": {{{{"loan_amount": <number or null>, "interest_rate": <percent or null>, "term_months": <integer or null>}}}}}}}}"""
+
     sector_limits_str = "\n".join(
         f"    - {sector}: max {pct*100:.0f}% of total capital"
         for sector, pct in sorted(lender.sector_limits.items())
@@ -602,6 +644,7 @@ async def evaluate_borrower(
     - "quarterly_only": quarterly income only, no tool
     - "aggregate_only": annual totals only, no tool
     - "statements_inline": raw bank statements in prompt, no tool
+    - "lite": compact prompt with quarterly income, no tool (optimized for small models)
     """
     system_prompt = _build_system_prompt(lender, data_mode)
     user_prompt = _build_user_prompt(borrower, data_mode)
