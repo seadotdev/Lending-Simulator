@@ -276,9 +276,10 @@ def main() -> None:
     parser.add_argument("--mix", choices=list(MIX_PRESETS.keys()), default="easy",
                         help="Borrower population mix (default: easy)")
     parser.add_argument("--data-mode",
-                        choices=["full", "quarterly_only", "aggregate_only", "statements_inline"],
+                        choices=["full", "quarterly_only", "aggregate_only", "statements_inline", "lite"],
                         default="full",
-                        help="Financial data presentation mode (default: full)")
+                        help="Financial data presentation mode (default: full). "
+                             "'lite' uses compact prompts optimized for small models (3B-30B).")
     args = parser.parse_args()
 
     if args.compare:
