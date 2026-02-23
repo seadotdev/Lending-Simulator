@@ -1944,5 +1944,1117 @@
       }
     },
     "elapsed_seconds": 96.9
+  },
+  {
+    "model": "qwen/qwq-32b",
+    "avg_score": -10.156257707117414,
+    "frauds_funded": 0,
+    "defaults": 0,
+    "per_borrower": {
+      "BRW-001": {
+        "name": "SkyFreight Solutions",
+        "expected": "APPROVE",
+        "outcome": "good",
+        "difficulty": "easy",
+        "correct_count": 3,
+        "total_count": 3,
+        "pass_rate": 1.0,
+        "decisions": [
+          {
+            "lender": "LND-001",
+            "decision": "APPROVE",
+            "reasoning": "[extracted from text] {   \"decision\": \"APPROVE\",   \"reasoning\": \"Revenue is growing quarter-over-quarter. Debt service (estimated $1"
+          },
+          {
+            "lender": "LND-002",
+            "decision": "APPROVE",
+            "reasoning": "Revenue is growing quarter-over-quarter. Debt service ($120k annual payment) is comfortably below net income ($659k). No red flags detected: margins are strong (27%), client base is diversified, and r"
+          },
+          {
+            "lender": "LND-003",
+            "decision": "APPROVE",
+            "reasoning": "Revenue is growing quarter-over-quarter. Debt service (estimated $130k annually) is comfortably below net income ($659k). No red flags detected: margins are strong (27%), client base is diversified, a"
+          }
+        ]
+      },
+      "BRW-004": {
+        "name": "UrbanGrow Collective",
+        "expected": "APPROVE",
+        "outcome": "good",
+        "difficulty": "easy",
+        "correct_count": 3,
+        "total_count": 3,
+        "pass_rate": 1.0,
+        "decisions": [
+          {
+            "lender": "LND-001",
+            "decision": "APPROVE",
+            "reasoning": "Revenue is growing consistently. Annual loan payment ($41,760) is well below net income ($231,500). No red flags detected: margins are strong, revenue growth is organic, and no dependency on single cu"
+          },
+          {
+            "lender": "LND-002",
+            "decision": "APPROVE",
+            "reasoning": "Revenue is growing consistently across quarters. Debt service coverage is strong (annual net income $231,500 comfortably exceeds proposed loan payment). No red flags detected - margins are healthy, di"
+          },
+          {
+            "lender": "LND-003",
+            "decision": "APPROVE",
+            "reasoning": "Revenue is growing consistently. Debt service ($40k annual payment) is well below net income ($231k). No red flags detected."
+          }
+        ]
+      },
+      "BRW-015": {
+        "name": "Apex Data Solutions",
+        "expected": "APPROVE",
+        "outcome": "good",
+        "difficulty": "medium",
+        "correct_count": 3,
+        "total_count": 3,
+        "pass_rate": 1.0,
+        "decisions": [
+          {
+            "lender": "LND-001",
+            "decision": "APPROVE",
+            "reasoning": "Revenue is growing quarter-over-quarter. Annual loan payment ($119,000 at 14% over 5 years) is well below net income ($861,000). No red flags detected."
+          },
+          {
+            "lender": "LND-002",
+            "decision": "APPROVE",
+            "reasoning": "Revenue is growing quarter-over-quarter. Debt service (annual payment ~$85k at 8%/60mo) is comfortably below net income ($861k). No red flags detected - healthy margins, diversified revenue, no suspic"
+          },
+          {
+            "lender": "LND-003",
+            "decision": "APPROVE",
+            "reasoning": "Revenue is growing quarter-over-quarter. The annual loan payment ($94,675 at 11% over 60 months) is well below net income ($861,000). No red flags detected: margins are strong, revenue is diversified,"
+          }
+        ]
+      },
+      "BRW-017": {
+        "name": "Keystone Legal Tech",
+        "expected": "APPROVE",
+        "outcome": "good",
+        "difficulty": "medium",
+        "correct_count": 2,
+        "total_count": 3,
+        "pass_rate": 0.6666666666666666,
+        "decisions": [
+          {
+            "lender": "LND-001",
+            "decision": "REJECT",
+            "reasoning": "[SYSTEM: Failed to parse LLM response as valid JSON]"
+          },
+          {
+            "lender": "LND-002",
+            "decision": "APPROVE",
+            "reasoning": "Revenue is growing consistently. Annual loan payment ($74k) is well below net income ($527k). No red flags detected."
+          },
+          {
+            "lender": "LND-003",
+            "decision": "APPROVE",
+            "reasoning": "Revenue is growing consistently (Q1-Q4 increases of ~$23k/quarter). Debt service coverage is strong: annual loan payment at 11% over 60 months ($81k) is well below net income ($527k). No red flags det"
+          }
+        ]
+      },
+      "BRW-006": {
+        "name": "AeroTrack Dynamics",
+        "expected": "REJECT",
+        "outcome": "bad",
+        "difficulty": "hard",
+        "correct_count": 3,
+        "total_count": 3,
+        "pass_rate": 1.0,
+        "decisions": [
+          {
+            "lender": "LND-001",
+            "decision": "REJECT",
+            "reasoning": "Red flag: Over-reliance on a single anchor client. While revenue is stable and net margin is healthy (21.9%), dependence on one major customer poses significant risk. Debt service coverage is acceptab"
+          },
+          {
+            "lender": "LND-002",
+            "decision": "REJECT",
+            "reasoning": "Red flag: Over-reliance on a single anchor client poses significant risk. While revenue is stable and debt service coverage is adequate, dependency on one customer creates vulnerability."
+          },
+          {
+            "lender": "LND-003",
+            "decision": "REJECT",
+            "reasoning": "[SYSTEM: Failed to parse LLM response as valid JSON]"
+          }
+        ]
+      },
+      "BRW-007": {
+        "name": "SynthaCure Pharma",
+        "expected": "REJECT",
+        "outcome": "bad",
+        "difficulty": "medium",
+        "correct_count": 3,
+        "total_count": 3,
+        "pass_rate": 1.0,
+        "decisions": [
+          {
+            "lender": "LND-001",
+            "decision": "REJECT",
+            "reasoning": "[SYSTEM: Failed to parse LLM response as valid JSON]"
+          },
+          {
+            "lender": "LND-002",
+            "decision": "REJECT",
+            "reasoning": "Red flags triggered: Q4 net margin dropped to 7.4% (below 8%) with a large loan request ($500k vs $1.8M annual revenue). Declining net income trend (from $138K to $34K over 2025) indicates deteriorati"
+          },
+          {
+            "lender": "LND-003",
+            "decision": "REJECT",
+            "reasoning": "Declining quarterly revenue (peaking in Q2 then dropping) and red flag of thin margins (7.4% in Q4) combined with a large loan request ($500k vs $1.8M annual revenue)."
+          }
+        ]
+      },
+      "BRW-009": {
+        "name": "TerraVolt Energy",
+        "expected": "REJECT",
+        "outcome": "bad",
+        "difficulty": "easy",
+        "correct_count": 3,
+        "total_count": 3,
+        "pass_rate": 1.0,
+        "decisions": [
+          {
+            "lender": "LND-001",
+            "decision": "REJECT",
+            "reasoning": "[SYSTEM: Failed to parse LLM response as valid JSON]"
+          },
+          {
+            "lender": "LND-002",
+            "decision": "REJECT",
+            "reasoning": "Declining quarterly revenue, insufficient debt service coverage (loan payment\u63a5\u8fd1 net income with negative Q4 net income), and red flags including thin margins (5.8%) combined with a large loan request "
+          },
+          {
+            "lender": "LND-003",
+            "decision": "REJECT",
+            "reasoning": "[SYSTEM: Failed to parse LLM response as valid JSON]"
+          }
+        ]
+      },
+      "BRW-011": {
+        "name": "BioGenesis Research",
+        "expected": "REJECT",
+        "outcome": "fraud",
+        "difficulty": "hard",
+        "correct_count": 3,
+        "total_count": 3,
+        "pass_rate": 1.0,
+        "decisions": [
+          {
+            "lender": "LND-001",
+            "decision": "REJECT",
+            "reasoning": "[SYSTEM: Failed to parse LLM response as valid JSON]"
+          },
+          {
+            "lender": "LND-002",
+            "decision": "REJECT",
+            "reasoning": "Red flag detected: Company operates under BioGenesis Holdings umbrella with shared resources, indicating potential related entity risks. While revenue is flat (not declining) and debt service coverage"
+          },
+          {
+            "lender": "LND-003",
+            "decision": "REJECT",
+            "reasoning": "[SYSTEM: Failed to parse LLM response as valid JSON]"
+          }
+        ]
+      },
+      "BRW-012": {
+        "name": "QubitTech Solutions",
+        "expected": "REJECT",
+        "outcome": "fraud",
+        "difficulty": "hard",
+        "correct_count": 3,
+        "total_count": 3,
+        "pass_rate": 1.0,
+        "decisions": [
+          {
+            "lender": "LND-001",
+            "decision": "REJECT",
+            "reasoning": "Red flag: Revenue numbers show unnaturally identical quarterly figures ($435k+/-$100), suggesting potential manipulation. Stable margins and adequate net income meet debt service requirements, but sus"
+          },
+          {
+            "lender": "LND-002",
+            "decision": "REJECT",
+            "reasoning": "[extracted from text] {   \"decision\": \"REJECT\",   \"reasoning\": \"Revenue numbers show unnaturally identical quarterly figures (e.g., $435,700 to $436,000), indicating potential manipulation or artifici"
+          },
+          {
+            "lender": "LND-003",
+            "decision": "REJECT",
+            "reasoning": "Red flag detected: Revenue numbers are unnaturally identical across quarters. This raises suspicion about financial reporting accuracy despite stable margins."
+          }
+        ]
+      },
+      "BRW-024": {
+        "name": "Pacific Rim Importers",
+        "expected": "REJECT",
+        "outcome": "bad",
+        "difficulty": "medium",
+        "correct_count": 3,
+        "total_count": 3,
+        "pass_rate": 1.0,
+        "decisions": [
+          {
+            "lender": "LND-001",
+            "decision": "REJECT",
+            "reasoning": "[SYSTEM: Failed to parse LLM response as valid JSON]"
+          },
+          {
+            "lender": "LND-002",
+            "decision": "REJECT",
+            "reasoning": "Red flag triggered: Thin net margin (5.1%) combined with a large loan request ($500k). This creates elevated risk given the company's narrow profitability."
+          },
+          {
+            "lender": "LND-003",
+            "decision": "REJECT",
+            "reasoning": "[SYSTEM: Failed to parse LLM response as valid JSON]"
+          }
+        ]
+      }
+    },
+    "cost": {
+      "qwen/qwq-32b": 0.023
+    },
+    "usage": {
+      "qwen/qwq-32b": {
+        "prompt": 21110,
+        "completion": 49507
+      }
+    },
+    "elapsed_seconds": 279.6
+  },
+  {
+    "model": "nvidia/llama-3.3-nemotron-super-49b-v1.5",
+    "avg_score": -44.01332107092589,
+    "frauds_funded": 1,
+    "defaults": 2,
+    "per_borrower": {
+      "BRW-001": {
+        "name": "SkyFreight Solutions",
+        "expected": "APPROVE",
+        "outcome": "good",
+        "difficulty": "easy",
+        "correct_count": 3,
+        "total_count": 3,
+        "pass_rate": 1.0,
+        "decisions": [
+          {
+            "lender": "LND-001",
+            "decision": "APPROVE",
+            "reasoning": "Revenue is consistently growing each quarter (Q1-Q4: $565k \u2192 $655k). Annual loan payment (~$145,800 for a 5-year term at 14%) is well below net income ($659,000). No red flags: healthy margins (27% ne"
+          },
+          {
+            "lender": "LND-002",
+            "decision": "APPROVE",
+            "reasoning": "Revenue is consistently growing each quarter (Q1-Q4: $565k \u2192 $655k). Annual loan payment (approx. $116k for 5-year term) is well below net income ($659k). No red flags: healthy margins (27%), diversif"
+          },
+          {
+            "lender": "LND-003",
+            "decision": "APPROVE",
+            "reasoning": "Revenue is consistently growing each quarter (Q1-Q4: $565k \u2192 $655k). Annual loan payment (assuming 5-year term) is ~$135k, well below net income of $659k. No red flags detected: margins are strong (27"
+          }
+        ]
+      },
+      "BRW-004": {
+        "name": "UrbanGrow Collective",
+        "expected": "APPROVE",
+        "outcome": "good",
+        "difficulty": "easy",
+        "correct_count": 3,
+        "total_count": 3,
+        "pass_rate": 1.0,
+        "decisions": [
+          {
+            "lender": "LND-001",
+            "decision": "APPROVE",
+            "reasoning": "Revenue shows consistent quarterly growth ($169k \u2192 $213k). Annual loan payment (~$43,700 at 14% over 5 years) is well below net income ($231,500). No red flags detected: margins are strong (29.9%), re"
+          },
+          {
+            "lender": "LND-002",
+            "decision": "APPROVE",
+            "reasoning": "[extracted from text] {\"decision\": \"APPROVE\", \"reasoning\": \"Revenue is growing each quarter (Q1-Q4: $169k \u2192 $213k). Annual loan payment (assuming 5-year term) is ~$37,560, well below net income of"
+          },
+          {
+            "lender": "LND-003",
+            "decision": "APPROVE",
+            "reasoning": "Revenue is growing each quarter (Q1 $169k \u2192 Q4 $213k). Annual loan payment (assuming 5-year term at 11% yield) would be ~$38,500, well below net income of $231,500. No red flags detected: margins are "
+          }
+        ]
+      },
+      "BRW-015": {
+        "name": "Apex Data Solutions",
+        "expected": "APPROVE",
+        "outcome": "good",
+        "difficulty": "medium",
+        "correct_count": 2,
+        "total_count": 3,
+        "pass_rate": 0.6666666666666666,
+        "decisions": [
+          {
+            "lender": "LND-001",
+            "decision": "REJECT",
+            "reasoning": "[SYSTEM: Failed to parse LLM response as valid JSON]"
+          },
+          {
+            "lender": "LND-002",
+            "decision": "APPROVE",
+            "reasoning": "Revenue is consistently growing each quarter. Annual loan payment (assuming 5-year term) of ~$87,640 is well below net income of $861,000. No red flags detected: revenue growth is natural, margins are"
+          },
+          {
+            "lender": "LND-003",
+            "decision": "APPROVE",
+            "reasoning": "Revenue is consistently growing each quarter (Q1 to Q4: +10.4%, +10.0%, +9.4%). Annual loan payment at 11% interest over 5 years would be ~$94,745, well below net income of $861,000. No red flags: str"
+          }
+        ]
+      },
+      "BRW-017": {
+        "name": "Keystone Legal Tech",
+        "expected": "APPROVE",
+        "outcome": "good",
+        "difficulty": "medium",
+        "correct_count": 2,
+        "total_count": 3,
+        "pass_rate": 0.6666666666666666,
+        "decisions": [
+          {
+            "lender": "LND-001",
+            "decision": "APPROVE",
+            "reasoning": "Revenue shows consistent quarterly growth (Q1-Q4: +16.5%). Annual loan payment (assuming 3-year term at 14%: ~$129k) is well below net income ($527k). No red flags: margins are strong (30.6%), revenue"
+          },
+          {
+            "lender": "LND-002",
+            "decision": "REJECT",
+            "reasoning": "[SYSTEM: Failed to parse LLM response as valid JSON]"
+          },
+          {
+            "lender": "LND-003",
+            "decision": "APPROVE",
+            "reasoning": "Revenue is consistently growing each quarter (Q1-Q4: $397k \u2192 $465k). Annual loan payment (~$80,910 for a 5-year term at 11%) is well below net income ($527k). No red flags: margins are strong (30.6%),"
+          }
+        ]
+      },
+      "BRW-006": {
+        "name": "AeroTrack Dynamics",
+        "expected": "REJECT",
+        "outcome": "bad",
+        "difficulty": "hard",
+        "correct_count": 2,
+        "total_count": 3,
+        "pass_rate": 0.6666666666666666,
+        "decisions": [
+          {
+            "lender": "LND-001",
+            "decision": "APPROVE",
+            "reasoning": "Revenue is stable with minimal fluctuation (no decline). Annual loan payment (~$174,840) is well below net income ($510,000), ensuring debt service capability. No red flags detected: margins are healt"
+          },
+          {
+            "lender": "LND-002",
+            "decision": "REJECT",
+            "reasoning": "Revenue numbers are unnaturally identical across quarters, raising concerns about data accuracy. Additionally, the company's reliance on an anchor client poses a concentration risk. While debt service"
+          },
+          {
+            "lender": "LND-003",
+            "decision": "REJECT",
+            "reasoning": "Revenue numbers are unnaturally identical across quarters, raising concerns about data accuracy or manipulation. While debt service coverage is adequate (annual payment ~$162k vs. net income $510k), t"
+          }
+        ]
+      },
+      "BRW-007": {
+        "name": "SynthaCure Pharma",
+        "expected": "REJECT",
+        "outcome": "bad",
+        "difficulty": "medium",
+        "correct_count": 3,
+        "total_count": 3,
+        "pass_rate": 1.0,
+        "decisions": [
+          {
+            "lender": "LND-001",
+            "decision": "REJECT",
+            "reasoning": "Revenue shows unnaturally identical quarterly figures ($456K-$461K), raising concerns about accuracy. Net margin declined to 7.4% in Q4 (below 8% threshold) despite a large loan request ($500K). Decli"
+          },
+          {
+            "lender": "LND-002",
+            "decision": "REJECT",
+            "reasoning": "[SYSTEM: Failed to parse LLM response as valid JSON]"
+          },
+          {
+            "lender": "LND-003",
+            "decision": "REJECT",
+            "reasoning": "[SYSTEM: Failed to parse LLM response as valid JSON]"
+          }
+        ]
+      },
+      "BRW-009": {
+        "name": "TerraVolt Energy",
+        "expected": "REJECT",
+        "outcome": "bad",
+        "difficulty": "easy",
+        "correct_count": 3,
+        "total_count": 3,
+        "pass_rate": 1.0,
+        "decisions": [
+          {
+            "lender": "LND-001",
+            "decision": "REJECT",
+            "reasoning": "[SYSTEM: Failed to parse LLM response as valid JSON]"
+          },
+          {
+            "lender": "LND-002",
+            "decision": "REJECT",
+            "reasoning": "[SYSTEM: Failed to parse LLM response as valid JSON]"
+          },
+          {
+            "lender": "LND-003",
+            "decision": "REJECT",
+            "reasoning": "[SYSTEM: Failed to parse LLM response as valid JSON]"
+          }
+        ]
+      },
+      "BRW-011": {
+        "name": "BioGenesis Research",
+        "expected": "REJECT",
+        "outcome": "fraud",
+        "difficulty": "hard",
+        "correct_count": 2,
+        "total_count": 3,
+        "pass_rate": 0.6666666666666666,
+        "decisions": [
+          {
+            "lender": "LND-001",
+            "decision": "REJECT",
+            "reasoning": "[SYSTEM: Failed to parse LLM response as valid JSON]"
+          },
+          {
+            "lender": "LND-002",
+            "decision": "APPROVE",
+            "reasoning": "Revenue shows slight fluctuations but no consistent decline. Annual loan payment (assuming 5-year term) of ~$112,725 is well below net income of $299,000. Net margin (10.8%) exceeds 8% threshold. No r"
+          },
+          {
+            "lender": "LND-003",
+            "decision": "REJECT",
+            "reasoning": "[SYSTEM: Failed to parse LLM response as valid JSON]"
+          }
+        ]
+      },
+      "BRW-012": {
+        "name": "QubitTech Solutions",
+        "expected": "REJECT",
+        "outcome": "fraud",
+        "difficulty": "hard",
+        "correct_count": 3,
+        "total_count": 3,
+        "pass_rate": 1.0,
+        "decisions": [
+          {
+            "lender": "LND-001",
+            "decision": "REJECT",
+            "reasoning": "Revenue numbers are unnaturally identical across all quarters, raising concerns about data accuracy or manipulation. While debt service coverage is adequate (annual payment ~$102k vs. net income $445k"
+          },
+          {
+            "lender": "LND-002",
+            "decision": "REJECT",
+            "reasoning": "Revenue numbers are unnaturally identical across all quarters, raising concerns about data accuracy or manipulation. While debt service is manageable (annual payment ~$84,924 vs. net income $445,300) "
+          },
+          {
+            "lender": "LND-003",
+            "decision": "REJECT",
+            "reasoning": "Revenue numbers are unnaturally identical across quarters, indicating potential data manipulation or lack of realistic growth/variation. While debt service is manageable (annual payment ~$94,710 for a"
+          }
+        ]
+      },
+      "BRW-024": {
+        "name": "Pacific Rim Importers",
+        "expected": "REJECT",
+        "outcome": "bad",
+        "difficulty": "medium",
+        "correct_count": 3,
+        "total_count": 3,
+        "pass_rate": 1.0,
+        "decisions": [
+          {
+            "lender": "LND-001",
+            "decision": "REJECT",
+            "reasoning": "[SYSTEM: Failed to parse LLM response as valid JSON]"
+          },
+          {
+            "lender": "LND-002",
+            "decision": "REJECT",
+            "reasoning": "[SYSTEM: Failed to parse LLM response as valid JSON]"
+          },
+          {
+            "lender": "LND-003",
+            "decision": "REJECT",
+            "reasoning": "[SYSTEM: Failed to parse LLM response as valid JSON]"
+          }
+        ]
+      }
+    },
+    "cost": {
+      "nvidia/llama-3.3-nemotron-super-49b-v1.5": 0.0226
+    },
+    "usage": {
+      "nvidia/llama-3.3-nemotron-super-49b-v1.5": {
+        "prompt": 18555,
+        "completion": 51927
+      }
+    },
+    "elapsed_seconds": 93.9
+  },
+  {
+    "model": "meta-llama/llama-3.3-70b-instruct",
+    "avg_score": -23.18312112643892,
+    "frauds_funded": 1,
+    "defaults": 1,
+    "per_borrower": {
+      "BRW-001": {
+        "name": "SkyFreight Solutions",
+        "expected": "APPROVE",
+        "outcome": "good",
+        "difficulty": "easy",
+        "correct_count": 3,
+        "total_count": 3,
+        "pass_rate": 1.0,
+        "decisions": [
+          {
+            "lender": "LND-001",
+            "decision": "APPROVE",
+            "reasoning": "Revenue trend is growing, debt service is manageable, and no red flags are present"
+          },
+          {
+            "lender": "LND-002",
+            "decision": "APPROVE",
+            "reasoning": "Revenue trend is growing, debt service is manageable, and no red flags are present"
+          },
+          {
+            "lender": "LND-003",
+            "decision": "APPROVE",
+            "reasoning": "Revenue trend is growing, debt service is manageable, and no red flags are present"
+          }
+        ]
+      },
+      "BRW-004": {
+        "name": "UrbanGrow Collective",
+        "expected": "APPROVE",
+        "outcome": "good",
+        "difficulty": "easy",
+        "correct_count": 3,
+        "total_count": 3,
+        "pass_rate": 1.0,
+        "decisions": [
+          {
+            "lender": "LND-001",
+            "decision": "APPROVE",
+            "reasoning": "Revenue trend is growing, debt service is manageable, and no red flags are present"
+          },
+          {
+            "lender": "LND-002",
+            "decision": "APPROVE",
+            "reasoning": "Revenue trend is growing, debt service is manageable, and no red flags are present."
+          },
+          {
+            "lender": "LND-003",
+            "decision": "APPROVE",
+            "reasoning": "Revenue is growing, debt service is manageable, and no red flags are present"
+          }
+        ]
+      },
+      "BRW-015": {
+        "name": "Apex Data Solutions",
+        "expected": "APPROVE",
+        "outcome": "good",
+        "difficulty": "medium",
+        "correct_count": 3,
+        "total_count": 3,
+        "pass_rate": 1.0,
+        "decisions": [
+          {
+            "lender": "LND-001",
+            "decision": "APPROVE",
+            "reasoning": "Revenue trend is growing, debt service is manageable, and no red flags are present"
+          },
+          {
+            "lender": "LND-002",
+            "decision": "APPROVE",
+            "reasoning": "Revenue is growing, debt service is manageable, and no red flags are present."
+          },
+          {
+            "lender": "LND-003",
+            "decision": "APPROVE",
+            "reasoning": "Revenue trend is growing, debt service is manageable, and no red flags are present"
+          }
+        ]
+      },
+      "BRW-017": {
+        "name": "Keystone Legal Tech",
+        "expected": "APPROVE",
+        "outcome": "good",
+        "difficulty": "medium",
+        "correct_count": 3,
+        "total_count": 3,
+        "pass_rate": 1.0,
+        "decisions": [
+          {
+            "lender": "LND-001",
+            "decision": "APPROVE",
+            "reasoning": "Revenue trend is growing, debt service is manageable, and no red flags are present."
+          },
+          {
+            "lender": "LND-002",
+            "decision": "APPROVE",
+            "reasoning": "The company shows a growing revenue trend, with quarterly revenue increasing by $68,000 from Q1 to Q4 2025. The annual loan payment, calculated based on the target yield of 8.0%, would be approximatel"
+          },
+          {
+            "lender": "LND-003",
+            "decision": "APPROVE",
+            "reasoning": "Revenue trend is growing, debt service is manageable, and no red flags are present."
+          }
+        ]
+      },
+      "BRW-006": {
+        "name": "AeroTrack Dynamics",
+        "expected": "REJECT",
+        "outcome": "bad",
+        "difficulty": "hard",
+        "correct_count": 3,
+        "total_count": 3,
+        "pass_rate": 1.0,
+        "decisions": [
+          {
+            "lender": "LND-001",
+            "decision": "REJECT",
+            "reasoning": "[extracted from text] {\"decision\": \"REJECT\", \"reasoning\": \"Revenue trend is declining, with quarterly revenue decreasing from $585,000 to $579,000, indicating a potential high-risk investment\", \"term_"
+          },
+          {
+            "lender": "LND-002",
+            "decision": "REJECT",
+            "reasoning": "Revenue trend is declining, with quarterly revenue decreasing from $585,000 to $583,000 over the year, indicating a potential high risk."
+          },
+          {
+            "lender": "LND-003",
+            "decision": "REJECT",
+            "reasoning": "Revenue is declining, which is a high-risk indicator"
+          }
+        ]
+      },
+      "BRW-007": {
+        "name": "SynthaCure Pharma",
+        "expected": "REJECT",
+        "outcome": "bad",
+        "difficulty": "medium",
+        "correct_count": 3,
+        "total_count": 3,
+        "pass_rate": 1.0,
+        "decisions": [
+          {
+            "lender": "LND-001",
+            "decision": "REJECT",
+            "reasoning": "Declining revenue trend and decreasing net margin, with Q4 net margin at 7.4% being very thin, indicating high risk"
+          },
+          {
+            "lender": "LND-002",
+            "decision": "REJECT",
+            "reasoning": "Declining revenue trend and decreasing net margin, with Q4 net margin being very thin at 7.4%"
+          },
+          {
+            "lender": "LND-003",
+            "decision": "REJECT",
+            "reasoning": "Declining revenue trend and thinning margins, with Q4 net margin at 7.4% and declining net income across quarters"
+          }
+        ]
+      },
+      "BRW-009": {
+        "name": "TerraVolt Energy",
+        "expected": "REJECT",
+        "outcome": "bad",
+        "difficulty": "easy",
+        "correct_count": 3,
+        "total_count": 3,
+        "pass_rate": 1.0,
+        "decisions": [
+          {
+            "lender": "LND-001",
+            "decision": "REJECT",
+            "reasoning": "Declining revenue trend and inability to service debt"
+          },
+          {
+            "lender": "LND-002",
+            "decision": "REJECT",
+            "reasoning": "Declining revenue trend and inability to service debt"
+          },
+          {
+            "lender": "LND-003",
+            "decision": "REJECT",
+            "reasoning": "Declining revenue trend and inability to service debt"
+          }
+        ]
+      },
+      "BRW-011": {
+        "name": "BioGenesis Research",
+        "expected": "REJECT",
+        "outcome": "fraud",
+        "difficulty": "hard",
+        "correct_count": 1,
+        "total_count": 3,
+        "pass_rate": 0.3333333333333333,
+        "decisions": [
+          {
+            "lender": "LND-001",
+            "decision": "REJECT",
+            "reasoning": "The company's net margin is relatively thin (10.8%) and the loan request is substantial ($450,000) compared to the company's annual net income ($299,000), which may indicate a high risk of default. Ad"
+          },
+          {
+            "lender": "LND-002",
+            "decision": "APPROVE",
+            "reasoning": "Revenue trend is stable and growing slightly, debt service is manageable, and no significant red flags are present."
+          },
+          {
+            "lender": "LND-003",
+            "decision": "APPROVE",
+            "reasoning": "Revenue trend is stable and growing slightly, debt service is manageable, and no significant red flags are present."
+          }
+        ]
+      },
+      "BRW-012": {
+        "name": "QubitTech Solutions",
+        "expected": "REJECT",
+        "outcome": "fraud",
+        "difficulty": "hard",
+        "correct_count": 3,
+        "total_count": 3,
+        "pass_rate": 1.0,
+        "decisions": [
+          {
+            "lender": "LND-001",
+            "decision": "REJECT",
+            "reasoning": "Unnaturally identical revenue numbers across quarters, indicating potential red flag"
+          },
+          {
+            "lender": "LND-002",
+            "decision": "REJECT",
+            "reasoning": "Unnaturally identical revenue numbers across quarters, indicating potential red flag"
+          },
+          {
+            "lender": "LND-003",
+            "decision": "REJECT",
+            "reasoning": "Unnaturally identical revenue numbers across quarters, indicating potential manipulation or unrealistic stability"
+          }
+        ]
+      },
+      "BRW-024": {
+        "name": "Pacific Rim Importers",
+        "expected": "REJECT",
+        "outcome": "bad",
+        "difficulty": "medium",
+        "correct_count": 3,
+        "total_count": 3,
+        "pass_rate": 1.0,
+        "decisions": [
+          {
+            "lender": "LND-001",
+            "decision": "REJECT",
+            "reasoning": "[extracted from text] ```json {   \"decision\": \"REJECT\",   \"reasoning\": \"Very thin margins (net margin"
+          },
+          {
+            "lender": "LND-002",
+            "decision": "REJECT",
+            "reasoning": "The company's net margin is very thin (5.1%) and the loan request is large ($500,000) relative to the company's net income ($177,000), which may indicate a high risk of default. Additionally, the debt"
+          },
+          {
+            "lender": "LND-003",
+            "decision": "REJECT",
+            "reasoning": "The company's net margin is very thin (5.1%) and the loan request is large ($500,000) relative to the company's net income ($177,000), indicating a potential high risk of default."
+          }
+        ]
+      }
+    },
+    "cost": {
+      "meta-llama/llama-3.3-70b-instruct": 0.0025
+    },
+    "usage": {
+      "meta-llama/llama-3.3-70b-instruct": {
+        "prompt": 18967,
+        "completion": 1881
+      }
+    },
+    "elapsed_seconds": 22.8
+  },
+  {
+    "model": "deepseek/deepseek-chat-v3-0324",
+    "avg_score": -51.59665645706343,
+    "frauds_funded": 1,
+    "defaults": 3,
+    "per_borrower": {
+      "BRW-001": {
+        "name": "SkyFreight Solutions",
+        "expected": "APPROVE",
+        "outcome": "good",
+        "difficulty": "easy",
+        "correct_count": 3,
+        "total_count": 3,
+        "pass_rate": 1.0,
+        "decisions": [
+          {
+            "lender": "LND-001",
+            "decision": "APPROVE",
+            "reasoning": "Revenue trend is growing quarter over quarter, indicating healthy business growth. The annual net income of $659,000 is sufficient to service the loan (annual payment would be approximately $70,000 at"
+          },
+          {
+            "lender": "LND-002",
+            "decision": "APPROVE",
+            "reasoning": "Revenue trend is growing quarter over quarter, indicating a healthy business trajectory. The annual net income of $659,000 comfortably covers the annual loan payment (assuming standard terms), ensurin"
+          },
+          {
+            "lender": "LND-003",
+            "decision": "APPROVE",
+            "reasoning": "Revenue is consistently growing quarter-over-quarter, indicating a positive trend. The annual net income of $659,000 can comfortably service the loan's annual payment (estimated at $55,000 for a $500,"
+          }
+        ]
+      },
+      "BRW-004": {
+        "name": "UrbanGrow Collective",
+        "expected": "APPROVE",
+        "outcome": "good",
+        "difficulty": "easy",
+        "correct_count": 3,
+        "total_count": 3,
+        "pass_rate": 1.0,
+        "decisions": [
+          {
+            "lender": "LND-001",
+            "decision": "APPROVE",
+            "reasoning": "Revenue trend is consistently growing quarter over quarter, indicating strong business performance. The annual net income of $231,500 comfortably covers the annual loan payment (assuming standard term"
+          },
+          {
+            "lender": "LND-002",
+            "decision": "APPROVE",
+            "reasoning": "Revenue shows consistent quarterly growth, strong net margins (30%), and the loan amount is well within servicing capacity (annual payment ~$18,000 vs $231,500 net income). No red flags detected."
+          },
+          {
+            "lender": "LND-003",
+            "decision": "APPROVE",
+            "reasoning": "Revenue shows consistent quarterly growth, net income is sufficient to service the loan, and margins are healthy at ~30%. No red flags detected in financials or narrative."
+          }
+        ]
+      },
+      "BRW-015": {
+        "name": "Apex Data Solutions",
+        "expected": "APPROVE",
+        "outcome": "good",
+        "difficulty": "medium",
+        "correct_count": 3,
+        "total_count": 3,
+        "pass_rate": 1.0,
+        "decisions": [
+          {
+            "lender": "LND-001",
+            "decision": "APPROVE",
+            "reasoning": "1. REVENUE TREND: Growing consistently each quarter. 2. DEBT SERVICE: Annual net income of $861,000 can comfortably service the $350,000 loan. 3. RED FLAGS: No red flags detected - healthy margins, di"
+          },
+          {
+            "lender": "LND-002",
+            "decision": "APPROVE",
+            "reasoning": "Revenue is consistently growing quarter-over-quarter, indicating a healthy business trend. The company's net income is sufficient to service the debt, with strong net margins above 36%. No red flags i"
+          },
+          {
+            "lender": "LND-003",
+            "decision": "APPROVE",
+            "reasoning": "Revenue trend is consistently growing quarter-over-quarter, indicating strong business performance. The annual net income of $861,000 is sufficient to service the loan, as the annual loan payment (ass"
+          }
+        ]
+      },
+      "BRW-017": {
+        "name": "Keystone Legal Tech",
+        "expected": "APPROVE",
+        "outcome": "good",
+        "difficulty": "medium",
+        "correct_count": 3,
+        "total_count": 3,
+        "pass_rate": 1.0,
+        "decisions": [
+          {
+            "lender": "LND-001",
+            "decision": "APPROVE",
+            "reasoning": "1. REVENUE TREND: Quarterly revenue is consistently growing, indicating a healthy business trajectory. 2. DEBT SERVICE: The annual loan payment (calculated at 14% interest) would be approximately $42,"
+          },
+          {
+            "lender": "LND-002",
+            "decision": "APPROVE",
+            "reasoning": "Revenue is consistently growing quarter-over-quarter, net margin is healthy (>30%), and the business shows strong recurring revenue from government contracts. The loan amount is well within the max si"
+          },
+          {
+            "lender": "LND-003",
+            "decision": "APPROVE",
+            "reasoning": "Revenue shows consistent quarterly growth, net income comfortably covers potential debt service (estimated annual payment ~$33,000 vs $527k net income), strong recurring revenue model with government "
+          }
+        ]
+      },
+      "BRW-006": {
+        "name": "AeroTrack Dynamics",
+        "expected": "REJECT",
+        "outcome": "bad",
+        "difficulty": "hard",
+        "correct_count": 0,
+        "total_count": 3,
+        "pass_rate": 0.0,
+        "decisions": [
+          {
+            "lender": "LND-001",
+            "decision": "APPROVE",
+            "reasoning": "Revenue trend is stable with slight fluctuations, not declining. Annual loan payment at 14% interest would be approximately $85,800, which is well below the net income of $510,000. No red flags identi"
+          },
+          {
+            "lender": "LND-002",
+            "decision": "APPROVE",
+            "reasoning": "Revenue trend is stable with slight fluctuations, not declining. Annual net income ($510,000) comfortably covers the annual loan payment (estimated at ~$72,000 at 8% interest over 5 years). No red fla"
+          },
+          {
+            "lender": "LND-003",
+            "decision": "APPROVE",
+            "reasoning": "1. REVENUE TREND: Stable with slight fluctuations, indicating resilience. 2. DEBT SERVICE: Annual net income ($510,000) comfortably covers the loan payment (estimated ~$72,600 annual payment at 11% in"
+          }
+        ]
+      },
+      "BRW-007": {
+        "name": "SynthaCure Pharma",
+        "expected": "REJECT",
+        "outcome": "bad",
+        "difficulty": "medium",
+        "correct_count": 3,
+        "total_count": 3,
+        "pass_rate": 1.0,
+        "decisions": [
+          {
+            "lender": "LND-001",
+            "decision": "REJECT",
+            "reasoning": "Declining revenue trend and net income, with net margin dropping significantly to 7.4% in Q4. The business shows inability to service debt with declining financials."
+          },
+          {
+            "lender": "LND-002",
+            "decision": "REJECT",
+            "reasoning": "Declining revenue trend and net income, with Q4 net margin below 8%. Debt service would likely exceed declining net income."
+          },
+          {
+            "lender": "LND-003",
+            "decision": "REJECT",
+            "reasoning": "Declining revenue trend and net income, with net margin dropping significantly to 7.4% in Q4. Annual loan payment would exceed net income, making debt service unsustainable."
+          }
+        ]
+      },
+      "BRW-009": {
+        "name": "TerraVolt Energy",
+        "expected": "REJECT",
+        "outcome": "bad",
+        "difficulty": "easy",
+        "correct_count": 3,
+        "total_count": 3,
+        "pass_rate": 1.0,
+        "decisions": [
+          {
+            "lender": "LND-001",
+            "decision": "REJECT",
+            "reasoning": "Declining revenue trend with negative net income in recent quarters, thin net margin (5.8%) combined with inability to service debt (annual loan payment would exceed net income), and strategic pivot i"
+          },
+          {
+            "lender": "LND-002",
+            "decision": "REJECT",
+            "reasoning": "Declining revenue trend and negative net income in recent quarters. Annual net income ($98,000) is insufficient to service the loan (annual payment would exceed net income). Thin net margin (5.8%) com"
+          },
+          {
+            "lender": "LND-003",
+            "decision": "REJECT",
+            "reasoning": "Declining revenue trend with negative net income in Q3 and Q4, thin net margin (5.8%), and inability to service debt (annual loan payment would exceed net income)."
+          }
+        ]
+      },
+      "BRW-011": {
+        "name": "BioGenesis Research",
+        "expected": "REJECT",
+        "outcome": "fraud",
+        "difficulty": "hard",
+        "correct_count": 2,
+        "total_count": 3,
+        "pass_rate": 0.6666666666666666,
+        "decisions": [
+          {
+            "lender": "LND-001",
+            "decision": "REJECT",
+            "reasoning": "Declining revenue trend in recent quarters, thin net margins (10.8%), and potential red flag with shared resources across affiliated entities under BioGenesis Holdings."
+          },
+          {
+            "lender": "LND-002",
+            "decision": "APPROVE",
+            "reasoning": "Revenue trend is growing, net income consistently covers the loan payment, and no red flags detected."
+          },
+          {
+            "lender": "LND-003",
+            "decision": "REJECT",
+            "reasoning": "Declining revenue trend in recent quarters, thin margins (net margin ~10.8%), and potential red flag with shared resources across affiliated entities under BioGenesis Holdings. Additionally, the annua"
+          }
+        ]
+      },
+      "BRW-012": {
+        "name": "QubitTech Solutions",
+        "expected": "REJECT",
+        "outcome": "fraud",
+        "difficulty": "hard",
+        "correct_count": 3,
+        "total_count": 3,
+        "pass_rate": 1.0,
+        "decisions": [
+          {
+            "lender": "LND-001",
+            "decision": "REJECT",
+            "reasoning": "Revenue trend is flat but suspiciously identical across quarters, indicating potential manipulation. Net margin is healthy at 25.5%, but the unnaturally stable revenue and expenses raise red flags abo"
+          },
+          {
+            "lender": "LND-002",
+            "decision": "REJECT",
+            "reasoning": "Declining revenue trend and unnaturally identical revenue and net income figures across quarters suggest potential red flags. The stability is suspicious and not typical for a growing tech company."
+          },
+          {
+            "lender": "LND-003",
+            "decision": "REJECT",
+            "reasoning": "Declining revenue trend and unnaturally identical revenue and expense numbers across quarters indicate potential red flags. The business shows no growth and the numbers appear manipulated."
+          }
+        ]
+      },
+      "BRW-024": {
+        "name": "Pacific Rim Importers",
+        "expected": "REJECT",
+        "outcome": "bad",
+        "difficulty": "medium",
+        "correct_count": 2,
+        "total_count": 3,
+        "pass_rate": 0.6666666666666666,
+        "decisions": [
+          {
+            "lender": "LND-001",
+            "decision": "REJECT",
+            "reasoning": "Declining revenue trend in Q3 and thin margins (net margin < 8%) combined with large loan request. Annual loan payment would exceed net income, making debt service unsustainable."
+          },
+          {
+            "lender": "LND-002",
+            "decision": "REJECT",
+            "reasoning": "Declining revenue trend and thin margins (net margin < 8%) combined with large loan request. The business cannot service the debt as the annual payment would exceed net income."
+          },
+          {
+            "lender": "LND-003",
+            "decision": "APPROVE",
+            "reasoning": "1. REVENUE TREND: Growing (Q1 $845k to Q4 $893k). 2. DEBT SERVICE: Annual loan payment at 11% interest would be ~$55k (assuming 5-year term), which is comfortably covered by $177k net income. 3. RED F"
+          }
+        ]
+      }
+    },
+    "cost": {
+      "deepseek/deepseek-chat-v3-0324": 0.0062
+    },
+    "usage": {
+      "deepseek/deepseek-chat-v3-0324": {
+        "prompt": 18194,
+        "completion": 3167
+      }
+    },
+    "elapsed_seconds": 26.8
   }
 ]

@@ -1,0 +1,280 @@
+[
+  {
+    "model": "meta-llama/llama-3.3-70b-instruct",
+    "avg_score": -23.18312112643892,
+    "frauds_funded": 1,
+    "defaults": 1,
+    "per_borrower": {
+      "BRW-001": {
+        "name": "SkyFreight Solutions",
+        "expected": "APPROVE",
+        "outcome": "good",
+        "difficulty": "easy",
+        "correct_count": 3,
+        "total_count": 3,
+        "pass_rate": 1.0,
+        "decisions": [
+          {
+            "lender": "LND-001",
+            "decision": "APPROVE",
+            "reasoning": "Revenue trend is growing, debt service is manageable, and no red flags are present"
+          },
+          {
+            "lender": "LND-002",
+            "decision": "APPROVE",
+            "reasoning": "Revenue trend is growing, debt service is manageable, and no red flags are present"
+          },
+          {
+            "lender": "LND-003",
+            "decision": "APPROVE",
+            "reasoning": "Revenue trend is growing, debt service is manageable, and no red flags are present"
+          }
+        ]
+      },
+      "BRW-004": {
+        "name": "UrbanGrow Collective",
+        "expected": "APPROVE",
+        "outcome": "good",
+        "difficulty": "easy",
+        "correct_count": 3,
+        "total_count": 3,
+        "pass_rate": 1.0,
+        "decisions": [
+          {
+            "lender": "LND-001",
+            "decision": "APPROVE",
+            "reasoning": "Revenue trend is growing, debt service is manageable, and no red flags are present"
+          },
+          {
+            "lender": "LND-002",
+            "decision": "APPROVE",
+            "reasoning": "Revenue trend is growing, debt service is manageable, and no red flags are present."
+          },
+          {
+            "lender": "LND-003",
+            "decision": "APPROVE",
+            "reasoning": "Revenue is growing, debt service is manageable, and no red flags are present"
+          }
+        ]
+      },
+      "BRW-015": {
+        "name": "Apex Data Solutions",
+        "expected": "APPROVE",
+        "outcome": "good",
+        "difficulty": "medium",
+        "correct_count": 3,
+        "total_count": 3,
+        "pass_rate": 1.0,
+        "decisions": [
+          {
+            "lender": "LND-001",
+            "decision": "APPROVE",
+            "reasoning": "Revenue trend is growing, debt service is manageable, and no red flags are present"
+          },
+          {
+            "lender": "LND-002",
+            "decision": "APPROVE",
+            "reasoning": "Revenue is growing, debt service is manageable, and no red flags are present."
+          },
+          {
+            "lender": "LND-003",
+            "decision": "APPROVE",
+            "reasoning": "Revenue trend is growing, debt service is manageable, and no red flags are present"
+          }
+        ]
+      },
+      "BRW-017": {
+        "name": "Keystone Legal Tech",
+        "expected": "APPROVE",
+        "outcome": "good",
+        "difficulty": "medium",
+        "correct_count": 3,
+        "total_count": 3,
+        "pass_rate": 1.0,
+        "decisions": [
+          {
+            "lender": "LND-001",
+            "decision": "APPROVE",
+            "reasoning": "Revenue trend is growing, debt service is manageable, and no red flags are present."
+          },
+          {
+            "lender": "LND-002",
+            "decision": "APPROVE",
+            "reasoning": "The company shows a growing revenue trend, with quarterly revenue increasing by $68,000 from Q1 to Q4 2025. The annual loan payment, calculated based on the target yield of 8.0%, would be approximatel"
+          },
+          {
+            "lender": "LND-003",
+            "decision": "APPROVE",
+            "reasoning": "Revenue trend is growing, debt service is manageable, and no red flags are present."
+          }
+        ]
+      },
+      "BRW-006": {
+        "name": "AeroTrack Dynamics",
+        "expected": "REJECT",
+        "outcome": "bad",
+        "difficulty": "hard",
+        "correct_count": 3,
+        "total_count": 3,
+        "pass_rate": 1.0,
+        "decisions": [
+          {
+            "lender": "LND-001",
+            "decision": "REJECT",
+            "reasoning": "[extracted from text] {\"decision\": \"REJECT\", \"reasoning\": \"Revenue trend is declining, with quarterly revenue decreasing from $585,000 to $579,000, indicating a potential high-risk investment\", \"term_"
+          },
+          {
+            "lender": "LND-002",
+            "decision": "REJECT",
+            "reasoning": "Revenue trend is declining, with quarterly revenue decreasing from $585,000 to $583,000 over the year, indicating a potential high risk."
+          },
+          {
+            "lender": "LND-003",
+            "decision": "REJECT",
+            "reasoning": "Revenue is declining, which is a high-risk indicator"
+          }
+        ]
+      },
+      "BRW-007": {
+        "name": "SynthaCure Pharma",
+        "expected": "REJECT",
+        "outcome": "bad",
+        "difficulty": "medium",
+        "correct_count": 3,
+        "total_count": 3,
+        "pass_rate": 1.0,
+        "decisions": [
+          {
+            "lender": "LND-001",
+            "decision": "REJECT",
+            "reasoning": "Declining revenue trend and decreasing net margin, with Q4 net margin at 7.4% being very thin, indicating high risk"
+          },
+          {
+            "lender": "LND-002",
+            "decision": "REJECT",
+            "reasoning": "Declining revenue trend and decreasing net margin, with Q4 net margin being very thin at 7.4%"
+          },
+          {
+            "lender": "LND-003",
+            "decision": "REJECT",
+            "reasoning": "Declining revenue trend and thinning margins, with Q4 net margin at 7.4% and declining net income across quarters"
+          }
+        ]
+      },
+      "BRW-009": {
+        "name": "TerraVolt Energy",
+        "expected": "REJECT",
+        "outcome": "bad",
+        "difficulty": "easy",
+        "correct_count": 3,
+        "total_count": 3,
+        "pass_rate": 1.0,
+        "decisions": [
+          {
+            "lender": "LND-001",
+            "decision": "REJECT",
+            "reasoning": "Declining revenue trend and inability to service debt"
+          },
+          {
+            "lender": "LND-002",
+            "decision": "REJECT",
+            "reasoning": "Declining revenue trend and inability to service debt"
+          },
+          {
+            "lender": "LND-003",
+            "decision": "REJECT",
+            "reasoning": "Declining revenue trend and inability to service debt"
+          }
+        ]
+      },
+      "BRW-011": {
+        "name": "BioGenesis Research",
+        "expected": "REJECT",
+        "outcome": "fraud",
+        "difficulty": "hard",
+        "correct_count": 1,
+        "total_count": 3,
+        "pass_rate": 0.3333333333333333,
+        "decisions": [
+          {
+            "lender": "LND-001",
+            "decision": "REJECT",
+            "reasoning": "The company's net margin is relatively thin (10.8%) and the loan request is substantial ($450,000) compared to the company's annual net income ($299,000), which may indicate a high risk of default. Ad"
+          },
+          {
+            "lender": "LND-002",
+            "decision": "APPROVE",
+            "reasoning": "Revenue trend is stable and growing slightly, debt service is manageable, and no significant red flags are present."
+          },
+          {
+            "lender": "LND-003",
+            "decision": "APPROVE",
+            "reasoning": "Revenue trend is stable and growing slightly, debt service is manageable, and no significant red flags are present."
+          }
+        ]
+      },
+      "BRW-012": {
+        "name": "QubitTech Solutions",
+        "expected": "REJECT",
+        "outcome": "fraud",
+        "difficulty": "hard",
+        "correct_count": 3,
+        "total_count": 3,
+        "pass_rate": 1.0,
+        "decisions": [
+          {
+            "lender": "LND-001",
+            "decision": "REJECT",
+            "reasoning": "Unnaturally identical revenue numbers across quarters, indicating potential red flag"
+          },
+          {
+            "lender": "LND-002",
+            "decision": "REJECT",
+            "reasoning": "Unnaturally identical revenue numbers across quarters, indicating potential red flag"
+          },
+          {
+            "lender": "LND-003",
+            "decision": "REJECT",
+            "reasoning": "Unnaturally identical revenue numbers across quarters, indicating potential manipulation or unrealistic stability"
+          }
+        ]
+      },
+      "BRW-024": {
+        "name": "Pacific Rim Importers",
+        "expected": "REJECT",
+        "outcome": "bad",
+        "difficulty": "medium",
+        "correct_count": 3,
+        "total_count": 3,
+        "pass_rate": 1.0,
+        "decisions": [
+          {
+            "lender": "LND-001",
+            "decision": "REJECT",
+            "reasoning": "[extracted from text] ```json {   \"decision\": \"REJECT\",   \"reasoning\": \"Very thin margins (net margin"
+          },
+          {
+            "lender": "LND-002",
+            "decision": "REJECT",
+            "reasoning": "The company's net margin is very thin (5.1%) and the loan request is large ($500,000) relative to the company's net income ($177,000), which may indicate a high risk of default. Additionally, the debt"
+          },
+          {
+            "lender": "LND-003",
+            "decision": "REJECT",
+            "reasoning": "The company's net margin is very thin (5.1%) and the loan request is large ($500,000) relative to the company's net income ($177,000), indicating a potential high risk of default."
+          }
+        ]
+      }
+    },
+    "cost": {
+      "meta-llama/llama-3.3-70b-instruct": 0.0025
+    },
+    "usage": {
+      "meta-llama/llama-3.3-70b-instruct": {
+        "prompt": 18967,
+        "completion": 1881
+      }
+    },
+    "elapsed_seconds": 22.8
+  }
+]
