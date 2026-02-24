@@ -720,3 +720,213 @@ These three ideas compound each other in interesting ways:
 3. Financial maturation (requires procedural generation pipeline from Phase 4)
 
 Each can be shipped independently. Phased arrival is the highest-impact addition because it transforms the benchmark from "credit analysis" to "underwriting desk management" — a much richer test of agent capability.
+
+---
+
+## 12. Season Mode as a Memory Systems Benchmark
+
+Season mode's multi-week structure with carry-forward state creates a natural testbed for evaluating **different agent memory architectures**. Because lenders must recall past decisions, react to defaults, and build on prior analysis across weeks, the quality of an agent's memory system directly impacts its season performance.
+
+### 12.1 The Opportunity
+
+Single-match mode is memory-agnostic — everything fits in one context window. Season mode breaks that assumption. Over 10 weeks, a lender accumulates:
+
+- Decisions on ~50 borrowers (approve/reject rationale)
+- Default and repayment outcomes that should inform future risk appetite
+- Sector exposure patterns and concentration near-misses
+- Custom tool evolution (what worked, what didn't)
+- Portfolio-level lessons (e.g., "my fraud detection for logistics borrowers is weak")
+
+How an agent **stores, retrieves, and reasons over** this growing history is the variable we can isolate by swapping memory backends while holding everything else constant.
+
+### 12.2 Memory Systems to Test
+
+| Memory System | Description | What it tests |
+|---|---|---|
+| **Context window only** (baseline) | All history stuffed into the system prompt up to the token limit. Oldest information drops off as the window fills. | Raw in-context learning. How well does the model reason when everything is in the prompt? At what week does performance degrade as context overflows? |
+| **Free-text summary** | After each week, the agent writes a free-form text summary of lessons learned, which is injected into future weeks' system prompts. Older summaries may be condensed. | Self-directed reflection. Can the agent identify what's important to remember? Does prose-form memory lead to useful behavioral adaptation? |
+| **Structured context graph** | A graph database (nodes = borrowers, loans, sectors, outcomes; edges = relationships like "funded", "defaulted", "similar_to") that the agent queries via tool calls between weeks. | Explicit relational reasoning. Can the agent formulate useful queries? Does structured retrieval outperform free-text for pattern detection (e.g., "all logistics borrowers I funded that defaulted")? |
+| **Self-directed memory** | The agent is given `memory_write(key, value)` and `memory_read(key)` tools and decides what to store and when to retrieve it. No imposed structure. | Agent autonomy in memory management. Does the agent develop useful storage strategies? What does it choose to remember vs. forget? |
+| **Episodic retrieval (RAG)** | Each week's full evaluation trace is embedded and stored. Before each new evaluation, the agent retrieves the K most similar past episodes via vector search. | Relevance-based recall. Does similarity-based retrieval surface the right precedents? How does K affect performance? |
+| **Hybrid** | Combination of structured graph for portfolio state + free-text for qualitative lessons + episodic retrieval for similar-borrower lookup. | Whether combining memory modalities outperforms any single system, and whether the integration overhead is worth it. |
+
+### 12.3 Experimental Design
+
+The season framework enables controlled experiments by varying memory system while holding other variables fixed:
+
+```
+Fixed variables:
+  - Season seed (identical borrower sequence)
+  - Season mix preset (e.g., escalating)
+  - Base model (same LLM for all runs)
+  - Starting capital and exposure limits
+  - Scoring formula
+
+Independent variable:
+  - Memory system (one of the six above)
+
+Dependent variables:
+  - Season score (credit quality + portfolio management + efficiency)
+  - Adaptation speed (weeks to behavioral change after first default)
+  - Concentration discipline (violations over time)
+  - Decision consistency (similar borrowers get similar treatment)
+  - Memory utilization (how much of stored memory is actually retrieved/used)
+```
+
+#### 12.3.1 Memory System Interface
+
+Each memory backend implements a common interface so they're swappable:
+
+```python
+from abc import ABC, abstractmethod
+
+class MemorySystem(ABC):
+    """Common interface for season memory backends."""
+
+    @abstractmethod
+    def on_week_end(self, week: int, state: SeasonLenderState, traces: list[EvalTrace]) -> None:
+        """Called after each week with full state and evaluation traces.
+        The memory system decides what to persist."""
+
+    @abstractmethod
+    def get_context_injection(self, week: int, state: SeasonLenderState) -> str:
+        """Return text to inject into the lender's system prompt
+        at the start of the next week."""
+
+    @abstractmethod
+    def get_tools(self) -> list[Tool]:
+        """Return any additional tools this memory system provides
+        (e.g., memory_read, graph_query). Empty list if none."""
+
+    @abstractmethod
+    def get_memory_stats(self) -> dict:
+        """Return usage statistics for analysis
+        (tokens stored, queries made, hit rate, etc.)."""
+```
+
+#### 12.3.2 Implementation Sketches
+
+**Context window only (baseline):**
+
+```python
+class ContextWindowMemory(MemorySystem):
+    """Stuffs portfolio briefing + recent traces into context.
+    No external storage. Truncates when exceeding token budget."""
+
+    def __init__(self, max_tokens: int = 8000):
+        self.max_tokens = max_tokens
+
+    def on_week_end(self, week, state, traces):
+        pass  # No-op: everything lives in the prompt
+
+    def get_context_injection(self, week, state):
+        # The standard weekly portfolio briefing (section 3.3)
+        # plus as many recent evaluation summaries as fit
+        return build_portfolio_briefing(state) + truncate_traces(traces, self.max_tokens)
+
+    def get_tools(self):
+        return []  # No additional tools
+```
+
+**Self-directed memory:**
+
+```python
+class SelfDirectedMemory(MemorySystem):
+    """Agent decides what to store and retrieve via tool calls."""
+
+    def __init__(self):
+        self.store: dict[str, str] = {}
+
+    def on_week_end(self, week, state, traces):
+        pass  # Agent stores during evaluation via tools
+
+    def get_context_injection(self, week, state):
+        return build_portfolio_briefing(state) + \
+            f"\nYou have {len(self.store)} items in memory. " \
+            f"Keys: {list(self.store.keys())}"
+
+    def get_tools(self):
+        return [
+            Tool(name="memory_write",
+                 description="Store a value in persistent memory. "
+                             "Use this to remember lessons, patterns, or decisions.",
+                 handler=lambda args: self._write(args["key"], args["value"])),
+            Tool(name="memory_read",
+                 description="Retrieve a value from persistent memory by key.",
+                 handler=lambda args: self._read(args["key"])),
+        ]
+```
+
+### 12.4 What We Expect to Learn
+
+**Key research questions:**
+
+1. **Does memory architecture matter more than model capability?** Run the same season with GPT-4o, Claude Sonnet, and Gemini Pro, each with all six memory systems. If memory system variance > model variance, that's a strong signal that memory is the bottleneck.
+
+2. **At what season length do memory systems diverge?** Run 5-week, 10-week, and 20-week seasons. Short seasons may not stress-test memory. We expect divergence to appear around week 5-7 when context overflow becomes real.
+
+3. **What do agents choose to remember?** With self-directed memory, analyze the keys and values agents store. Do they converge on similar strategies? Do they store borrower-level details or portfolio-level heuristics?
+
+4. **Does structured memory help with concentration management?** Graph-based memory should excel at queries like "what's my current exposure to logistics?" — but does that translate to better scores, or is the portfolio briefing sufficient?
+
+5. **Is there a memory system that produces more consistent decision-making?** Measure whether similar borrowers (same sector, similar financials) receive similar treatment across weeks. Memory systems that enable precedent lookup should improve consistency.
+
+### 12.5 Integration with Season Infrastructure
+
+Memory system testing requires minimal changes to the core season loop:
+
+```python
+class SeasonEngine:
+    def __init__(self, config: SeasonConfig, memory_system: MemorySystem, ...):
+        self.memory = memory_system
+        # ... existing init ...
+
+    async def run_season(self):
+        for week in range(1, self.config.weeks + 1):
+            self._resolve_week(week)
+
+            # Memory system injects context for this week
+            memory_context = self.memory.get_context_injection(week, state)
+            memory_tools = self.memory.get_tools()
+
+            lenders = self._build_week_lenders(week, extra_context=memory_context,
+                                                extra_tools=memory_tools)
+
+            # ... existing week loop ...
+
+            # Memory system processes the week's results
+            self.memory.on_week_end(week, state, traces)
+
+        # Collect memory stats for analysis
+        self._report_memory_stats(self.memory.get_memory_stats())
+```
+
+### 12.6 CLI Extension
+
+```bash
+# Run a season with a specific memory system
+python -m loanville --season --memory context-window
+python -m loanville --season --memory free-text
+python -m loanville --season --memory context-graph
+python -m loanville --season --memory self-directed
+python -m loanville --season --memory episodic-rag
+python -m loanville --season --memory hybrid
+
+# Run a comparative benchmark across all memory systems
+python -m loanville --season --memory-benchmark --seed 42
+
+# Control memory budget (tokens or entries, depending on system)
+python -m loanville --season --memory self-directed --memory-budget 4000
+```
+
+### 12.7 Why Season Mode Is Uniquely Suited for This
+
+Most LLM benchmarks test single-turn or short-horizon tasks where memory doesn't matter. Season mode is different because:
+
+- **Long horizon**: 10+ decision points with path dependency
+- **Consequential recall**: forgetting a past default directly costs money
+- **Mixed signal types**: quantitative (P&L, exposure %) and qualitative (fraud patterns, sector heuristics)
+- **Observable behavioral adaptation**: we can measure whether memory leads to changed decisions, not just retrieved facts
+- **Controlled environment**: deterministic seeding means the same borrower sequence tests different memory systems fairly
+
+This makes Loanville seasons a credible **memory systems benchmark** alongside being a lending AI benchmark — expanding the project's research value significantly.
