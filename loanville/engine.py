@@ -14,10 +14,22 @@ from .models import (
     LenderDecision,
     LoanOutcome,
 )
-from .llm import run_lender_evaluations, get_call_traces, clear_call_traces
 from .mock_llm import mock_evaluate_all
 from .run_schema import UnderwritingRun, build_run
 from .run_logger import RunLogger
+
+
+def _load_llm_functions():
+    """Import LLM helpers lazily so LOS mode doesn't require direct-LLM deps."""
+    try:
+        from .llm import run_lender_evaluations, get_call_traces, clear_call_traces
+    except ModuleNotFoundError as exc:
+        missing = getattr(exc, "name", "unknown")
+        raise RuntimeError(
+            f"Missing dependency '{missing}' required for direct OpenRouter mode. "
+            "Install dependencies with: pip install -r requirements.txt"
+        ) from exc
+    return run_lender_evaluations, get_call_traces, clear_call_traces
 
 
 class SimulationEngine:
@@ -110,6 +122,7 @@ class SimulationEngine:
             )
         else:
             # Run all lenders in parallel via OpenRouter
+            run_lender_evaluations, _, _ = _load_llm_functions()
             tasks = [
                 run_lender_evaluations(
                     self.client, lender, self.borrowers, self.max_concurrent,
@@ -140,7 +153,8 @@ class SimulationEngine:
                     print(f"        Reasoning: {d.reasoning}")
 
         # Write trace file for live (non-mock) runs
-        if not self.mock:
+        if not self.mock and not self.use_los:
+            _, get_call_traces, clear_call_traces = _load_llm_functions()
             traces = get_call_traces()
             if traces:
                 trace_path = "loanville_trace.json"
