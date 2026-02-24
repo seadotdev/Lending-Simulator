@@ -286,6 +286,25 @@ class UnderwritingRun:
     @classmethod
     def from_dict(cls, data: dict) -> UnderwritingRun:
         """Deserialize from a plain dict."""
+        def _to_int(raw: Any, default: int = 0) -> int:
+            if isinstance(raw, bool):
+                return default
+            if isinstance(raw, int):
+                return raw
+            if isinstance(raw, float):
+                return int(raw)
+            return default
+
+        def _to_float(raw: Any, default: float = 0.0) -> float:
+            if isinstance(raw, (int, float)) and not isinstance(raw, bool):
+                return float(raw)
+            return default
+
+        def _to_str_list(raw: Any) -> list[str]:
+            if not isinstance(raw, list):
+                return []
+            return [str(item) for item in raw]
+
         run = cls()
         run.run_id = data.get("run_id", run.run_id)
         run.timestamp_utc = data.get("timestamp_utc", run.timestamp_utc)
@@ -298,6 +317,69 @@ class UnderwritingRun:
             p = data["policy"]
             run.policy = RunPolicy(**{k: v for k, v in p.items()
                                       if k in RunPolicy.__dataclass_fields__})
+        if "inputs" in data and isinstance(data["inputs"], dict):
+            i = data["inputs"]
+            financials_raw = i.get("financials", {})
+            banking_raw = i.get("banking", {})
+            business_raw = i.get("business", {})
+
+            financials = ExtractedFinancials(**{
+                k: v for k, v in financials_raw.items()
+                if k in ExtractedFinancials.__dataclass_fields__
+            }) if isinstance(financials_raw, dict) else ExtractedFinancials()
+            banking = ExtractedBanking(**{
+                k: v for k, v in banking_raw.items()
+                if k in ExtractedBanking.__dataclass_fields__
+            }) if isinstance(banking_raw, dict) else ExtractedBanking()
+            business = ExtractedBusiness(**{
+                k: v for k, v in business_raw.items()
+                if k in ExtractedBusiness.__dataclass_fields__
+            }) if isinstance(business_raw, dict) else ExtractedBusiness()
+
+            raw_documents = i.get("raw_documents", [])
+            if not isinstance(raw_documents, list):
+                raw_documents = []
+
+            run.inputs = RunInputs(
+                raw_documents=[
+                    d for d in raw_documents if isinstance(d, dict)
+                ],
+                financials=financials,
+                banking=banking,
+                business=business,
+                missing_info=_to_str_list(i.get("missing_info", [])),
+            )
+        if "trace" in data and isinstance(data["trace"], dict):
+            t = data["trace"]
+            steps_raw = t.get("steps", [])
+            steps: list[TraceStep] = []
+            if isinstance(steps_raw, list):
+                for step in steps_raw:
+                    if not isinstance(step, dict):
+                        continue
+                    steps.append(
+                        TraceStep(
+                            t=str(step.get("t", "")),
+                            type=str(step.get("type", "note")),
+                            name=str(step.get("name", "")),
+                            args=step.get("args", {}) if isinstance(step.get("args"), dict) else {},
+                            result=step.get("result", {}) if isinstance(step.get("result"), dict) else {},
+                            content=str(step.get("content", "")),
+                        )
+                    )
+
+            cost_raw = t.get("cost", {})
+            if not isinstance(cost_raw, dict):
+                cost_raw = {}
+            run.trace = RunTrace(
+                steps=steps,
+                latency_ms=_to_int(t.get("latency_ms", 0), 0),
+                cost=TraceCost(
+                    tokens_in=_to_int(cost_raw.get("tokens_in", 0), 0),
+                    tokens_out=_to_int(cost_raw.get("tokens_out", 0), 0),
+                    estimated_cost_usd=_to_float(cost_raw.get("estimated_cost_usd", 0.0), 0.0),
+                ),
+            )
         if "decision" in data:
             d = data["decision"]
             run.decision = RunDecision(

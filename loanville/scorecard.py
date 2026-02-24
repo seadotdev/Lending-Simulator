@@ -15,7 +15,7 @@ import math
 from dataclasses import dataclass, field
 from typing import Optional
 
-from .run_schema import UnderwritingRun
+from .run_schema import RunScores, UnderwritingRun
 from .scoring import (
     FUNDING_RATE,
     MAX_DEFAULT_RATE,
@@ -444,8 +444,16 @@ def score_run(
         weights=w,
     )
 
-    # Write scores back to the run
-    run.scores = card.to_dict()
+    # Write scores back to the run while preserving the RunScores contract.
+    run.scores = RunScores(
+        gates=card.gates.to_dict(),
+        uw_quality=card.uw_quality.to_dict(),
+        business=card.business.to_dict(),
+        overall={
+            "score": round(card.overall_score, 2),
+            "weights": card.weights,
+        },
+    )
 
     return card
 

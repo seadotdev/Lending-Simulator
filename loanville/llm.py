@@ -636,10 +636,19 @@ def _parse_decision(lender_id: str, borrower_id: str, raw: dict | None) -> Lende
         ts = raw.get("term_sheet", {})
         if isinstance(ts, dict) and ts.get("loan_amount") is not None:
             try:
+                loan_amount = float(ts["loan_amount"])
+                interest_rate = float(ts.get("interest_rate", 10.0))
+                term_months = int(ts.get("term_months", 24))
+                if loan_amount <= 0:
+                    raise ValueError("loan_amount must be > 0")
+                if interest_rate < 0:
+                    raise ValueError("interest_rate must be >= 0")
+                if term_months < 1 or term_months > 360:
+                    raise ValueError("term_months must be in [1, 360]")
                 term_sheet = TermSheet(
-                    loan_amount=float(ts["loan_amount"]),
-                    interest_rate=float(ts.get("interest_rate", 10.0)),
-                    term_months=int(ts.get("term_months", 24)),
+                    loan_amount=loan_amount,
+                    interest_rate=interest_rate,
+                    term_months=term_months,
                 )
             except (ValueError, TypeError):
                 decision = "REJECT"
@@ -660,6 +669,21 @@ def _parse_decision(lender_id: str, borrower_id: str, raw: dict | None) -> Lende
 
 MAX_TOOL_ROUNDS = 3   # Max tool-call round-trips before forcing a final answer
 MAX_CALLS_PER_ROUND = 5  # Max parallel tool calls processed per round
+
+
+def _parse_tool_args(raw_args: Any) -> tuple[dict, str | None]:
+    """Parse tool-call arguments into a dict without throwing."""
+    if raw_args in (None, ""):
+        return {}, None
+    if not isinstance(raw_args, str):
+        return {}, "tool arguments must be a JSON string"
+    try:
+        parsed = json.loads(raw_args)
+    except json.JSONDecodeError as e:
+        return {}, f"invalid tool arguments JSON: {e}"
+    if not isinstance(parsed, dict):
+        return {}, "tool arguments must decode to a JSON object"
+    return parsed, None
 
 
 def _create_sandbox(borrower: Borrower) -> JustBash | None:
@@ -754,7 +778,17 @@ async def evaluate_borrower(
 
                     for tc in tool_calls_this_round:
                         fn_name = tc.function.name
-                        fn_args = json.loads(tc.function.arguments) if tc.function.arguments else {}
+                        fn_args, args_error = _parse_tool_args(tc.function.arguments)
+
+                        if args_error:
+                            result = json.dumps({"error": args_error})
+                            tool_calls_made.append(f"{fn_name}:INVALID_ARGS")
+                            messages.append({
+                                "role": "tool",
+                                "tool_call_id": tc.id,
+                                "content": result,
+                            })
+                            continue
 
                         if fn_name == "run_bash" and sandbox is not None:
                             command = fn_args.get("command", "echo 'no command'")

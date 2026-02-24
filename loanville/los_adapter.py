@@ -97,6 +97,13 @@ def _to_int(raw: Any, default: int = 0) -> int:
     return default
 
 
+def _normalize_tenor_months(raw: Any, default: int = 24) -> int:
+    tenor = _to_int(raw, default)
+    if tenor < 1 or tenor > 360:
+        return default
+    return tenor
+
+
 def _to_list_of_strings(raw: Any) -> list[str]:
     if not isinstance(raw, list):
         return []
@@ -303,7 +310,7 @@ async def evaluate_borrower_with_los(
         terms=DecisionTerms(
             amount=_to_float(terms_json.get("amount"), 0.0),
             apr=apr,
-            tenor_months=_to_int(terms_json.get("tenor_months"), 0),
+            tenor_months=_normalize_tenor_months(terms_json.get("tenor_months"), 24),
             fees=terms_json.get("fees", {}) if isinstance(terms_json.get("fees"), dict) else {},
         ),
         conditions=_to_list_of_strings(decision_json.get("conditions")),
@@ -372,7 +379,7 @@ def run_to_lender_decision(
         term_sheet = TermSheet(
             loan_amount=run.decision.terms.amount,
             interest_rate=round(apr_decimal * 100, 4),
-            term_months=run.decision.terms.tenor_months,
+            term_months=_normalize_tenor_months(run.decision.terms.tenor_months, 24),
         )
 
     return LenderDecision(

@@ -322,6 +322,8 @@ class SimulationEngine:
         print("=" * 70)
 
         for loan in self.booked_loans:
+            # Guard against malformed term sheets from upstream providers/models.
+            term_months = loan.term_months if loan.term_months > 0 else 24
             monthly_rate = loan.interest_rate / 100.0 / 12.0
 
             if loan.true_outcome == "fraud":
@@ -344,14 +346,14 @@ class SimulationEngine:
 
             elif loan.true_outcome == "bad":
                 # Partial payments then default
-                months_paid = min(loan.months_before_default or 6, loan.term_months)
+                months_paid = min(loan.months_before_default or 6, term_months)
 
                 # Calculate amortization payments
                 if monthly_rate > 0:
-                    payment = loan.principal * (monthly_rate * (1 + monthly_rate) ** loan.term_months) / \
-                              ((1 + monthly_rate) ** loan.term_months - 1)
+                    payment = loan.principal * (monthly_rate * (1 + monthly_rate) ** term_months) / \
+                              ((1 + monthly_rate) ** term_months - 1)
                 else:
-                    payment = loan.principal / loan.term_months
+                    payment = loan.principal / term_months
 
                 total_paid = payment * months_paid
                 # Break down into interest and principal components
@@ -387,12 +389,12 @@ class SimulationEngine:
             else:  # good
                 # Full amortization - all payments made
                 if monthly_rate > 0:
-                    payment = loan.principal * (monthly_rate * (1 + monthly_rate) ** loan.term_months) / \
-                              ((1 + monthly_rate) ** loan.term_months - 1)
+                    payment = loan.principal * (monthly_rate * (1 + monthly_rate) ** term_months) / \
+                              ((1 + monthly_rate) ** term_months - 1)
                 else:
-                    payment = loan.principal / loan.term_months
+                    payment = loan.principal / term_months
 
-                total_paid = payment * loan.term_months
+                total_paid = payment * term_months
                 total_interest = total_paid - loan.principal
                 outcome = LoanOutcome(
                     loan_id=loan.id,
@@ -405,9 +407,9 @@ class SimulationEngine:
                     principal_lost=0.0,
                     defaulted=False,
                     was_fraud=False,
-                    months_paid=loan.term_months,
+                    months_paid=term_months,
                 )
-                print(f"\n  {loan.id} ({loan.borrower_name}): FULLY REPAID over {loan.term_months} months")
+                print(f"\n  {loan.id} ({loan.borrower_name}): FULLY REPAID over {term_months} months")
                 print(f"    Interest collected: ${total_interest:,.2f}")
                 print(f"    Principal recovered: ${loan.principal:,.2f}")
 
