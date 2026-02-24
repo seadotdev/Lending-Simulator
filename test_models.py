@@ -39,7 +39,7 @@ if not api_key:
     sys.exit(1)
 
 
-def test_model(model_id: str) -> dict:
+def run_model(model_id: str) -> dict:
     """Run a single sim with the given model in the Meridian Partners slot."""
     borrowers = get_borrowers(MIX)
     lenders = get_lenders()
@@ -98,7 +98,7 @@ def main():
         print(f"  TESTING: {model}")
         print(f"{'='*70}")
         try:
-            r = test_model(model)
+            r = run_model(model)
             results.append(r)
             print(f"\n  Result: Score={r['score']:+.2f}% | "
                   f"Approved={r['approvals']} | Won={r['deals_won']} | "
