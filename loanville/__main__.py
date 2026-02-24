@@ -4,6 +4,7 @@ Entry point for: python -m loanville
 Usage:
   python -m loanville                    # Live mode, easy mix (default)
   python -m loanville --mock             # Mock mode (no API key needed)
+  python -m loanville --los --los-url http://localhost:3000
   python -m loanville --underwriting-backend los --los-base-url http://localhost:3000
   python -m loanville --mix hard         # Adversarial stress test
   python -m loanville --mock --seed 42   # Deterministic borrower ordering
@@ -318,7 +319,12 @@ def main() -> None:
         help="Underwriting backend in live mode (default: openrouter).",
     )
     parser.add_argument(
-        "--los-base-url",
+        "--los",
+        action="store_true",
+        help="Alias for --underwriting-backend los.",
+    )
+    parser.add_argument(
+        "--los-base-url", "--los-url",
         default=os.environ.get("LOS_BASE_URL", "http://localhost:3000"),
         help="Base URL for LOS API when --underwriting-backend los is selected.",
     )
@@ -357,7 +363,7 @@ def main() -> None:
 
     mock = args.mock
     api_key = os.environ.get("OPENROUTER_API_KEY", "")
-    backend = args.underwriting_backend
+    backend = "los" if args.los else args.underwriting_backend
 
     if not mock and backend == "openrouter" and not api_key:
         print("ERROR: OPENROUTER_API_KEY environment variable is not set.")

@@ -152,8 +152,12 @@ async def evaluate_borrower_with_los(
                 "primary_entity_id": entity_id,
                 "custom_fields": {
                     "borrower_id": borrower.id,
+                    "sim_borrower_id": borrower.id,
                     "lender_id": lender.id,
                     "sector": borrower.dossier.sector,
+                    "years_in_business": borrower.dossier.years_in_business,
+                    "employee_count": borrower.dossier.employee_count,
+                    "annual_revenue": borrower.dossier.annual_revenue,
                 },
             },
         )
