@@ -33,6 +33,8 @@ class SimulationEngine:
         los_url: str = "http://localhost:3000",
         los_provider: str = "openrouter",
         los_mode: str = "rules_only",
+        underwrite_only: bool = False,
+        los_model: str | None = None,
     ):
         self.borrowers = borrowers
         self.lenders = lenders
@@ -41,6 +43,8 @@ class SimulationEngine:
         self.los_url = los_url
         self.los_provider = los_provider
         self.los_mode = los_mode
+        self.underwrite_only = underwrite_only
+        self.los_model = los_model
         self.data_mode = data_mode
         self.max_concurrent = max_concurrent_per_lender
 
@@ -80,14 +84,17 @@ class SimulationEngine:
         if self.use_los:
             from .los_adapter import evaluate_all_via_los, run_to_decision
 
+            mode_label = "underwrite-only" if self.underwrite_only else self.los_mode
             print(f"\n[LOS MODE] Evaluating via Open LOS at {self.los_url} "
-                  f"(mode={self.los_mode})...\n")
+                  f"(mode={mode_label})...\n")
             tasks = [
                 evaluate_all_via_los(
                     lender, self.borrowers, self.los_url,
                     max_concurrent=self.max_concurrent,
                     provider=self.los_provider,
                     mode=self.los_mode,
+                    underwrite_only=self.underwrite_only,
+                    los_model=self.los_model,
                 )
                 for lender in self.lenders
             ]

@@ -5,14 +5,12 @@ Replaces llm.py when running with --los flag. The adapter translates
 SIM Borrower + LenderConfig into LOS API calls and maps the
 UnderwritingRun response back into the SIM's data model.
 
-API call sequence for one (borrower, lender) evaluation:
-  1. POST /v1/entities         — create company entity
-  2. POST /v1/deals            — create deal
-  3. POST /v1/deals/{id}/documents (x2) — upload bank stmts + income JSON
-  4. POST /v1/deals/{id}/spread — create financial spread
-  5. POST /v1/deals/{id}/stage-transitions (x2) — broker→origination→underwriting
-  6. POST /v1/deals/{id}/evaluate — trigger evaluation
-  7. GET  /v1/deals/{id}/audit-events — get trace
+Two modes:
+  --los                  Full LOS pipeline (entity/deal/docs/spread/stages/evaluate)
+  --los --underwrite-only  Just POST /v1/underwrite with dossier inline (no LOS ceremony)
+
+Both modes send the full dossier to the evaluate endpoint, ensuring the
+LOS has the same quality of data as the sim's direct llm.py path.
 
 APR convention (per los-cutover.md section 5):
   UnderwritingRun.DecisionTerms.apr uses DECIMAL (0.095 = 9.5%)
@@ -24,11 +22,14 @@ from __future__ import annotations
 
 import asyncio
 import json
+import logging
 import time
 import uuid
 from typing import Optional
 
 import httpx
+
+logger = logging.getLogger(__name__)
 
 from .models import (
     Borrower,
@@ -54,17 +55,98 @@ from .run_schema import (
 DEFAULT_LOS_URL = "http://localhost:3000"
 
 
-async def evaluate_via_los(
+def serialize_dossier(borrower: Borrower) -> dict:
+    """Serialize a Borrower's dossier into the LOS FinancialDossier format."""
+    d = borrower.dossier
+    dossier: dict = {
+        "company_name": d.company_name,
+        "sector": d.sector,
+        "years_in_business": d.years_in_business,
+        "employee_count": d.employee_count,
+        "narrative": d.narrative,
+        "loan_request_amount": d.loan_request_amount,
+        "loan_purpose": d.loan_purpose,
+        "annual_revenue": d.annual_revenue,
+        "annual_expenses": d.annual_expenses,
+        "net_income": d.net_income,
+    }
+
+    # Quarterly income
+    if d.quarterly_income:
+        dossier["quarterly_income"] = [{
+            "quarter": q.quarter,
+            "revenue": q.revenue,
+            "expenses": q.expenses,
+            "gross_profit": getattr(q, "gross_profit", None),
+            "gross_margin_pct": getattr(q, "gross_margin_pct", None),
+            "net_income": q.net_income,
+            "net_margin_pct": q.net_margin_pct,
+        } for q in d.quarterly_income]
+
+    # Bank statements (full detail with individual transactions)
+    if d.bank_statements:
+        dossier["bank_statements"] = [{
+            "month": s.month,
+            "opening_balance": s.opening_balance,
+            "ending_balance": s.ending_balance,
+            "total_deposits": s.total_deposits,
+            "total_withdrawals": s.total_withdrawals,
+            "deposits": [
+                {"date": t.date, "description": t.description, "amount": t.amount}
+                for t in s.deposits
+            ],
+            "withdrawals": [
+                {"date": t.date, "description": t.description, "amount": t.amount}
+                for t in s.withdrawals
+            ],
+        } for s in d.bank_statements]
+
+    return dossier
+
+
+def serialize_policy(lender: LenderConfig) -> dict:
+    """Serialize a LenderConfig into the LOS UnderwritePolicy format."""
+    policy: dict = {
+        "policy_id": f"p_{lender.id}_{lender.model.replace('/', '_')}",
+        "model": lender.model,
+        "persona": lender.persona,
+        "target_yield_pct": lender.target_yield_pct,
+        "max_single_loan": lender.max_single_loan,
+        "total_capital": lender.total_capital,
+        "sector_limits": lender.sector_limits,
+    }
+
+    # Include existing portfolio for portfolio-fit analysis
+    if lender.existing_portfolio:
+        policy["existing_portfolio"] = [{
+            "borrower_name": loan.borrower_name,
+            "sector": loan.sector,
+            "remaining_balance": loan.remaining_balance,
+            "interest_rate": loan.interest_rate,
+        } for loan in lender.existing_portfolio]
+
+    return policy
+
+
+def build_model_config(lender: LenderConfig, cli_override: str | None = None) -> dict:
+    """Build model configuration from lender + CLI overrides."""
+    return {
+        "default": cli_override or lender.model,
+    }
+
+
+async def evaluate_standalone(
     borrower: Borrower,
     lender: LenderConfig,
     los_url: str = DEFAULT_LOS_URL,
     provider: str = "openrouter",
-    mode: str = "rules_only",
-    timeout: float = 60.0,
+    timeout: float = 120.0,
+    los_model: str | None = None,
 ) -> UnderwritingRun:
-    """Evaluate a borrower through the Open LOS REST API.
+    """Evaluate a borrower via the standalone /v1/underwrite endpoint.
 
-    Returns an UnderwritingRun artifact with the LOS decision, trace, and inputs.
+    This is the "underwrite only" path — no entity/deal/docs/spread/stage
+    ceremony. Just dossier + policy → LLM → decision.
     """
     start_time = time.time()
     tenant_id = f"lender_{lender.id}"
@@ -76,6 +158,63 @@ async def evaluate_via_los(
         "X-Actor": actor,
         "X-Tenant-Id": tenant_id,
     }
+
+    dossier = serialize_dossier(borrower)
+    policy = serialize_policy(lender)
+    models = build_model_config(lender, los_model)
+
+    async with httpx.AsyncClient(timeout=timeout, headers=headers) as client:
+        eval_resp = await client.post(f"{base}/v1/underwrite", json={
+            "dossier": dossier,
+            "policy": policy,
+            "provider": provider,
+            "models": models,
+        })
+        eval_resp.raise_for_status()
+        eval_result = eval_resp.json()
+
+    return _map_los_response(eval_result, borrower, lender, start_time)
+
+
+async def evaluate_via_los(
+    borrower: Borrower,
+    lender: LenderConfig,
+    los_url: str = DEFAULT_LOS_URL,
+    provider: str = "openrouter",
+    mode: str = "rules_only",
+    timeout: float = 60.0,
+    underwrite_only: bool = False,
+    los_model: str | None = None,
+) -> UnderwritingRun:
+    """Evaluate a borrower through the Open LOS REST API.
+
+    When underwrite_only=True, skips the LOS pipeline and calls
+    /v1/underwrite directly with the full dossier.
+
+    Returns an UnderwritingRun artifact with the LOS decision, trace, and inputs.
+    """
+    if underwrite_only:
+        return await evaluate_standalone(
+            borrower, lender, los_url,
+            provider=provider, timeout=timeout,
+            los_model=los_model,
+        )
+
+    start_time = time.time()
+    tenant_id = f"lender_{lender.id}"
+    actor = f"sim:{lender.id}"
+    base = los_url.rstrip("/")
+
+    headers = {
+        "Content-Type": "application/json",
+        "X-Actor": actor,
+        "X-Tenant-Id": tenant_id,
+    }
+
+    # Serialize full dossier + policy for the evaluate call
+    dossier = serialize_dossier(borrower)
+    policy_dict = serialize_policy(lender)
+    models = build_model_config(lender, los_model)
 
     async with httpx.AsyncClient(timeout=timeout, headers=headers) as client:
         # Step 1: Create entity
@@ -148,8 +287,8 @@ async def evaluate_via_los(
                 "filename": "quarterly_income.json",
                 "content_base64": b64mod.b64encode(quarterly_json.encode()).decode(),
             })
-        except Exception:
-            pass  # Document uploads are non-fatal
+        except Exception as exc:
+            logger.warning("Document upload failed for deal %s: %s", deal_id, exc)
 
         # Step 4: Create spread from dossier
         d = borrower.dossier
@@ -174,23 +313,21 @@ async def evaluate_via_los(
                     f"{base}/v1/deals/{deal_id}/stage-transitions",
                     json={"target_stage": target_stage},
                 )
-            except Exception:
-                pass  # Stage transition failures are non-fatal
+            except Exception as exc:
+                logger.warning("Stage transition to %s failed for deal %s: %s", target_stage, deal_id, exc)
 
-        # Step 6: Evaluate
-        eval_resp = await client.post(f"{base}/v1/deals/{deal_id}/evaluate", json={
-            "policy": {
-                "policy_id": f"p_{lender.id}_{lender.model.replace('/', '_')}",
-                "model": lender.model,
-                "persona": lender.persona,
-                "target_yield_pct": lender.target_yield_pct,
-                "max_single_loan": lender.max_single_loan,
-                "total_capital": lender.total_capital,
-                "sector_limits": lender.sector_limits,
-            },
+        # Step 6: Evaluate — send dossier inline for rich prompt building
+        eval_body: dict = {
+            "policy": policy_dict,
             "provider": provider,
             "mode": mode,
-        })
+        }
+        # When mode=full, include dossier so the LOS uses the rich prompt builder
+        if mode == "full":
+            eval_body["dossier"] = dossier
+            eval_body["models"] = models
+
+        eval_resp = await client.post(f"{base}/v1/deals/{deal_id}/evaluate", json=eval_body)
         eval_resp.raise_for_status()
         eval_result = eval_resp.json()
 
@@ -201,9 +338,18 @@ async def evaluate_via_los(
         except Exception:
             audit_events = {}
 
+    return _map_los_response(eval_result, borrower, lender, start_time)
+
+
+def _map_los_response(
+    eval_result: dict,
+    borrower: Borrower,
+    lender: LenderConfig,
+    start_time: float,
+) -> UnderwritingRun:
+    """Map a LOS response dict → UnderwritingRun."""
     latency_ms = int((time.time() - start_time) * 1000)
 
-    # Map LOS response → UnderwritingRun
     run = UnderwritingRun()
     run.run_id = eval_result.get("run_id", str(uuid.uuid4()))
     run.timestamp_utc = eval_result.get("timestamp_utc", "")
@@ -243,7 +389,7 @@ async def evaluate_via_los(
         confidence=los_decision.get("confidence", 0.0),
     )
 
-    # Trace — from LOS response + audit events
+    # Trace — from LOS response
     los_trace = eval_result.get("trace", {})
     trace_steps = []
     for step in los_trace.get("steps", []):
@@ -322,6 +468,8 @@ async def evaluate_all_via_los(
     max_concurrent: int = 5,
     provider: str = "openrouter",
     mode: str = "rules_only",
+    underwrite_only: bool = False,
+    los_model: str | None = None,
 ) -> tuple[list[LenderDecision], list[UnderwritingRun]]:
     """Evaluate all borrowers for a single lender via LOS.
 
@@ -334,6 +482,8 @@ async def evaluate_all_via_los(
             return await evaluate_via_los(
                 borrower, lender, los_url,
                 provider=provider, mode=mode,
+                underwrite_only=underwrite_only,
+                los_model=los_model,
             )
 
     runs = await asyncio.gather(*[_eval(b) for b in borrowers])
