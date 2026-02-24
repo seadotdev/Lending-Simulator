@@ -91,6 +91,8 @@ def _run_single(
     los_base_url="http://localhost:3000",
     los_timeout_s=20.0,
     los_tenant_id="loanville-sim",
+    los_provider="openrouter",
+    los_mode="rules_only",
 ):
     """Run a single simulation and return scores."""
     engine = SimulationEngine(
@@ -103,6 +105,8 @@ def _run_single(
         los_base_url=los_base_url,
         los_timeout_s=los_timeout_s,
         los_tenant_id=los_tenant_id,
+        los_provider=los_provider,
+        los_mode=los_mode,
     )
     asyncio.run(engine.run())
 
@@ -329,6 +333,18 @@ def main() -> None:
         default=os.environ.get("LOS_TENANT_ID", "loanville-sim"),
         help="Tenant ID header for LOS API calls.",
     )
+    parser.add_argument(
+        "--los-provider",
+        default=os.environ.get("LOS_PROVIDER", "openrouter"),
+        choices=["openrouter", "anthropic"],
+        help="Provider field forwarded to LOS /evaluate.",
+    )
+    parser.add_argument(
+        "--los-mode",
+        default=os.environ.get("LOS_MODE", "rules_only"),
+        choices=["full", "rules_only"],
+        help="Evaluation mode forwarded to LOS /evaluate.",
+    )
     args = parser.parse_args()
 
     if args.compare:
@@ -368,6 +384,7 @@ def main() -> None:
         print("  [MOCK MODE]")
     elif backend == "los":
         print(f"  [LOS BACKEND] {args.los_base_url}")
+        print(f"  [LOS EVALUATE] provider={args.los_provider}, mode={args.los_mode}")
     else:
         print("  [OPENROUTER BACKEND]")
     print("=" * 70)
@@ -402,6 +419,8 @@ def main() -> None:
         los_base_url=args.los_base_url,
         los_timeout_s=args.los_timeout_s,
         los_tenant_id=args.los_tenant_id,
+        los_provider=args.los_provider,
+        los_mode=args.los_mode,
     )
     if not mock and backend == "openrouter":
         _print_cost_summary()

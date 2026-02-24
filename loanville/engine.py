@@ -32,6 +32,8 @@ class SimulationEngine:
         los_base_url: str = "http://localhost:3000",
         los_timeout_s: float = 20.0,
         los_tenant_id: str = "loanville-sim",
+        los_provider: str = "openrouter",
+        los_mode: str = "rules_only",
     ):
         self.borrowers = borrowers
         self.lenders = lenders
@@ -42,6 +44,8 @@ class SimulationEngine:
         self.los_base_url = los_base_url
         self.los_timeout_s = los_timeout_s
         self.los_tenant_id = los_tenant_id
+        self.los_provider = los_provider
+        self.los_mode = los_mode
 
         if self.underwriting_backend not in {"openrouter", "los"}:
             raise ValueError(f"Unsupported underwriting backend: {self.underwriting_backend}")
@@ -99,6 +103,8 @@ class SimulationEngine:
                     max_concurrent=self.max_concurrent,
                     timeout_s=self.los_timeout_s,
                     tenant_id=self.los_tenant_id,
+                    provider=self.los_provider,
+                    mode=self.los_mode,
                 )
                 for lender in self.lenders
             ]
