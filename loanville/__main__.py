@@ -78,9 +78,15 @@ def _print_cost_summary() -> None:
                       f"~${projected:.2f}")
 
 
-def _run_single(borrowers, lenders, api_key="", mock=False, data_mode="full"):
+def _run_single(borrowers, lenders, api_key="", mock=False, data_mode="full",
+                 use_los=False, los_url="http://localhost:3000",
+                 los_provider="openrouter", los_mode="rules_only"):
     """Run a single simulation and return scores."""
-    engine = SimulationEngine(borrowers, lenders, api_key, mock=mock, data_mode=data_mode)
+    engine = SimulationEngine(
+        borrowers, lenders, api_key, mock=mock, data_mode=data_mode,
+        use_los=use_los, los_url=los_url,
+        los_provider=los_provider, los_mode=los_mode,
+    )
     asyncio.run(engine.run())
 
     scores = score_lenders(
@@ -280,6 +286,17 @@ def main() -> None:
                         default="full",
                         help="Financial data presentation mode (default: full). "
                              "'lite' uses compact prompts optimized for small models (3B-30B).")
+    parser.add_argument("--los", action="store_true",
+                        help="Use Open LOS for evaluation instead of direct OpenRouter")
+    parser.add_argument("--los-url", default="http://localhost:3000",
+                        help="Open LOS API URL (default: http://localhost:3000)")
+    parser.add_argument("--los-provider", default="openrouter",
+                        choices=["openrouter", "anthropic"],
+                        help="LLM provider for LOS evaluation (default: openrouter)")
+    parser.add_argument("--los-mode", default="rules_only",
+                        choices=["full", "rules_only"],
+                        help="LOS evaluation mode: 'full' uses LLM agent, "
+                             "'rules_only' uses deterministic rules (default: rules_only)")
     args = parser.parse_args()
 
     if args.compare:
@@ -291,14 +308,17 @@ def main() -> None:
         return
 
     mock = args.mock
+    use_los = args.los
     api_key = os.environ.get("OPENROUTER_API_KEY", "")
 
-    if not mock and not api_key:
+    if not mock and not use_los and not api_key:
         print("ERROR: OPENROUTER_API_KEY environment variable is not set.")
         print("Set it in a .env file or export it directly:")
         print("  export OPENROUTER_API_KEY=your-key-here")
         print("\nOr run with --mock for offline simulation:")
         print("  python -m loanville --mock")
+        print("\nOr run with --los to use the Open LOS:")
+        print("  python -m loanville --los")
         sys.exit(1)
 
     if args.rotate:
@@ -313,6 +333,8 @@ def main() -> None:
     print("  LOANVILLE — THE LLM LENDING SIMULATOR")
     if mock:
         print("  [MOCK MODE]")
+    elif use_los:
+        print(f"  [LOS MODE] → {args.los_url} (mode={args.los_mode})")
     print("=" * 70)
 
     borrowers = get_borrowers(args.mix)
@@ -329,8 +351,12 @@ def main() -> None:
               f"Target Yield: {l.target_yield_pct}%")
 
     clear_usage()
-    _run_single(borrowers, lenders, api_key, mock=mock, data_mode=args.data_mode)
-    if not mock:
+    _run_single(
+        borrowers, lenders, api_key, mock=mock, data_mode=args.data_mode,
+        use_los=use_los, los_url=args.los_url,
+        los_provider=args.los_provider, los_mode=args.los_mode,
+    )
+    if not mock and not use_los:
         _print_cost_summary()
 
     print("\nSimulation complete.\n")

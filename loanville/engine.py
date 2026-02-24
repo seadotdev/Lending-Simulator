@@ -29,14 +29,22 @@ class SimulationEngine:
         max_concurrent_per_lender: int = 5,
         mock: bool = False,
         data_mode: str = "full",
+        use_los: bool = False,
+        los_url: str = "http://localhost:3000",
+        los_provider: str = "openrouter",
+        los_mode: str = "rules_only",
     ):
         self.borrowers = borrowers
         self.lenders = lenders
         self.mock = mock
+        self.use_los = use_los
+        self.los_url = los_url
+        self.los_provider = los_provider
+        self.los_mode = los_mode
         self.data_mode = data_mode
         self.max_concurrent = max_concurrent_per_lender
 
-        if not mock:
+        if not mock and not use_los:
             self.client = AsyncOpenAI(
                 base_url="https://openrouter.ai/api/v1",
                 api_key=openrouter_api_key,
@@ -69,7 +77,26 @@ class SimulationEngine:
             print(f"  - {b.id}: {b.dossier.company_name} ({b.dossier.sector}) "
                   f"requesting ${b.dossier.loan_request_amount:,.0f}")
 
-        if self.mock:
+        if self.use_los:
+            from .los_adapter import evaluate_all_via_los, run_to_decision
+
+            print(f"\n[LOS MODE] Evaluating via Open LOS at {self.los_url} "
+                  f"(mode={self.los_mode})...\n")
+            tasks = [
+                evaluate_all_via_los(
+                    lender, self.borrowers, self.los_url,
+                    max_concurrent=self.max_concurrent,
+                    provider=self.los_provider,
+                    mode=self.los_mode,
+                )
+                for lender in self.lenders
+            ]
+            results = await asyncio.gather(*tasks)
+            for lender, (decisions, runs) in zip(self.lenders, results):
+                self.all_decisions[lender.id] = decisions
+                self.runs.extend(runs)
+
+        elif self.mock:
             print(f"\n[MOCK MODE] Simulating LLM evaluations (data_mode={self.data_mode})...\n")
             self.all_decisions = mock_evaluate_all(
                 self.lenders, self.borrowers, self.data_mode,
@@ -116,18 +143,20 @@ class SimulationEngine:
                 clear_call_traces()
 
         # Emit UnderwritingRun artifacts for every (lender, borrower) evaluation
-        borrower_map = {b.id: b for b in self.borrowers}
-        for lender in self.lenders:
-            for decision in self.all_decisions.get(lender.id, []):
-                borrower = borrower_map.get(decision.borrower_id)
-                if borrower:
-                    run = build_run(
-                        borrower=borrower,
-                        lender=lender,
-                        decision=decision,
-                        source="simulator",
-                    )
-                    self.runs.append(run)
+        # Skip if LOS mode — runs already emitted by the adapter
+        if not self.use_los:
+            borrower_map = {b.id: b for b in self.borrowers}
+            for lender in self.lenders:
+                for decision in self.all_decisions.get(lender.id, []):
+                    borrower = borrower_map.get(decision.borrower_id)
+                    if borrower:
+                        run = build_run(
+                            borrower=borrower,
+                            lender=lender,
+                            decision=decision,
+                            source="simulator",
+                        )
+                        self.runs.append(run)
 
     # ------------------------------------------------------------------
     # Phase 3: Deal Adjudication
