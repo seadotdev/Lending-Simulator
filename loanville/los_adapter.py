@@ -294,29 +294,53 @@ async def evaluate_via_los(
         d = borrower.dossier
         line_items = [
             {"category": "revenue", "label": "Annual Revenue", "amount": int(d.annual_revenue * 100)},
-            {"category": "expense", "label": "Annual Expenses", "amount": int(d.annual_expenses * 100)},
-            {"category": "income", "label": "Net Income", "amount": int(d.net_income * 100)},
+            # LOS ratio logic expects expense buckets like cogs / operating_expense.
+            # We only have aggregate annual expenses here, so map to cogs.
+            {"category": "cogs", "label": "Annual Expenses", "amount": int(d.annual_expenses * 100)},
         ]
 
-        await client.post(f"{base}/v1/deals/{deal_id}/spread", json={
+        spread_resp = await client.post(f"{base}/v1/deals/{deal_id}/spread", json={
             "entity_id": entity_id,
             "period": "TTM",
             "line_items": line_items,
         })
+        spread_resp.raise_for_status()
 
-        # Step 5: Stage transitions (broker → origination → underwriting)
+        # Step 5: Mark origination outcome so underwriting stage guard can pass
+        deal_patch_resp = await client.patch(
+            f"{base}/v1/deals/{deal_id}",
+            json={"origination_outcome": "proceed"},
+        )
+        deal_patch_resp.raise_for_status()
+
+        # Step 6: Stage transitions (broker → origination → underwriting)
         # These may fail due to approval gates or other guards — that's OK,
         # the evaluate endpoint works regardless of deal stage.
-        for target_stage in ["origination", "underwriting"]:
+        stage_headers = {
+            "X-Actor": "system",
+            "X-Tenant-Id": tenant_id,
+            "Content-Type": "application/json",
+        }
+        for to_stage in ["origination", "underwriting"]:
             try:
                 transition_resp = await client.post(
                     f"{base}/v1/deals/{deal_id}/stage-transitions",
-                    json={"target_stage": target_stage},
+                    json={"to_stage": to_stage, "rationale": "SIM pipeline progression"},
+                    headers=stage_headers,
+                )
+                transition_resp.raise_for_status()
+            except httpx.HTTPStatusError as exc:
+                logger.warning(
+                    "Stage transition to %s failed for deal %s: status=%s body=%s",
+                    to_stage,
+                    deal_id,
+                    exc.response.status_code,
+                    exc.response.text,
                 )
             except Exception as exc:
-                logger.warning("Stage transition to %s failed for deal %s: %s", target_stage, deal_id, exc)
+                logger.warning("Stage transition to %s failed for deal %s: %s", to_stage, deal_id, exc)
 
-        # Step 6: Evaluate — send dossier inline for rich prompt building
+        # Step 7: Evaluate — send dossier inline for rich prompt building
         eval_body: dict = {
             "policy": policy_dict,
             "provider": provider,

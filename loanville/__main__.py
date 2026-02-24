@@ -19,7 +19,6 @@ from dotenv import load_dotenv
 
 from .data import get_borrowers, get_lenders, MIX_PRESETS
 from .engine import SimulationEngine
-from .llm import get_cost_summary, get_token_usage, clear_usage
 from .scoring import print_final_report, score_lenders
 
 
@@ -40,6 +39,8 @@ ROTATION_POOL = [
 
 def _print_cost_summary() -> None:
     """Print token usage and estimated cost per model."""
+    from .llm import get_cost_summary, get_token_usage
+
     usage = get_token_usage()
     costs = get_cost_summary()
     if not usage:
@@ -362,7 +363,9 @@ def main() -> None:
               f"Deployed: ${deployed:,.0f} | "
               f"Target Yield: {l.target_yield_pct}%")
 
-    clear_usage()
+    if not mock and not use_los:
+        from .llm import clear_usage
+        clear_usage()
     _run_single(
         borrowers, lenders, api_key, mock=mock, data_mode=args.data_mode,
         use_los=use_los, los_url=args.los_url,
