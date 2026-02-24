@@ -1,74 +1,74 @@
 {
   "deepseek-chat-v3-0324": {
     "statements_inline": {
-      "avg_score": -80.28675442967295,
-      "frauds_funded": 3,
-      "defaults": 6,
-      "net_pnl": -2150631.82,
-      "total_deployed": 5350000.0,
-      "principal_lost": 2502628.3899999997
+      "avg_score": -35.054512592780576,
+      "frauds_funded": 0,
+      "defaults": 2,
+      "net_pnl": -402274.26999999996,
+      "total_deployed": 3350000,
+      "principal_lost": 718176.97
     },
     "quarterly_only": {
-      "avg_score": -30.32803053654899,
-      "frauds_funded": 1,
-      "defaults": 2,
-      "net_pnl": -467923.39,
-      "total_deployed": 3350000.0,
-      "principal_lost": 763766.11
+      "avg_score": -70.54104265976783,
+      "frauds_funded": 3,
+      "defaults": 4,
+      "net_pnl": -1508307.3599999999,
+      "total_deployed": 4250000,
+      "principal_lost": 1767843.5
     }
   },
   "llama-3.3-70b-instruct": {
     "statements_inline": {
-      "avg_score": -48.59852013666168,
-      "frauds_funded": 1,
-      "defaults": 5,
-      "net_pnl": -1004507.5,
-      "total_deployed": 4600000.0,
-      "principal_lost": 1431712.65
+      "avg_score": -35.054512592780576,
+      "frauds_funded": 0,
+      "defaults": 2,
+      "net_pnl": -402274.26999999996,
+      "total_deployed": 3350000,
+      "principal_lost": 718176.97
     },
     "quarterly_only": {
-      "avg_score": -31.024520024786707,
-      "frauds_funded": 1,
-      "defaults": 1,
-      "net_pnl": -158630.17,
-      "total_deployed": 2050000.0,
-      "principal_lost": 350000.0
+      "avg_score": -70.54104265976783,
+      "frauds_funded": 3,
+      "defaults": 4,
+      "net_pnl": -1508307.3599999999,
+      "total_deployed": 4250000,
+      "principal_lost": 1767843.5
     }
   },
   "llama-3.3-nemotron-super-49b-v1.5": {
     "statements_inline": {
-      "avg_score": -30.079977706319834,
-      "frauds_funded": 1,
+      "avg_score": -35.054512592780576,
+      "frauds_funded": 0,
       "defaults": 2,
-      "net_pnl": -489910.20999999996,
-      "total_deployed": 2850000.0,
-      "principal_lost": 764409.51
+      "net_pnl": -402274.26999999996,
+      "total_deployed": 3350000,
+      "principal_lost": 718176.97
     },
     "quarterly_only": {
-      "avg_score": -58.33518921836537,
-      "frauds_funded": 2,
+      "avg_score": -70.54104265976783,
+      "frauds_funded": 3,
       "defaults": 4,
-      "net_pnl": -1081755.54,
-      "total_deployed": 4200000.0,
-      "principal_lost": 1462784.96
+      "net_pnl": -1508307.3599999999,
+      "total_deployed": 4250000,
+      "principal_lost": 1767843.5
     }
   },
   "qwen3-30b-a3b": {
     "statements_inline": {
-      "avg_score": -45.16627919400302,
+      "avg_score": -66.15907995103073,
       "frauds_funded": 2,
-      "defaults": 4,
-      "net_pnl": -1195579.74,
-      "total_deployed": 4300000.0,
-      "principal_lost": 1532747.29
+      "defaults": 6,
+      "net_pnl": -1483073.0300000003,
+      "total_deployed": 5050000,
+      "principal_lost": 1914187.1900000002
     },
     "quarterly_only": {
-      "avg_score": -38.855662889352715,
-      "frauds_funded": 2,
-      "defaults": 3,
-      "net_pnl": -733121.4600000001,
-      "total_deployed": 3600000.0,
-      "principal_lost": 1043429.3200000001
+      "avg_score": -89.97339006639432,
+      "frauds_funded": 4,
+      "defaults": 7,
+      "net_pnl": -2506945.58,
+      "total_deployed": 5700000,
+      "principal_lost": 2920286.5300000003
     }
   }
 }
