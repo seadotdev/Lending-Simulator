@@ -91,6 +91,7 @@ def _run_single(borrowers, lenders, api_key="", mock=False, data_mode="full",
         use_los=use_los, los_url=los_url,
         los_provider=los_provider, los_mode=los_mode,
         underwrite_only=underwrite_only, los_model=los_model,
+        economics=economics,
     )
     asyncio.run(engine.run())
 
@@ -102,6 +103,7 @@ def _run_single(borrowers, lenders, api_key="", mock=False, data_mode="full",
         engine.deal_results,
         borrowers=borrowers,
         economics=economics,
+        runs=engine.runs,
     )
     print_final_report(scores, economics=economics)
     return scores

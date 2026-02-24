@@ -75,6 +75,7 @@ class RunPolicy:
             policy_id=pid,
             model=lender.model,
             params={
+                "_lender_id": lender.id,
                 "target_yield_pct": lender.target_yield_pct,
                 "max_single_loan": lender.max_single_loan,
                 "total_capital": lender.total_capital,
@@ -405,8 +406,12 @@ def build_run(
                 "was_fraud": outcome.was_fraud,
                 "months_paid": outcome.months_paid,
                 "interest_paid": outcome.total_interest_paid,
+                "fees_paid": outcome.total_fees_paid,
                 "principal_lost": outcome.principal_lost,
                 "principal_recovered": outcome.principal_recovered,
+                "recovery_amount": outcome.recovery_amount,
+                "workout_cost": outcome.workout_cost,
+                "prepaid": outcome.prepaid,
             }
 
     return run

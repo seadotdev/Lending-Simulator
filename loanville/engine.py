@@ -4,12 +4,15 @@ ledger booking, and loan resolution (fast-forward).
 """
 
 import asyncio
+import hashlib
 import json
+import math
 from openai import AsyncOpenAI
 
 from .models import (
     BookedLoan,
     Borrower,
+    EconomicsConfig,
     LenderConfig,
     LenderDecision,
     LoanOutcome,
@@ -32,6 +35,26 @@ def _load_llm_functions():
     return run_lender_evaluations, get_call_traces, clear_call_traces
 
 
+def _stable_u01(*parts: str) -> float:
+    """Deterministic U[0,1) derived from stable identifiers (no RNG state)."""
+    h = hashlib.sha256("|".join(parts).encode("utf-8")).digest()
+    # Use 8 bytes for a stable, reproducible float in [0,1).
+    return int.from_bytes(h[:8], "big") / float(2**64)
+
+
+def _run_lender_id(run: UnderwritingRun) -> str:
+    """Best-effort lender_id extraction from a Run."""
+    lid = (run.policy.params or {}).get("_lender_id", "")
+    if lid:
+        return str(lid)
+    pid = run.policy.policy_id or ""
+    # policy_id format: "p_{lender_id}_{model}"
+    parts = pid.split("_", 2)
+    if len(parts) >= 2 and parts[0] == "p":
+        return parts[1]
+    return pid
+
+
 class SimulationEngine:
     def __init__(
         self,
@@ -47,6 +70,7 @@ class SimulationEngine:
         los_mode: str = "rules_only",
         underwrite_only: bool = False,
         los_model: str | None = None,
+        economics: EconomicsConfig | None = None,
     ):
         self.borrowers = borrowers
         self.lenders = lenders
@@ -59,6 +83,7 @@ class SimulationEngine:
         self.los_model = los_model
         self.data_mode = data_mode
         self.max_concurrent = max_concurrent_per_lender
+        self.economics = economics or EconomicsConfig()
 
         if not mock and not use_los:
             self.client = AsyncOpenAI(
@@ -203,6 +228,14 @@ class SimulationEngine:
             existing_deployed = sum(l.remaining_balance for l in lender.existing_portfolio)
             remaining_capital[lender.id] = lender.total_capital - existing_deployed
 
+        # Index runs by (lender_id, borrower_id) for friction modeling (LOS trace)
+        run_index: dict[tuple[str, str], UnderwritingRun] = {}
+        for run in self.runs:
+            lid = _run_lender_id(run)
+            bid = run.case.case_id
+            if lid and bid:
+                run_index[(lid, bid)] = run
+
         for borrower in self.borrowers:
             bid = borrower.id
             bname = borrower.dossier.company_name
@@ -232,22 +265,66 @@ class SimulationEngine:
                     print(f"    {lname}: ${ts.loan_amount:,.0f} @ {ts.interest_rate}% "
                           f"for {ts.term_months}mo{cap_note}")
 
-            # Pick the best offer from a lender that has enough capital
+            # Pick the best offer from a lender that has enough capital.
+            # Optional realism: a borrower may abandon an offer if underwriting friction is high
+            # (e.g., too many doc requests / slow processing).
             winner = None
+            abandoned_offers: list[str] = []
+            had_capacity_offer = False
+            eco = self.economics
+            friction_enabled = (
+                eco.abandonment_base_rate > 0
+                or eco.abandonment_per_doc_request > 0
+                or eco.abandonment_per_second_latency > 0
+            )
             for a in approvals:
                 if a.term_sheet.loan_amount <= remaining_capital[a.lender_id]:
+                    had_capacity_offer = True
+
+                    if friction_enabled:
+                        run = run_index.get((a.lender_id, bid))
+                        doc_requests = 0
+                        latency_s = 0.0
+                        if run:
+                            doc_requests = sum(1 for s in run.trace.steps if s.type == "doc_request")
+                            latency_s = (run.trace.latency_ms or 0) / 1000.0
+
+                        p = (
+                            eco.abandonment_base_rate
+                            + doc_requests * eco.abandonment_per_doc_request
+                            + latency_s * eco.abandonment_per_second_latency
+                        )
+                        p = max(0.0, min(eco.abandonment_cap, p))
+                        if p > 0.0:
+                            u = _stable_u01("abandon", bid, a.lender_id)
+                            if u < p:
+                                abandoned_offers.append(a.lender_id)
+                                lname = lender_map[a.lender_id].name
+                                print(f"    --> {lname} offer abandoned "
+                                      f"(p={p*100:.1f}%, doc_requests={doc_requests}, latency={latency_s:.1f}s)")
+                                continue
+
                     winner = a
                     break
 
             if winner is None:
                 # No lender has enough capital — deal falls through
-                self.deal_results[bid] = {"outcome": "no_capital", "winner": None}
-                if len(approvals) == 1:
-                    lname = lender_map[approvals[0].lender_id].name
-                    print(f"\n  {bname}: SINGLE OFFER from {lname} — "
-                          f"DECLINED (insufficient capital)")
+                if had_capacity_offer and abandoned_offers:
+                    self.deal_results[bid] = {"outcome": "abandoned", "winner": None, "abandoned_offers": abandoned_offers}
+                    if len(approvals) == 1:
+                        lname = lender_map[approvals[0].lender_id].name
+                        print(f"\n  {bname}: SINGLE OFFER from {lname} — "
+                              f"ABANDONED (underwriting friction)")
+                    else:
+                        print(f"    --> NO DEAL — borrower abandoned all viable offers")
                 else:
-                    print(f"    --> NO DEAL — all interested lenders at capital limit")
+                    self.deal_results[bid] = {"outcome": "no_capital", "winner": None}
+                    if len(approvals) == 1:
+                        lname = lender_map[approvals[0].lender_id].name
+                        print(f"\n  {bname}: SINGLE OFFER from {lname} — "
+                              f"DECLINED (insufficient capital)")
+                    else:
+                        print(f"    --> NO DEAL — all interested lenders at capital limit")
                 continue
 
             if len(approvals) == 1:
@@ -328,11 +405,16 @@ class SimulationEngine:
         print("RESOLUTION: FAST-FORWARDING LOAN LIFECYCLES")
         print("=" * 70)
 
+        eco = self.economics
         for loan in self.booked_loans:
             monthly_rate = loan.interest_rate / 100.0 / 12.0
+            orig_fee = max(0.0, loan.principal * eco.origination_fee_rate)
 
             if loan.true_outcome == "fraud":
-                # Instant default - principal lost entirely
+                # Instant default (no payments); allow small recovery + workout costs
+                recovery_amt = max(0.0, loan.principal * eco.recovery_rate_fraud)
+                workout_cost = max(0.0, loan.principal * eco.workout_cost_rate)
+                principal_lost = max(0.0, loan.principal - recovery_amt)
                 outcome = LoanOutcome(
                     loan_id=loan.id,
                     lender_id=loan.lender_id,
@@ -340,14 +422,22 @@ class SimulationEngine:
                     sector=loan.sector,
                     principal=loan.principal,
                     total_interest_paid=0.0,
-                    principal_recovered=0.0,
-                    principal_lost=loan.principal,
+                    principal_recovered=round(recovery_amt, 2),
+                    principal_lost=round(principal_lost, 2),
                     defaulted=True,
                     was_fraud=True,
                     months_paid=0,
+                    total_fees_paid=round(orig_fee, 2),
+                    recovery_amount=round(recovery_amt, 2),
+                    workout_cost=round(workout_cost, 2),
+                    prepaid=False,
                 )
                 print(f"\n  {loan.id} ({loan.borrower_name}): FRAUD - Immediate default!")
-                print(f"    Principal lost: ${loan.principal:,.2f}")
+                if recovery_amt > 0:
+                    print(f"    Recovery:       ${recovery_amt:,.2f}")
+                if workout_cost > 0:
+                    print(f"    Workout cost:   ${workout_cost:,.2f}")
+                print(f"    Principal lost: ${principal_lost:,.2f}")
 
             elif loan.true_outcome == "bad":
                 # Partial payments then default
@@ -372,7 +462,10 @@ class SimulationEngine:
                     total_principal_paid += principal_portion
                     remaining_principal -= principal_portion
 
-                principal_lost = max(0, remaining_principal)
+                recovery_amt = max(0.0, remaining_principal * eco.recovery_rate_bad)
+                workout_cost = max(0.0, remaining_principal * eco.workout_cost_rate)
+                principal_lost = max(0.0, remaining_principal - recovery_amt)
+                principal_recovered = min(loan.principal, total_principal_paid + recovery_amt)
                 outcome = LoanOutcome(
                     loan_id=loan.id,
                     lender_id=loan.lender_id,
@@ -380,27 +473,62 @@ class SimulationEngine:
                     sector=loan.sector,
                     principal=loan.principal,
                     total_interest_paid=round(total_interest, 2),
-                    principal_recovered=round(total_principal_paid, 2),
+                    principal_recovered=round(principal_recovered, 2),
                     principal_lost=round(principal_lost, 2),
                     defaulted=True,
                     was_fraud=False,
                     months_paid=months_paid,
+                    total_fees_paid=round(orig_fee, 2),
+                    recovery_amount=round(recovery_amt, 2),
+                    workout_cost=round(workout_cost, 2),
+                    prepaid=False,
                 )
                 print(f"\n  {loan.id} ({loan.borrower_name}): DEFAULT after {months_paid} months")
                 print(f"    Interest collected: ${total_interest:,.2f}")
-                print(f"    Principal recovered: ${total_principal_paid:,.2f}")
+                if recovery_amt > 0:
+                    print(f"    Recovery:           ${recovery_amt:,.2f}")
+                if workout_cost > 0:
+                    print(f"    Workout cost:       ${workout_cost:,.2f}")
+                print(f"    Principal recovered: ${principal_recovered:,.2f}")
                 print(f"    Principal lost: ${principal_lost:,.2f}")
 
             else:  # good
-                # Full amortization - all payments made
+                # Good loan — full amortization or deterministic prepayment
+                prepaid = False
+                months_paid = loan.term_months
+                monthly_prepay_hazard = max(0.0, min(0.95, eco.prepayment_rate_annual / 12.0))
+                if monthly_prepay_hazard > 0 and loan.term_months > 1:
+                    u = _stable_u01("prepay", loan.borrower_id, loan.lender_id)
+                    # Geometric with per-month hazard:
+                    #   P(T > t) = (1-h)^t, for t months with no event.
+                    t = int(math.log(1.0 - u) / math.log(1.0 - monthly_prepay_hazard)) + 1
+                    if t < loan.term_months:
+                        prepaid = True
+                        months_paid = max(1, t)
+
+                # Calculate amortization payments (payment based on original term)
                 if monthly_rate > 0:
                     payment = loan.principal * (monthly_rate * (1 + monthly_rate) ** loan.term_months) / \
                               ((1 + monthly_rate) ** loan.term_months - 1)
                 else:
-                    payment = loan.principal / loan.term_months
+                    payment = loan.principal / loan.term_months if loan.term_months > 0 else 0.0
 
-                total_paid = payment * loan.term_months
-                total_interest = total_paid - loan.principal
+                remaining_principal = loan.principal
+                total_interest = 0.0
+                total_principal_paid = 0.0
+                for _ in range(months_paid):
+                    interest_portion = remaining_principal * monthly_rate
+                    principal_portion = payment - interest_portion
+                    total_interest += interest_portion
+                    total_principal_paid += principal_portion
+                    remaining_principal -= principal_portion
+
+                fees = orig_fee
+                if prepaid and remaining_principal > 0:
+                    fees += max(0.0, remaining_principal * eco.prepayment_penalty_rate)
+                    # Pay off the remaining principal at prepayment.
+                    total_principal_paid += remaining_principal
+                    remaining_principal = 0.0
                 outcome = LoanOutcome(
                     loan_id=loan.id,
                     lender_id=loan.lender_id,
@@ -412,10 +540,19 @@ class SimulationEngine:
                     principal_lost=0.0,
                     defaulted=False,
                     was_fraud=False,
-                    months_paid=loan.term_months,
+                    months_paid=months_paid,
+                    total_fees_paid=round(fees, 2),
+                    recovery_amount=0.0,
+                    workout_cost=0.0,
+                    prepaid=prepaid,
                 )
-                print(f"\n  {loan.id} ({loan.borrower_name}): FULLY REPAID over {loan.term_months} months")
+                if prepaid:
+                    print(f"\n  {loan.id} ({loan.borrower_name}): PREPAID after {months_paid} months")
+                else:
+                    print(f"\n  {loan.id} ({loan.borrower_name}): FULLY REPAID over {loan.term_months} months")
                 print(f"    Interest collected: ${total_interest:,.2f}")
+                if outcome.total_fees_paid > 0:
+                    print(f"    Fees collected:     ${outcome.total_fees_paid:,.2f}")
                 print(f"    Principal recovered: ${loan.principal:,.2f}")
 
             self.loan_outcomes.append(outcome)
@@ -447,8 +584,12 @@ class SimulationEngine:
                         "was_fraud": outcome.was_fraud,
                         "months_paid": outcome.months_paid,
                         "interest_paid": outcome.total_interest_paid,
+                        "fees_paid": outcome.total_fees_paid,
                         "principal_lost": outcome.principal_lost,
                         "principal_recovered": outcome.principal_recovered,
+                        "recovery_amount": outcome.recovery_amount,
+                        "workout_cost": outcome.workout_cost,
+                        "prepaid": outcome.prepaid,
                     }
                     break
 

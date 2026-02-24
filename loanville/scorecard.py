@@ -354,8 +354,10 @@ def score_business(
 
     if outcome:
         interest_paid = outcome.get("interest_paid", 0.0)
+        fees_paid = outcome.get("fees_paid", 0.0)
         principal_lost = outcome.get("principal_lost", 0.0)
-        exp_profit = interest_paid - principal_lost
+        workout_cost = outcome.get("workout_cost", 0.0)
+        exp_profit = interest_paid + fees_paid - principal_lost - workout_cost
         if run.decision.terms.amount > 0:
             loss_rate = principal_lost / run.decision.terms.amount
     elif run.labels.gold:
