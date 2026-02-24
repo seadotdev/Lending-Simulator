@@ -129,6 +129,11 @@ class LoanOutcome:
     defaulted: bool
     was_fraud: bool
     months_paid: int
+    # Additional economics: fees, recoveries, and non-interest costs
+    total_fees_paid: float = 0.0
+    recovery_amount: float = 0.0
+    workout_cost: float = 0.0
+    prepaid: bool = False
 
 
 @dataclass
@@ -140,6 +145,7 @@ class EconomicsConfig:
     sim_horizon_months: int = 24
     # Funding
     funding_rate: float = 0.04            # annualized cost of funds
+    discount_rate_annual: float = 0.0     # optional PV discounting (0 disables)
     # Risk penalty
     risk_lambda: float = 0.35             # loss-volatility coefficient
     # Volume floor
@@ -151,8 +157,25 @@ class EconomicsConfig:
     hard_constraint_base_pct: float = 5.0
     # Fraud
     fraud_penalty_rate: float = 0.25      # 25% of principal
+    recovery_rate_bad: float = 0.25       # fraction of defaulted balance recovered (non-fraud)
+    recovery_rate_fraud: float = 0.02     # fraction recovered on fraud defaults (chargebacks, clawbacks)
+    workout_cost_rate: float = 0.03       # collections/legal as fraction of defaulted balance
+    recovery_lag_months: int = 6          # affects PV only (if discount_rate_annual > 0)
     # Concentration
     concentration_penalty_rate: float = 0.05  # 5% of excess
+    # Fees & servicing
+    origination_fee_rate: float = 0.01        # one-time fee on principal (revenue)
+    servicing_cost_rate_annual: float = 0.003 # annual cost on outstanding balance (expense)
+    prepayment_rate_annual: float = 0.0       # annualized prepay hazard for good loans (0 disables)
+    prepayment_penalty_rate: float = 0.0      # fraction of remaining balance if prepaid
+    # Origination ops / underwriting costs
+    underwriting_cost_per_application_usd: float = 20.0
+    doc_request_cost_usd: float = 50.0
+    # Borrower friction / abandonment (applies at deal booking time)
+    abandonment_base_rate: float = 0.0
+    abandonment_per_doc_request: float = 0.02
+    abandonment_per_second_latency: float = 0.0
+    abandonment_cap: float = 0.30
 
 
 ECONOMICS_PRESETS: dict[str, "EconomicsConfig"] = {
@@ -167,6 +190,13 @@ ECONOMICS_PRESETS: dict[str, "EconomicsConfig"] = {
         max_default_rate=0.40,
         min_roe_threshold=-0.15,
         fraud_penalty_rate=0.15,
+        recovery_rate_bad=0.18,
+        recovery_rate_fraud=0.01,
+        workout_cost_rate=0.04,
+        origination_fee_rate=0.008,
+        servicing_cost_rate_annual=0.0025,
+        underwriting_cost_per_application_usd=15.0,
+        doc_request_cost_usd=35.0,
     ),
     "conservative": EconomicsConfig(
         name="conservative",
@@ -179,6 +209,14 @@ ECONOMICS_PRESETS: dict[str, "EconomicsConfig"] = {
         min_roe_threshold=-0.05,
         fraud_penalty_rate=0.40,
         concentration_penalty_rate=0.10,
+        recovery_rate_bad=0.35,
+        recovery_rate_fraud=0.03,
+        workout_cost_rate=0.02,
+        origination_fee_rate=0.0125,
+        servicing_cost_rate_annual=0.0035,
+        underwriting_cost_per_application_usd=30.0,
+        doc_request_cost_usd=60.0,
+        abandonment_per_doc_request=0.03,
     ),
 }
 
@@ -217,3 +255,12 @@ class LenderScore:
     approval_rate: float = 0.0          # Fraction of applications approved
     deployment_ratio: float = 0.0       # Fraction of available capital deployed
     volume_penalty_pct: float = 0.0     # Penalty for under-deployment (% of capital)
+    # --- Extended economics breakdown ---
+    total_fees_earned: float = 0.0
+    total_workout_cost: float = 0.0
+    total_servicing_cost: float = 0.0
+    underwriting_cost: float = 0.0
+    doc_request_cost: float = 0.0
+    llm_cost: float = 0.0
+    ops_cost: float = 0.0
+    adjusted_pnl_dollars: float = 0.0

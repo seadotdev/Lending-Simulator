@@ -720,3 +720,14 @@ These three ideas compound each other in interesting ways:
 3. Financial maturation (requires procedural generation pipeline from Phase 4)
 
 Each can be shipped independently. Phased arrival is the highest-impact addition because it transforms the benchmark from "credit analysis" to "underwriting desk management" — a much richer test of agent capability.
+
+### 11.5 TODO: More Realistic Economics (Season Mode)
+
+Season mode introduces timing and reinvestment, so the "economics layer" will matter more than in single-match mode. Consider (post-v1) upgrading the economics model with:
+
+- **Cashflow realism:** explicit fee schedules (origination/servicing/prepay), collections/workout costs, and recovery timing
+- **Time value:** discounting/NPV of delayed recoveries and long-duration cashflows (not just total interest)
+- **Duration + reinvestment:** prepayment/refi changing loan duration, capital recycling, and competitive repricing
+- **Balance-sheet constraints:** dynamic funding curve, liquidity/bandwidth constraints, and explicit unit economics per underwrite
+- **Capital + provisioning:** RWA/cost of equity, CECL-style reserves, and penalties that depend on portfolio mix and macro regime
+- **Correlated risk:** sector/macro shocks that drive correlated defaults, not i.i.d. borrower outcomes

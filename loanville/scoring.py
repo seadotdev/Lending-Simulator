@@ -52,6 +52,7 @@ from .models import (
     LenderScore,
     LoanOutcome,
 )
+from .run_schema import UnderwritingRun
 
 # Default config instance — used when no config is passed and for backward compat
 _DEFAULT = EconomicsConfig()
@@ -85,25 +86,40 @@ def compute_loan_payoff(
 
     Returns a dict with:
       - interest_earned: total interest collected before default (if any)
+      - fees_earned: origination / other fees (simplified)
       - principal_lost: unrecovered principal
+      - recovery_amount: recovered principal after default (simplified)
       - funding_cost: cost of funds for the capital deployed
+      - servicing_cost: ongoing non-interest expense on outstanding balance
+      - workout_cost: collections/legal expense on defaulted balance
       - fraud_penalty: extra 25% regulatory/reputational charge on fraud
-      - net_profit: interest - principal_lost - funding_cost - fraud_penalty
+      - net_profit: (interest + fees) - principal_lost - funding_cost
+                    - servicing_cost - workout_cost - fraud_penalty
     """
     eco = economics or _DEFAULT
     fraud_rate = eco.fraud_penalty_rate
     monthly_rate = interest_rate / 100.0 / 12.0
+    fees = max(0.0, principal * eco.origination_fee_rate)
+    servicing_rate = max(0.0, eco.servicing_cost_rate_annual)
 
     if true_outcome == "fraud":
-        # Immediate default — total principal loss, minimal funding period
+        # Immediate default — no payments; minimal funding/servicing period.
+        recovery = max(0.0, principal * eco.recovery_rate_fraud)
+        workout = max(0.0, principal * eco.workout_cost_rate)
+        principal_lost = max(0.0, principal - recovery)
         fc = principal * funding_rate * (1.0 / 12.0)  # ~1 month before discovery
+        sc = principal * servicing_rate * (1.0 / 12.0)
         fp = principal * fraud_rate
         return {
             "interest_earned": 0.0,
-            "principal_lost": principal,
+            "fees_earned": fees,
+            "principal_lost": principal_lost,
+            "recovery_amount": recovery,
             "funding_cost": fc,
+            "servicing_cost": sc,
+            "workout_cost": workout,
             "fraud_penalty": fp,
-            "net_profit": -principal - fc - fp,
+            "net_profit": fees - principal_lost - fc - sc - workout - fp,
         }
 
     if true_outcome == "bad":
@@ -119,22 +135,30 @@ def compute_loan_payoff(
         remaining = principal
         total_interest = 0.0
         fc = 0.0
+        sc = 0.0
         for _ in range(months_paid):
             # Funding cost on outstanding balance this month
             fc += remaining * funding_rate / 12.0
+            sc += remaining * servicing_rate / 12.0
             interest_portion = remaining * monthly_rate
             principal_portion = payment - interest_portion
             total_interest += interest_portion
             remaining -= principal_portion
 
-        principal_lost = max(0.0, remaining)
+        recovery = max(0.0, remaining * eco.recovery_rate_bad)
+        workout = max(0.0, remaining * eco.workout_cost_rate)
+        principal_lost = max(0.0, remaining - recovery)
 
         return {
             "interest_earned": total_interest,
+            "fees_earned": fees,
             "principal_lost": principal_lost,
+            "recovery_amount": recovery,
             "funding_cost": fc,
+            "servicing_cost": sc,
+            "workout_cost": workout,
             "fraud_penalty": 0.0,
-            "net_profit": total_interest - principal_lost - fc,
+            "net_profit": total_interest + fees - principal_lost - fc - sc - workout,
         }
 
     # Good loan — full repayment
@@ -148,9 +172,11 @@ def compute_loan_payoff(
 
     # Funding cost on amortizing outstanding balance
     fc = 0.0
+    sc = 0.0
     remaining = principal
     for _ in range(term_months):
         fc += remaining * funding_rate / 12.0
+        sc += remaining * servicing_rate / 12.0
         if monthly_rate > 0:
             principal_portion = payment - remaining * monthly_rate
         else:
@@ -159,10 +185,14 @@ def compute_loan_payoff(
 
     return {
         "interest_earned": total_interest,
+        "fees_earned": fees,
         "principal_lost": 0.0,
+        "recovery_amount": 0.0,
         "funding_cost": fc,
+        "servicing_cost": sc,
+        "workout_cost": 0.0,
         "fraud_penalty": 0.0,
-        "net_profit": total_interest - fc,
+        "net_profit": total_interest + fees - fc - sc,
     }
 
 
@@ -294,9 +324,11 @@ def calculate_perfect_score(
     # For simplicity in the theoretical max, use average outstanding balance ≈ principal/2
     total_deployed = available_capital - capital_remaining
     total_funding_cost = (total_deployed / 2.0) * eco.funding_rate * (eco.sim_horizon_months / 12)
+    total_servicing_cost = (total_deployed / 2.0) * eco.servicing_cost_rate_annual * (eco.sim_horizon_months / 12)
+    total_fees = total_deployed * eco.origination_fee_rate
 
     # Score using same formula as actual scoring (no losses, no penalties, no volatility)
-    net_pnl = total_interest - total_funding_cost
+    net_pnl = total_interest + total_fees - total_funding_cost - total_servicing_cost
     if available_capital > 0:
         actual_return_pct = (net_pnl / available_capital) * 100
         benchmark_pct = eco.risk_free_rate * (eco.sim_horizon_months / 12) * 100
@@ -341,8 +373,11 @@ def compute_heuristic_baseline(
     annual_debt_service_per_dollar = std_payment * 12
 
     total_interest = 0.0
+    total_fees = 0.0
     total_principal_lost = 0.0
     total_funding_cost = 0.0
+    total_servicing_cost = 0.0
+    total_workout_cost = 0.0
     capital_remaining = available_capital
 
     for b in borrowers:
@@ -380,10 +415,20 @@ def compute_heuristic_baseline(
             months_before_default=b.months_before_default,
         )
         total_interest += result["interest_earned"]
+        total_fees += result.get("fees_earned", 0.0)
         total_principal_lost += result["principal_lost"]
         total_funding_cost += result["funding_cost"]
+        total_servicing_cost += result.get("servicing_cost", 0.0)
+        total_workout_cost += result.get("workout_cost", 0.0)
 
-    net_pnl = total_interest - total_principal_lost - total_funding_cost
+    net_pnl = (
+        total_interest
+        + total_fees
+        - total_principal_lost
+        - total_funding_cost
+        - total_servicing_cost
+        - total_workout_cost
+    )
     if available_capital > 0:
         actual_return_pct = (net_pnl / available_capital) * 100
         benchmark_pct = eco.risk_free_rate * (eco.sim_horizon_months / 12) * 100
@@ -441,13 +486,19 @@ def compute_penalty_decomposition(
 
     # Funding cost
     funding_cost = 0.0
+    servicing_cost = 0.0
     for loan in lender_loans:
         outcome = next((o for o in lender_outcomes if o.loan_id == loan.id), None)
         months_active = loan.term_months
         if outcome:
-            months_active = outcome.months_paid if outcome.defaulted else loan.term_months
+            if outcome.was_fraud:
+                months_active = 1
+            elif outcome.defaulted or outcome.prepaid:
+                months_active = max(1, outcome.months_paid)
+            else:
+                months_active = loan.term_months
         monthly_rate = loan.interest_rate / 100.0 / 12.0
-        if monthly_rate > 0:
+        if monthly_rate > 0 and loan.term_months > 0:
             pmt = loan.principal * (monthly_rate * (1 + monthly_rate) ** loan.term_months) / \
                   ((1 + monthly_rate) ** loan.term_months - 1)
         else:
@@ -455,6 +506,7 @@ def compute_penalty_decomposition(
         remaining = loan.principal
         for _ in range(months_active):
             funding_cost += remaining * eco.funding_rate / 12.0
+            servicing_cost += remaining * eco.servicing_cost_rate_annual / 12.0
             if monthly_rate > 0:
                 pp = pmt - remaining * monthly_rate
             else:
@@ -479,24 +531,38 @@ def compute_penalty_decomposition(
     for loan in lender_loans:
         outcome = next((o for o in lender_outcomes if o.loan_id == loan.id), None)
         if outcome:
-            months_active = outcome.months_paid if outcome.defaulted else loan.term_months
+            months_active = loan.term_months
+            if outcome.was_fraud:
+                months_active = 1
+            elif outcome.defaulted or outcome.prepaid:
+                months_active = max(1, outcome.months_paid)
             loan_mr = loan.interest_rate / 100.0 / 12.0
-            if loan_mr > 0:
+            if loan_mr > 0 and loan.term_months > 0:
                 loan_pmt = loan.principal * (loan_mr * (1 + loan_mr) ** loan.term_months) / \
                            ((1 + loan_mr) ** loan.term_months - 1)
             else:
                 loan_pmt = loan.principal / loan.term_months if loan.term_months > 0 else 0.0
             loan_fc = 0.0
+            loan_sc = 0.0
             loan_rem = loan.principal
             for _ in range(months_active):
                 loan_fc += loan_rem * eco.funding_rate / 12.0
+                loan_sc += loan_rem * eco.servicing_cost_rate_annual / 12.0
                 if loan_mr > 0:
                     loan_pp = loan_pmt - loan_rem * loan_mr
                 else:
                     loan_pp = loan_pmt
                 loan_rem -= loan_pp
             loan_fp = loan.principal * eco.fraud_penalty_rate if outcome.was_fraud else 0.0
-            per_loan_profits.append(outcome.total_interest_paid - outcome.principal_lost - loan_fc - loan_fp)
+            per_loan_profits.append(
+                outcome.total_interest_paid
+                + outcome.total_fees_paid
+                - outcome.principal_lost
+                - outcome.workout_cost
+                - loan_sc
+                - loan_fc
+                - loan_fp
+            )
 
     # Risk penalty
     loss_vol = 0.0
@@ -520,7 +586,16 @@ def compute_penalty_decomposition(
     deals_won = len(lender_loans)
     defaults_count = sum(1 for o in lender_outcomes if o.defaulted)
     default_rate = defaults_count / deals_won if deals_won > 0 else 0.0
-    net_pnl = sum(o.total_interest_paid - o.principal_lost for o in lender_outcomes)
+    net_pnl = (
+        sum(
+            o.total_interest_paid
+            + o.total_fees_paid
+            - o.principal_lost
+            - o.workout_cost
+            for o in lender_outcomes
+        )
+        - servicing_cost
+    )
     roe_pct = (net_pnl / total_deployed * 100) if total_deployed > 0 else 0.0
 
     hard_constraint_penalty = 0.0
@@ -566,7 +641,13 @@ def bootstrap_raroc_interval(
 
     for _ in range(n_bootstrap):
         sample = _rng.choices(lender_outcomes, k=len(lender_outcomes))
-        net_pnl = sum(o.total_interest_paid - o.principal_lost for o in sample)
+        net_pnl = sum(
+            o.total_interest_paid
+            + o.total_fees_paid
+            - o.principal_lost
+            - o.workout_cost
+            for o in sample
+        )
         total_deployed = sum(o.principal for o in sample)
         # Simplified: just net P&L vs benchmark, no penalties
         if total_deployed > 0:
@@ -590,6 +671,7 @@ def score_lenders(
     deal_results: dict[str, dict],
     borrowers: list[Borrower] | None = None,
     economics: Optional[EconomicsConfig] = None,
+    runs: list[UnderwritingRun] | None = None,
 ) -> list[LenderScore]:
     """Calculate final scores for all lenders.
 
@@ -597,8 +679,40 @@ def score_lenders(
     with a volatility penalty and hard-constraint disqualifiers.
     """
     eco = economics or _DEFAULT
-    scores = []
-    borrower_map = {b.id: b for b in borrowers} if borrowers else {}
+    scores: list[LenderScore] = []
+    runs = runs or []
+
+    # Aggregate run-derived ops metrics (primarily populated in LOS mode).
+    doc_requests_by_lender: dict[str, int] = {}
+    llm_cost_by_lender: dict[str, float] = {}
+    for run in runs:
+        lid = (run.policy.params or {}).get("_lender_id", "")
+        if not lid:
+            pid = run.policy.policy_id or ""
+            # policy_id format: "p_{lender_id}_{model}"
+            parts = pid.split("_", 2)
+            if len(parts) >= 2 and parts[0] == "p":
+                lid = parts[1]
+        if not lid:
+            continue
+
+        doc_reqs = sum(1 for s in run.trace.steps if getattr(s, "type", "") == "doc_request")
+        doc_requests_by_lender[lid] = doc_requests_by_lender.get(lid, 0) + doc_reqs
+        llm_cost_by_lender[lid] = llm_cost_by_lender.get(lid, 0.0) + float(
+            getattr(run.trace.cost, "estimated_cost_usd", 0.0) or 0.0
+        )
+
+    # Simple discounting: only applies to delayed recoveries (when enabled).
+    discount_recovery = eco.discount_rate_annual > 0 and eco.recovery_lag_months > 0
+    recovery_df = 1.0
+    if discount_recovery:
+        recovery_df = 1.0 / ((1.0 + eco.discount_rate_annual / 12.0) ** eco.recovery_lag_months)
+
+    def _effective_principal_loss(o: LoanOutcome) -> float:
+        if not discount_recovery or o.recovery_amount <= 0:
+            return o.principal_lost
+        # Outcome stores "undiscounted recovery"; discounting reduces its value.
+        return o.principal_lost + o.recovery_amount * (1.0 - recovery_df)
 
     for lender in lenders:
         lender_outcomes = [o for o in loan_outcomes if o.lender_id == lender.id]
@@ -622,8 +736,10 @@ def score_lenders(
         # --- Financial metrics ---
         total_deployed = sum(o.principal for o in lender_outcomes)
         total_interest = sum(o.total_interest_paid for o in lender_outcomes)
+        total_fees = sum(o.total_fees_paid for o in lender_outcomes)
         total_principal_lost = sum(o.principal_lost for o in lender_outcomes)
-        net_pnl = total_interest - total_principal_lost
+        total_workout_cost = sum(o.workout_cost for o in lender_outcomes)
+        credit_loss_scoring = sum(_effective_principal_loss(o) for o in lender_outcomes)
 
         # Fraud and default counts
         frauds_funded = sum(1 for o in lender_outcomes if o.was_fraud)
@@ -633,56 +749,72 @@ def score_lenders(
         existing_deployed = sum(l.remaining_balance for l in lender.existing_portfolio)
         available_capital = lender.total_capital - existing_deployed
 
-        # --- Funding cost (on amortizing outstanding balance) ---
+        # --- Origination ops cost (applies to all decisions, not just booked loans) ---
+        underwriting_cost = len(lender_decisions) * eco.underwriting_cost_per_application_usd
+        doc_requests = doc_requests_by_lender.get(lender.id, 0)
+        doc_request_cost = doc_requests * eco.doc_request_cost_usd
+        llm_cost = llm_cost_by_lender.get(lender.id, 0.0)
+        ops_cost = underwriting_cost + doc_request_cost + llm_cost
+
+        # --- Funding & servicing costs (on amortizing outstanding balance) ---
         funding_cost_dollars = 0.0
+        servicing_cost_dollars = 0.0
+
+        # --- Per-loan profit for volatility computation ---
+        per_loan_profits: list[float] = []
         for loan in lender_loans:
             outcome = next((o for o in lender_outcomes if o.loan_id == loan.id), None)
             months_active = loan.term_months
             if outcome:
-                months_active = outcome.months_paid if outcome.defaulted else loan.term_months
+                if outcome.was_fraud:
+                    months_active = 1  # discovery lag
+                elif outcome.defaulted or outcome.prepaid:
+                    months_active = max(1, outcome.months_paid)
 
             monthly_rate = loan.interest_rate / 100.0 / 12.0
-            if monthly_rate > 0:
+            if monthly_rate > 0 and loan.term_months > 0:
                 pmt = loan.principal * (monthly_rate * (1 + monthly_rate) ** loan.term_months) / \
                       ((1 + monthly_rate) ** loan.term_months - 1)
             else:
                 pmt = loan.principal / loan.term_months if loan.term_months > 0 else 0.0
 
             remaining = loan.principal
+            loan_fc = 0.0
+            loan_sc = 0.0
             for _ in range(months_active):
-                funding_cost_dollars += remaining * eco.funding_rate / 12.0
+                loan_fc += remaining * eco.funding_rate / 12.0
+                loan_sc += remaining * eco.servicing_cost_rate_annual / 12.0
                 if monthly_rate > 0:
                     principal_portion = pmt - remaining * monthly_rate
                 else:
                     principal_portion = pmt
                 remaining -= principal_portion
 
-        # --- Per-loan profit for volatility computation ---
-        per_loan_profits: list[float] = []
-        for loan in lender_loans:
-            outcome = next((o for o in lender_outcomes if o.loan_id == loan.id), None)
-            if outcome:
-                months_active = outcome.months_paid if outcome.defaulted else loan.term_months
-                # Amortizing funding cost for this loan
-                loan_mr = loan.interest_rate / 100.0 / 12.0
-                if loan_mr > 0:
-                    loan_pmt = loan.principal * (loan_mr * (1 + loan_mr) ** loan.term_months) / \
-                               ((1 + loan_mr) ** loan.term_months - 1)
-                else:
-                    loan_pmt = loan.principal / loan.term_months if loan.term_months > 0 else 0.0
-                loan_fc = 0.0
-                loan_rem = loan.principal
-                for _ in range(months_active):
-                    loan_fc += loan_rem * eco.funding_rate / 12.0
-                    if loan_mr > 0:
-                        loan_pp = loan_pmt - loan_rem * loan_mr
-                    else:
-                        loan_pp = loan_pmt
-                    loan_rem -= loan_pp
+            funding_cost_dollars += loan_fc
+            servicing_cost_dollars += loan_sc
 
+            if outcome:
+                eff_loss = _effective_principal_loss(outcome)
                 loan_fp = loan.principal * eco.fraud_penalty_rate if outcome.was_fraud else 0.0
-                loan_profit = outcome.total_interest_paid - outcome.principal_lost - loan_fc - loan_fp
-                per_loan_profits.append(loan_profit)
+                per_loan_profits.append(
+                    outcome.total_interest_paid
+                    + outcome.total_fees_paid
+                    - eff_loss
+                    - outcome.workout_cost
+                    - loan_sc
+                    - loan_fc
+                    - loan_fp
+                )
+
+        # Net P&L before funding + scoring penalties
+        net_pnl = (
+            total_interest
+            + total_fees
+            - credit_loss_scoring
+            - total_workout_cost
+            - servicing_cost_dollars
+            - ops_cost
+        )
 
         # --- Loss volatility (RAROC) ---
         loss_volatility = 0.0
@@ -809,6 +941,15 @@ def score_lenders(
             approval_rate=approval_rate,
             deployment_ratio=deployment_ratio,
             volume_penalty_pct=volume_penalty_pct,
+            # New: Extended economics
+            total_fees_earned=total_fees,
+            total_workout_cost=total_workout_cost,
+            total_servicing_cost=servicing_cost_dollars,
+            underwriting_cost=underwriting_cost,
+            doc_request_cost=doc_request_cost,
+            llm_cost=llm_cost,
+            ops_cost=ops_cost,
+            adjusted_pnl_dollars=adjusted_pnl,
         ))
 
     return scores
@@ -835,6 +976,15 @@ def print_final_report(
           f"Max default rate: {eco.max_default_rate*100:.0f}% | "
           f"Min ROE: {eco.min_roe_threshold*100:.0f}% | "
           f"Min deploy: {eco.min_deployment_ratio*100:.0f}%")
+    print(f"  Fees/Costs: orig fee {eco.origination_fee_rate*100:.1f}% | "
+          f"servicing {eco.servicing_cost_rate_annual*100:.2f}%/yr | "
+          f"UW ${eco.underwriting_cost_per_application_usd:.0f}/app | "
+          f"doc req ${eco.doc_request_cost_usd:.0f} | "
+          f"recovery bad {eco.recovery_rate_bad*100:.0f}% fraud {eco.recovery_rate_fraud*100:.0f}% | "
+          f"workout {eco.workout_cost_rate*100:.0f}%")
+    if eco.discount_rate_annual > 0 and eco.recovery_lag_months > 0:
+        print(f"  Discounting: {eco.discount_rate_annual*100:.1f}%/yr "
+              f"(recoveries discounted over {eco.recovery_lag_months}mo lag)")
 
     for rank, s in enumerate(ranked, 1):
         print(f"\n{'─' * 60}")
@@ -849,9 +999,19 @@ def print_final_report(
         print(f"  Financial Performance:")
         print(f"    Capital Deployed:    ${s.total_deployed:>12,.2f}")
         print(f"    Interest Earned:     ${s.total_interest_earned:>12,.2f}")
+        if s.total_fees_earned != 0.0:
+            print(f"    Fees Earned:         ${s.total_fees_earned:>12,.2f}")
         print(f"    Principal Lost:      ${s.total_principal_lost:>12,.2f}")
+        if s.total_workout_cost != 0.0:
+            print(f"    Workout Cost:        ${s.total_workout_cost:>12,.2f}")
+        if s.total_servicing_cost != 0.0:
+            print(f"    Servicing Cost:      ${s.total_servicing_cost:>12,.2f}")
+        if s.ops_cost != 0.0:
+            print(f"    UW Ops Cost:         ${s.ops_cost:>12,.2f} "
+                  f"(apps=${s.underwriting_cost:,.0f}, docs=${s.doc_request_cost:,.0f}, llm=${s.llm_cost:,.2f})")
         print(f"    Funding Cost:        ${s.funding_cost:>12,.2f}")
-        print(f"    Net P&L:             ${s.net_return:>12,.2f}")
+        print(f"    Net P&L (pre-pen):   ${s.net_return:>12,.2f}")
+        print(f"    Adj. P&L (RAROC):    ${s.adjusted_pnl_dollars:>12,.2f}")
         if s.total_deployed > 0:
             print(f"    Raw ROI:             {s.roi_pct:>11.2f}%")
             print(f"    ROE:                 {s.roe_pct:>11.2f}%")
