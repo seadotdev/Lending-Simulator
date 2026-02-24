@@ -15,6 +15,7 @@ import math
 from dataclasses import dataclass, field
 from typing import Optional
 
+from .models import EconomicsConfig
 from .run_schema import UnderwritingRun
 from .scoring import (
     FUNDING_RATE,

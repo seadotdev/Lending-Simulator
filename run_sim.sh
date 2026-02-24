@@ -65,6 +65,7 @@
 #   ./run_sim.sh --mix hard          # Adversarial stress test
 #   ./run_sim.sh --full-pipeline     # Full LOS pipeline (entity/deal/docs/spread/stages)
 #   ./run_sim.sh --los-model MODEL   # Override LLM model for all lenders
+#   ./run_sim.sh --economics aggressive  # Aggressive economics preset
 #   ./run_sim.sh --mock              # Mock mode (no API key, no LOS, deterministic)
 #
 # ============================================================================
@@ -78,6 +79,7 @@ LOS_PID=""
 
 # ── Defaults ────────────────────────────────────────────────────────────────
 MIX="realistic"
+ECONOMICS="balanced"
 LOS_PROVIDER="openrouter"
 LOS_MODE="full"
 UNDERWRITE_ONLY="--underwrite-only"
@@ -90,6 +92,8 @@ while [[ $# -gt 0 ]]; do
     case "$1" in
         --mix)
             MIX="$2"; shift 2 ;;
+        --economics)
+            ECONOMICS="$2"; shift 2 ;;
         --los-model)
             EXTRA_ARGS+=("--los-model" "$2"); shift 2 ;;
         --full-pipeline)
@@ -123,7 +127,7 @@ if $MOCK; then
     echo "  LOANVILLE — MOCK MODE (no LOS, no API key)"
     echo "═══════════════════════════════════════════════════════════════"
     cd "$SCRIPT_DIR"
-    python -m loanville --mock --mix "$MIX" "${EXTRA_ARGS[@]}"
+    python -m loanville --mock --mix "$MIX" --economics "$ECONOMICS" ${EXTRA_ARGS[@]+"${EXTRA_ARGS[@]}"}
     exit 0
 fi
 
@@ -184,7 +188,7 @@ fi
 echo ""
 echo "═══════════════════════════════════════════════════════════════"
 echo "  Running Loanville simulation"
-echo "  Mix: $MIX | Provider: $LOS_PROVIDER | Mode: $LOS_MODE"
+echo "  Mix: $MIX | Economics: $ECONOMICS | Provider: $LOS_PROVIDER | Mode: $LOS_MODE"
 if [[ -n "$UNDERWRITE_ONLY" ]]; then
     echo "  Path: underwrite-only (POST /v1/underwrite)"
 else
@@ -200,8 +204,9 @@ python -m loanville \
     --los-provider "$LOS_PROVIDER" \
     --los-mode "$LOS_MODE" \
     --mix "$MIX" \
+    --economics "$ECONOMICS" \
     $UNDERWRITE_ONLY \
-    "${EXTRA_ARGS[@]}"
+    ${EXTRA_ARGS[@]+"${EXTRA_ARGS[@]}"}
 
 echo ""
 echo "Done."

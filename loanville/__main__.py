@@ -19,6 +19,7 @@ from dotenv import load_dotenv
 
 from .data import get_borrowers, get_lenders, MIX_PRESETS
 from .engine import SimulationEngine
+from .models import EconomicsConfig, ECONOMICS_PRESETS
 from .scoring import print_final_report, score_lenders
 
 
@@ -82,7 +83,8 @@ def _print_cost_summary() -> None:
 def _run_single(borrowers, lenders, api_key="", mock=False, data_mode="full",
                  use_los=False, los_url="http://localhost:3000",
                  los_provider="openrouter", los_mode="rules_only",
-                 underwrite_only=False, los_model=None):
+                 underwrite_only=False, los_model=None,
+                 economics=None):
     """Run a single simulation and return scores."""
     engine = SimulationEngine(
         borrowers, lenders, api_key, mock=mock, data_mode=data_mode,
@@ -99,8 +101,9 @@ def _run_single(borrowers, lenders, api_key="", mock=False, data_mode="full",
         engine.loan_outcomes,
         engine.deal_results,
         borrowers=borrowers,
+        economics=economics,
     )
-    print_final_report(scores)
+    print_final_report(scores, economics=economics)
     return scores
 
 
@@ -308,6 +311,10 @@ def main() -> None:
     parser.add_argument("--los-model", default=None,
                         help="Override the LLM model used by the LOS for underwriting "
                              "(default: uses each lender's model)")
+    parser.add_argument("--economics",
+                        choices=list(ECONOMICS_PRESETS.keys()),
+                        default="balanced",
+                        help="Economics preset: balanced (default), aggressive, conservative")
     args = parser.parse_args()
 
     if args.compare:
@@ -340,6 +347,8 @@ def main() -> None:
         print("\nRotation complete.\n")
         return
 
+    economics = ECONOMICS_PRESETS[args.economics]
+
     print("=" * 70)
     print("  LOANVILLE — THE LLM LENDING SIMULATOR")
     if mock:
@@ -348,6 +357,7 @@ def main() -> None:
         uw_flag = " underwrite-only" if args.underwrite_only else ""
         model_flag = f" model={args.los_model}" if args.los_model else ""
         print(f"  [LOS MODE{uw_flag}] → {args.los_url} (mode={args.los_mode}{model_flag})")
+    print(f"  Economics: {economics.name}")
     print("=" * 70)
 
     borrowers = get_borrowers(args.mix, seed=args.seed)
@@ -371,6 +381,7 @@ def main() -> None:
         use_los=use_los, los_url=args.los_url,
         los_provider=args.los_provider, los_mode=args.los_mode,
         underwrite_only=args.underwrite_only, los_model=args.los_model,
+        economics=economics,
     )
     if not mock and not use_los:
         _print_cost_summary()

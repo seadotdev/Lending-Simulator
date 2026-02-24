@@ -132,6 +132,58 @@ class LoanOutcome:
 
 
 @dataclass
+class EconomicsConfig:
+    """Tunable economic parameters for RAROC scoring."""
+    name: str = "balanced"
+    # Opportunity cost / benchmark
+    risk_free_rate: float = 0.05          # annualized
+    sim_horizon_months: int = 24
+    # Funding
+    funding_rate: float = 0.04            # annualized cost of funds
+    # Risk penalty
+    risk_lambda: float = 0.35             # loss-volatility coefficient
+    # Volume floor
+    min_deployment_ratio: float = 0.35    # must deploy >= 35%
+    volume_penalty_lambda: float = 0.8    # quadratic penalty for under-deployment
+    # Hard constraints
+    max_default_rate: float = 0.25        # 25% cap
+    min_roe_threshold: float = -0.08      # -8% floor
+    hard_constraint_base_pct: float = 5.0
+    # Fraud
+    fraud_penalty_rate: float = 0.25      # 25% of principal
+    # Concentration
+    concentration_penalty_rate: float = 0.05  # 5% of excess
+
+
+ECONOMICS_PRESETS: dict[str, "EconomicsConfig"] = {
+    "balanced": EconomicsConfig(name="balanced"),
+    "aggressive": EconomicsConfig(
+        name="aggressive",
+        risk_free_rate=0.03,
+        funding_rate=0.025,
+        risk_lambda=0.2,
+        min_deployment_ratio=0.50,
+        volume_penalty_lambda=1.5,
+        max_default_rate=0.40,
+        min_roe_threshold=-0.15,
+        fraud_penalty_rate=0.15,
+    ),
+    "conservative": EconomicsConfig(
+        name="conservative",
+        risk_free_rate=0.07,
+        funding_rate=0.06,
+        risk_lambda=0.8,
+        min_deployment_ratio=0.20,
+        volume_penalty_lambda=0.3,
+        max_default_rate=0.15,
+        min_roe_threshold=-0.05,
+        fraud_penalty_rate=0.40,
+        concentration_penalty_rate=0.10,
+    ),
+}
+
+
+@dataclass
 class LenderScore:
     lender_id: str
     lender_name: str
