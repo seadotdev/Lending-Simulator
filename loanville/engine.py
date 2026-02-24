@@ -14,7 +14,6 @@ from .models import (
     LenderDecision,
     LoanOutcome,
 )
-from .llm import run_lender_evaluations, get_call_traces, clear_call_traces
 from .mock_llm import mock_evaluate_all
 from .run_schema import UnderwritingRun, build_run
 from .run_logger import RunLogger
@@ -29,14 +28,25 @@ class SimulationEngine:
         max_concurrent_per_lender: int = 5,
         mock: bool = False,
         data_mode: str = "full",
+        underwriting_backend: str = "openrouter",
+        los_base_url: str = "http://localhost:3000",
+        los_timeout_s: float = 20.0,
+        los_tenant_id: str = "loanville-sim",
     ):
         self.borrowers = borrowers
         self.lenders = lenders
         self.mock = mock
         self.data_mode = data_mode
         self.max_concurrent = max_concurrent_per_lender
+        self.underwriting_backend = underwriting_backend
+        self.los_base_url = los_base_url
+        self.los_timeout_s = los_timeout_s
+        self.los_tenant_id = los_tenant_id
 
-        if not mock:
+        if self.underwriting_backend not in {"openrouter", "los"}:
+            raise ValueError(f"Unsupported underwriting backend: {self.underwriting_backend}")
+
+        if not mock and self.underwriting_backend == "openrouter":
             self.client = AsyncOpenAI(
                 base_url="https://openrouter.ai/api/v1",
                 api_key=openrouter_api_key,
@@ -74,7 +84,31 @@ class SimulationEngine:
             self.all_decisions = mock_evaluate_all(
                 self.lenders, self.borrowers, self.data_mode,
             )
+        elif self.underwriting_backend == "los":
+            from .los_adapter import run_los_evaluations
+
+            print(
+                "\nLenders are evaluating applications through LOS "
+                f"({self.los_base_url})...\n"
+            )
+            tasks = [
+                run_los_evaluations(
+                    lender=lender,
+                    borrowers=self.borrowers,
+                    base_url=self.los_base_url,
+                    max_concurrent=self.max_concurrent,
+                    timeout_s=self.los_timeout_s,
+                    tenant_id=self.los_tenant_id,
+                )
+                for lender in self.lenders
+            ]
+            results = await asyncio.gather(*tasks)
+            for lender, (decisions, runs) in zip(self.lenders, results):
+                self.all_decisions[lender.id] = decisions
+                self.runs.extend(runs)
         else:
+            from .llm import run_lender_evaluations
+
             # Run all lenders in parallel via OpenRouter
             tasks = [
                 run_lender_evaluations(
@@ -106,7 +140,9 @@ class SimulationEngine:
                     print(f"        Reasoning: {d.reasoning}")
 
         # Write trace file for live (non-mock) runs
-        if not self.mock:
+        if not self.mock and self.underwriting_backend == "openrouter":
+            from .llm import get_call_traces, clear_call_traces
+
             traces = get_call_traces()
             if traces:
                 trace_path = "loanville_trace.json"
@@ -116,18 +152,19 @@ class SimulationEngine:
                 clear_call_traces()
 
         # Emit UnderwritingRun artifacts for every (lender, borrower) evaluation
-        borrower_map = {b.id: b for b in self.borrowers}
-        for lender in self.lenders:
-            for decision in self.all_decisions.get(lender.id, []):
-                borrower = borrower_map.get(decision.borrower_id)
-                if borrower:
-                    run = build_run(
-                        borrower=borrower,
-                        lender=lender,
-                        decision=decision,
-                        source="simulator",
-                    )
-                    self.runs.append(run)
+        if self.underwriting_backend != "los":
+            borrower_map = {b.id: b for b in self.borrowers}
+            for lender in self.lenders:
+                for decision in self.all_decisions.get(lender.id, []):
+                    borrower = borrower_map.get(decision.borrower_id)
+                    if borrower:
+                        run = build_run(
+                            borrower=borrower,
+                            lender=lender,
+                            decision=decision,
+                            source="simulator",
+                        )
+                        self.runs.append(run)
 
     # ------------------------------------------------------------------
     # Phase 3: Deal Adjudication

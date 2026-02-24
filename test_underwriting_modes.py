@@ -29,7 +29,6 @@ load_dotenv()
 
 from loanville.data import get_borrowers, get_lenders
 from loanville.engine import SimulationEngine
-from loanville.llm import clear_usage, get_cost_summary, get_token_usage, get_call_traces, clear_call_traces
 from loanville.scoring import score_lenders
 
 
@@ -47,6 +46,38 @@ TEST_MODELS = [
     "nvidia/llama-3.3-nemotron-super-49b-v1.5",       # 49B dense — mid-tier
     "qwen/qwen3-30b-a3b",                            # 30B MoE (3B active) — small
 ]
+
+
+def _load_llm_module(required: bool = False):
+    try:
+        from loanville import llm as llm_module
+        return llm_module
+    except ModuleNotFoundError:
+        if required:
+            raise
+        return None
+
+
+def clear_usage():
+    llm_module = _load_llm_module(required=False)
+    if llm_module:
+        llm_module.clear_usage()
+
+
+def get_cost_summary():
+    llm_module = _load_llm_module(required=False)
+    return llm_module.get_cost_summary() if llm_module else {}
+
+
+def get_token_usage():
+    llm_module = _load_llm_module(required=False)
+    return llm_module.get_token_usage() if llm_module else {}
+
+
+def clear_call_traces():
+    llm_module = _load_llm_module(required=False)
+    if llm_module:
+        llm_module.clear_call_traces()
 
 
 def run_sim(borrowers, lenders, api_key="", mock=False, data_mode="full"):
@@ -333,6 +364,11 @@ def main():
     mock = not args.live
     api_key = ""
     if args.live:
+        try:
+            _load_llm_module(required=True)
+        except ModuleNotFoundError as exc:
+            print(f"ERROR: live mode dependencies unavailable ({exc})")
+            sys.exit(1)
         api_key = os.environ.get("OPENROUTER_API_KEY", "")
         if not api_key:
             print("ERROR: OPENROUTER_API_KEY not set for live mode")

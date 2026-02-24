@@ -4,7 +4,9 @@ Entry point for: python -m loanville
 Usage:
   python -m loanville                    # Live mode, easy mix (default)
   python -m loanville --mock             # Mock mode (no API key needed)
+  python -m loanville --underwriting-backend los --los-base-url http://localhost:3000
   python -m loanville --mix hard         # Adversarial stress test
+  python -m loanville --mock --seed 42   # Deterministic borrower ordering
   python -m loanville --compare          # Compare big vs small models (mock)
   python -m loanville --rotate           # Rotate models across lender roles (live)
 """
@@ -19,7 +21,6 @@ from dotenv import load_dotenv
 
 from .data import get_borrowers, get_lenders, MIX_PRESETS
 from .engine import SimulationEngine
-from .llm import get_cost_summary, get_token_usage, clear_usage
 from .scoring import print_final_report, score_lenders
 
 
@@ -40,6 +41,8 @@ ROTATION_POOL = [
 
 def _print_cost_summary() -> None:
     """Print token usage and estimated cost per model."""
+    from .llm import get_cost_summary, get_token_usage
+
     usage = get_token_usage()
     costs = get_cost_summary()
     if not usage:
@@ -78,9 +81,29 @@ def _print_cost_summary() -> None:
                       f"~${projected:.2f}")
 
 
-def _run_single(borrowers, lenders, api_key="", mock=False, data_mode="full"):
+def _run_single(
+    borrowers,
+    lenders,
+    api_key="",
+    mock=False,
+    data_mode="full",
+    underwriting_backend="openrouter",
+    los_base_url="http://localhost:3000",
+    los_timeout_s=20.0,
+    los_tenant_id="loanville-sim",
+):
     """Run a single simulation and return scores."""
-    engine = SimulationEngine(borrowers, lenders, api_key, mock=mock, data_mode=data_mode)
+    engine = SimulationEngine(
+        borrowers=borrowers,
+        lenders=lenders,
+        openrouter_api_key=api_key,
+        mock=mock,
+        data_mode=data_mode,
+        underwriting_backend=underwriting_backend,
+        los_base_url=los_base_url,
+        los_timeout_s=los_timeout_s,
+        los_tenant_id=los_tenant_id,
+    )
     asyncio.run(engine.run())
 
     scores = score_lenders(
@@ -275,11 +298,37 @@ def main() -> None:
                         help="Number of rotation rounds (default: 3)")
     parser.add_argument("--mix", choices=list(MIX_PRESETS.keys()), default="easy",
                         help="Borrower population mix (default: easy)")
+    parser.add_argument("--seed", type=int, default=None,
+                        help="Deterministic seed for borrower ordering/sampling")
+    parser.add_argument("--sample-size", type=int, default=None,
+                        help="Optional borrower sample size after deterministic ordering")
     parser.add_argument("--data-mode",
                         choices=["full", "quarterly_only", "aggregate_only", "statements_inline", "lite"],
                         default="full",
                         help="Financial data presentation mode (default: full). "
                              "'lite' uses compact prompts optimized for small models (3B-30B).")
+    parser.add_argument(
+        "--underwriting-backend",
+        choices=["openrouter", "los"],
+        default=os.environ.get("LOANVILLE_UNDERWRITING_BACKEND", "openrouter"),
+        help="Underwriting backend in live mode (default: openrouter).",
+    )
+    parser.add_argument(
+        "--los-base-url",
+        default=os.environ.get("LOS_BASE_URL", "http://localhost:3000"),
+        help="Base URL for LOS API when --underwriting-backend los is selected.",
+    )
+    parser.add_argument(
+        "--los-timeout-s",
+        type=float,
+        default=float(os.environ.get("LOS_TIMEOUT_S", "20")),
+        help="Request timeout in seconds for LOS API calls.",
+    )
+    parser.add_argument(
+        "--los-tenant-id",
+        default=os.environ.get("LOS_TENANT_ID", "loanville-sim"),
+        help="Tenant ID header for LOS API calls.",
+    )
     args = parser.parse_args()
 
     if args.compare:
@@ -292,8 +341,9 @@ def main() -> None:
 
     mock = args.mock
     api_key = os.environ.get("OPENROUTER_API_KEY", "")
+    backend = args.underwriting_backend
 
-    if not mock and not api_key:
+    if not mock and backend == "openrouter" and not api_key:
         print("ERROR: OPENROUTER_API_KEY environment variable is not set.")
         print("Set it in a .env file or export it directly:")
         print("  export OPENROUTER_API_KEY=your-key-here")
@@ -302,6 +352,9 @@ def main() -> None:
         sys.exit(1)
 
     if args.rotate:
+        if backend != "openrouter":
+            print("ERROR: --rotate only supports --underwriting-backend openrouter.")
+            sys.exit(1)
         print("=" * 70)
         print("  LOANVILLE — MODEL ROTATION TOURNAMENT")
         print("=" * 70)
@@ -313,12 +366,20 @@ def main() -> None:
     print("  LOANVILLE — THE LLM LENDING SIMULATOR")
     if mock:
         print("  [MOCK MODE]")
+    elif backend == "los":
+        print(f"  [LOS BACKEND] {args.los_base_url}")
+    else:
+        print("  [OPENROUTER BACKEND]")
     print("=" * 70)
 
-    borrowers = get_borrowers(args.mix)
+    borrowers = get_borrowers(args.mix, seed=args.seed, sample_size=args.sample_size)
     lenders = get_lenders()
 
     print(f"\nLoaded {len(borrowers)} borrower applications")
+    if args.seed is not None:
+        print(f"Deterministic seed: {args.seed}")
+    if args.sample_size is not None:
+        print(f"Sample size: {args.sample_size}")
     _print_mix_info(args.mix, borrowers)
     print(f"Loaded {len(lenders)} competing lenders:\n")
     for l in lenders:
@@ -328,9 +389,21 @@ def main() -> None:
               f"Deployed: ${deployed:,.0f} | "
               f"Target Yield: {l.target_yield_pct}%")
 
-    clear_usage()
-    _run_single(borrowers, lenders, api_key, mock=mock, data_mode=args.data_mode)
-    if not mock:
+    if not mock and backend == "openrouter":
+        from .llm import clear_usage  # Imported lazily to preserve mock/offline mode.
+        clear_usage()
+    _run_single(
+        borrowers,
+        lenders,
+        api_key,
+        mock=mock,
+        data_mode=args.data_mode,
+        underwriting_backend=backend,
+        los_base_url=args.los_base_url,
+        los_timeout_s=args.los_timeout_s,
+        los_tenant_id=args.los_tenant_id,
+    )
+    if not mock and backend == "openrouter":
         _print_cost_summary()
 
     print("\nSimulation complete.\n")

@@ -52,6 +52,9 @@ cp .env.example .env
 # Elo tournament (recommended)
 python elo_benchmark.py --mix analyst --matches 50
 
+# Deterministic mock replay (fixed borrower order)
+python -m loanville --mock --mix fraud --data-mode lite --seed 42
+
 # Resume from previous results
 python elo_benchmark.py --mix analyst --matches 80 --resume elo_results.json
 
@@ -60,6 +63,23 @@ python elo_benchmark.py --standings elo_results.json
 
 # Single-run benchmark with Pareto analysis
 python benchmark_models.py --mix analyst
+```
+
+### Run SIM with Open LOS backend
+
+```bash
+# 1) Start Open LOS API (from ../LOS)
+cd ../LOS
+npm install
+DB_PATH=file:./sim-integration.db PORT=3100 npm run start --workspace=packages/api
+
+# 2) Run SIM against LOS API (from ../SIM)
+cd ../SIM
+python -m loanville --mix fraud --seed 42 --sample-size 6 \
+  --underwriting-backend los --los-base-url http://localhost:3100
+
+# 3) Integration smoke test
+python scripts/test_los_integration.py --los-base-url http://localhost:3100
 ```
 
 ## Configuration
@@ -78,6 +98,7 @@ loanville/
 ├── models.py             # Dataclasses: Borrower, LenderConfig, LenderDecision, LenderScore
 ├── data.py               # 24 hand-crafted borrowers, 8 mix presets, statement generation
 ├── llm.py                # OpenRouter client, prompt construction, tool-use loop, cost tracking
+├── los_adapter.py        # Open LOS API adapter for live underwriting integration
 ├── engine.py             # SimulationEngine: origination, adjudication, booking, resolution
 ├── scoring.py            # RAROC scoring, baselines, confusion matrix, bootstrap CI, penalties
 └── mock_llm.py           # Deterministic mock for testing without API calls

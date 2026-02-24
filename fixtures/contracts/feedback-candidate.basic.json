@@ -1,0 +1,14 @@
+{
+  "candidate_id": "fb_0001",
+  "created_at": "2026-02-23T00:00:00Z",
+  "case_id": "BRW-025",
+  "severity": 4,
+  "disagreement_type": "action",
+  "policy_a": "legacy_llm_v1",
+  "policy_b": "los_adapter_v1",
+  "details": {
+    "decision_a": "approve",
+    "decision_b": "decline",
+    "note": "cash conversion risk interpreted differently"
+  }
+}

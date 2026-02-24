@@ -1,0 +1,60 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "underwriting-run.v1.json",
+  "title": "Underwriting Run v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["run_id", "timestamp_utc", "case", "policy", "decision"],
+  "properties": {
+    "run_id": { "type": "string", "minLength": 1 },
+    "timestamp_utc": { "type": "string", "format": "date-time" },
+    "case": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["case_id", "source", "segment"],
+      "properties": {
+        "case_id": { "type": "string", "minLength": 1 },
+        "source": { "type": "string", "minLength": 1 },
+        "segment": { "type": "string", "minLength": 1 }
+      }
+    },
+    "policy": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["policy_id", "model"],
+      "properties": {
+        "policy_id": { "type": "string", "minLength": 1 },
+        "model": { "type": "string", "minLength": 1 }
+      }
+    },
+    "decision": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["action", "terms", "rationale"],
+      "properties": {
+        "action": {
+          "type": "string",
+          "enum": ["approve", "decline", "counter", "refer", "pending"]
+        },
+        "terms": {
+          "type": "object",
+          "additionalProperties": true,
+          "required": ["amount", "apr", "tenor_months"],
+          "properties": {
+            "amount": { "type": "number", "minimum": 0 },
+            "apr": { "type": "number", "minimum": 0, "maximum": 1 },
+            "tenor_months": { "type": "integer", "minimum": 0 }
+          }
+        },
+        "rationale": {
+          "type": "object",
+          "additionalProperties": true,
+          "required": ["summary"],
+          "properties": {
+            "summary": { "type": "string" }
+          }
+        }
+      }
+    }
+  }
+}
