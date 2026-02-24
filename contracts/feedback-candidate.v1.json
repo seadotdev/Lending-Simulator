@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "feedback-candidate.v1.json",
+  "title": "Feedback Candidate v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "candidate_id",
+    "created_at",
+    "case_id",
+    "severity",
+    "disagreement_type",
+    "policy_a",
+    "policy_b",
+    "details"
+  ],
+  "properties": {
+    "candidate_id": { "type": "string", "minLength": 1 },
+    "created_at": { "type": "string", "format": "date-time" },
+    "case_id": { "type": "string", "minLength": 1 },
+    "severity": { "type": "integer", "minimum": 1, "maximum": 5 },
+    "disagreement_type": {
+      "type": "string",
+      "enum": ["action", "terms", "evidence", "other"]
+    },
+    "policy_a": { "type": "string", "minLength": 1 },
+    "policy_b": { "type": "string", "minLength": 1 },
+    "details": { "type": "object" }
+  }
+}

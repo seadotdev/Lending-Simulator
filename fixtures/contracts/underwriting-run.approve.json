@@ -1,0 +1,24 @@
+{
+  "run_id": "run_0001",
+  "timestamp_utc": "2026-02-23T00:00:00Z",
+  "case": {
+    "case_id": "BRW-001",
+    "source": "simulator",
+    "segment": "smb_term_loan"
+  },
+  "policy": {
+    "policy_id": "p_L001_mock",
+    "model": "deepseek/deepseek-chat-v3-0324"
+  },
+  "decision": {
+    "action": "approve",
+    "terms": {
+      "amount": 500000,
+      "apr": 0.095,
+      "tenor_months": 24
+    },
+    "rationale": {
+      "summary": "Strong cash flow and healthy leverage metrics."
+    }
+  }
+}
