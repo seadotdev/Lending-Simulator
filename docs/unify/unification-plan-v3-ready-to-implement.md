@@ -1,7 +1,7 @@
 # Unification Plan V3: Ready To Implement (LOS + SIM + UW Bench)
 
-Date: February 23, 2026
-Status: Ready to implement after Phase -1 preflight gate passes
+Date: February 24, 2026
+Status: In progress. SIM-to-LOS thin-agent loop is live; full-agent cutover and parity debt are still open.
 
 ## 0) What Changed In V3
 
@@ -15,6 +15,16 @@ Resolved in V3:
 4. Dataset manifest is now a Phase 0 hard exit gate.
 5. SIM and UW CI are now specified with concrete workflows, commands, seed policy, and tolerances.
 6. Hard gates now have numeric thresholds and named owners.
+
+## 0.1 Reality Update (February 24, 2026)
+
+This plan has been corrected against current repo state:
+
+1. API parity is not yet zero-drift (`runtime_only=56`, `spec_only=2`, `method_mismatch=1`).
+2. Release parity gate is now configured as a no-regression ratchet using `integration/parity/parity_baseline.json`.
+3. `/v1/deals/{dealId}/evaluate` currently runs deterministic thin-agent rules; OpenAPI now reflects this and defaults `mode=rules_only`.
+4. `packages/agent/src/agent.ts` still has placeholder service-interface sections and requires production wiring work beyond "just add LLM client".
+5. SIM already supports LOS execution mode (`--underwriting-backend los`, plus `--los` alias) through `loanville/los_adapter.py`.
 
 ## 1) Objectives And Scope
 
@@ -135,7 +145,12 @@ Report fields:
 
 ### 5.4 Enforceable Gate (Owner: LOS API Owner)
 
-For release branch:
+For release branch (current ratchet policy):
+
+1. `unexpected_count = 0` versus `integration/parity/parity_baseline.json`
+2. Allowlist must be empty in release mode.
+
+Target end state (explicitly not yet met):
 
 1. `runtime_only_count = 0`
 2. `spec_only_count = 0`
