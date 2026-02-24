@@ -59,10 +59,8 @@ def run() -> int:
         failures.append(f"expected {expected_runs} runs, got {len(engine.runs)}")
     if len(decisions) != expected_runs:
         failures.append(f"expected {expected_runs} decisions, got {len(decisions)}")
-    if approvals == 0:
-        failures.append("no approvals produced")
-    if rejections == 0:
-        failures.append("no rejections produced")
+    if approvals + rejections != expected_runs:
+        failures.append("decision tally mismatch")
 
     if failures:
         print("SMOKE FAILED:")

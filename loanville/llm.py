@@ -10,7 +10,17 @@ the borrower's 12-month bank statement data.
 import asyncio
 import json
 import re
-from just_bash import Bash as JustBash
+from typing import Any
+
+try:
+    from just_bash import Bash as JustBash
+    from just_bash.types import ExecutionLimits
+    JUST_BASH_AVAILABLE = True
+except ModuleNotFoundError:
+    JustBash = Any  # type: ignore[assignment]
+    ExecutionLimits = None
+    JUST_BASH_AVAILABLE = False
+
 from openai import AsyncOpenAI
 from .models import (
     Borrower,
@@ -652,9 +662,10 @@ MAX_TOOL_ROUNDS = 3   # Max tool-call round-trips before forcing a final answer
 MAX_CALLS_PER_ROUND = 5  # Max parallel tool calls processed per round
 
 
-def _create_sandbox(borrower: Borrower) -> JustBash:
+def _create_sandbox(borrower: Borrower) -> JustBash | None:
     """Create a just-bash sandbox with the borrower's bank statements pre-loaded."""
-    from just_bash.types import ExecutionLimits
+    if not JUST_BASH_AVAILABLE or ExecutionLimits is None:
+        return None
 
     bank_json = _bank_statements_to_json(borrower, focus="all")
     return JustBash(
@@ -721,7 +732,7 @@ async def evaluate_borrower(
                     "temperature": 0.3,
                     "max_tokens": 2048,
                 }
-                if round_num < MAX_TOOL_ROUNDS and data_mode == "full":
+                if round_num < MAX_TOOL_ROUNDS and data_mode == "full" and sandbox is not None:
                     kwargs["tools"] = TOOLS_SANDBOX
                 else:
                     # No tools: either not full mode, or final round
