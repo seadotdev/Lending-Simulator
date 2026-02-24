@@ -1,0 +1,51 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  sim-ci:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.11"]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Static and import sanity
+        run: python -m compileall loanville
+
+      - name: Deterministic mock simulation smoke
+        run: python -m loanville --mock --mix fraud --data-mode lite --seed 42
+
+      - name: Deterministic replay hash check
+        run: python scripts/check_mock_replay.py --mix fraud --data-mode lite --seed 42
+
+      - name: Underwriting mode regression smoke
+        run: python test_underwriting_modes.py
+
+      - name: Contract fixtures validation
+        run: python scripts/validate_contract_fixtures.py
+
+      - name: Upload simulation artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: sim-runs-and-logs
+          if-no-files-found: warn
+          path: |
+            runs/**
+            underwriting_mode_results.json
+            loanville_trace.json

@@ -1,0 +1,24 @@
+{
+  "run_id": "run_0002",
+  "timestamp_utc": "2026-02-23T00:00:00Z",
+  "case": {
+    "case_id": "BRW-010",
+    "source": "simulator",
+    "segment": "smb_term_loan"
+  },
+  "policy": {
+    "policy_id": "p_L001_mock",
+    "model": "deepseek/deepseek-chat-v3-0324"
+  },
+  "decision": {
+    "action": "decline",
+    "terms": {
+      "amount": 0,
+      "apr": 0.0,
+      "tenor_months": 0
+    },
+    "rationale": {
+      "summary": "Fraud indicators detected in statement evidence."
+    }
+  }
+}

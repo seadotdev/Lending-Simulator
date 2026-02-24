@@ -286,6 +286,8 @@ def main() -> None:
                         default="full",
                         help="Financial data presentation mode (default: full). "
                              "'lite' uses compact prompts optimized for small models (3B-30B).")
+    parser.add_argument("--seed", type=int, default=None,
+                        help="Random seed for deterministic borrower ordering")
     parser.add_argument("--los", action="store_true",
                         help="Use Open LOS for evaluation instead of direct OpenRouter")
     parser.add_argument("--los-url", default="http://localhost:3000",
@@ -337,7 +339,7 @@ def main() -> None:
         print(f"  [LOS MODE] → {args.los_url} (mode={args.los_mode})")
     print("=" * 70)
 
-    borrowers = get_borrowers(args.mix)
+    borrowers = get_borrowers(args.mix, seed=args.seed)
     lenders = get_lenders()
 
     print(f"\nLoaded {len(borrowers)} borrower applications")

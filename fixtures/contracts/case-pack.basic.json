@@ -1,0 +1,19 @@
+{
+  "case_pack_id": "pack_fraud_seed42",
+  "generated_at": "2026-02-23T00:00:00Z",
+  "mix": "fraud",
+  "seed": 42,
+  "cases": [
+    {
+      "case_id": "case_001",
+      "borrower_id": "BRW-010",
+      "requested_amount": 450000,
+      "documents": [
+        {
+          "document_id": "doc_bank_001",
+          "type": "bank_statement"
+        }
+      ]
+    }
+  ]
+}

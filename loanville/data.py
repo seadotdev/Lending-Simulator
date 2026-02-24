@@ -1941,14 +1941,33 @@ MIX_PRESETS: dict[str, dict[str, list[str]]] = {
 # Public API
 # ---------------------------------------------------------------------------
 
-def get_borrowers(mix: str = "easy") -> list[Borrower]:
-    """Return borrowers filtered by the chosen mix preset."""
+def get_borrowers(
+    mix: str = "easy",
+    seed: int | None = None,
+    sample_size: int | None = None,
+) -> list[Borrower]:
+    """Return borrowers filtered by mix, with optional deterministic ordering/sampling."""
     all_borrowers = _build_borrowers()
     if mix not in MIX_PRESETS:
         raise ValueError(f"Unknown mix '{mix}'. Choose from: {list(MIX_PRESETS)}")
     preset = MIX_PRESETS[mix]
     allowed = set(preset["good"] + preset["bad"] + preset["fraud"])
-    return [b for b in all_borrowers if b.id in allowed]
+    selected = [b for b in all_borrowers if b.id in allowed]
+
+    if seed is not None:
+        rng = random.Random(seed)
+        rng.shuffle(selected)
+
+    if sample_size is not None:
+        if sample_size <= 0:
+            raise ValueError("sample_size must be > 0")
+        if sample_size > len(selected):
+            raise ValueError(
+                f"sample_size={sample_size} exceeds available borrowers ({len(selected)})"
+            )
+        selected = selected[:sample_size]
+
+    return selected
 
 
 def get_lenders() -> list[LenderConfig]:

@@ -27,6 +27,7 @@ from .models import (
     LoanOutcome,
     TermSheet,
 )
+from .contracts import normalize_apr_to_decimal
 
 
 # ---------------------------------------------------------------------------
@@ -221,7 +222,7 @@ class RunDecision:
         if d.term_sheet:
             terms = DecisionTerms(
                 amount=d.term_sheet.loan_amount,
-                apr=d.term_sheet.interest_rate / 100.0,
+                apr=normalize_apr_to_decimal(d.term_sheet.interest_rate),
                 tenor_months=d.term_sheet.term_months,
             )
         return cls(
