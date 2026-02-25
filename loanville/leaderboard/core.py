@@ -299,18 +299,9 @@ def emit_match_record_from_season(
     We reconstruct the per_borrower data from the season engine's
     accumulated all_decisions, all_borrowers, and all_deal_results.
 
-    Known issues:
-    - raroc_score is set to SeasonScore.final_score (0-100 composite) rather than
-      actual RAROC %. This doesn't affect Elo computation (which uses per-borrower
-      utility), but the avg_raroc display on the leaderboard mixes scales when
-      season and single-run matches coexist.
-    - display_name comes from the lender persona (e.g. "Heritage [Gemini-Flash]")
-      which can differ from single-run display names for the same model_id. The
-      leaderboard keys by model_id so Elo is correct, but standings show whichever
-      display_name was seen first.
-    - Utility for won deals is matched by borrower_name (company name), which could
-      collide if two borrowers across different weeks share a name. In practice the
-      generator avoids this within a season, but it's not guaranteed.
+    Note: raroc_score is set to SeasonScore.final_score (0-100 composite)
+    rather than actual RAROC %. The leaderboard displays avg_net_pnl instead
+    of avg_raroc to avoid scale confusion across match types.
     """
     from ..scoring import compute_confusion_matrix
 
@@ -354,11 +345,11 @@ def emit_match_record_from_season(
             else:
                 decision_state = "lost"
 
-            # Compute utility from resolved loans
+            # Compute utility from resolved loans (match by borrower_id)
             utility = 0.0
             if decision_state == "won":
                 for lo in state.resolved_loans:
-                    if lo.borrower_name == b.dossier.company_name:
+                    if lo.borrower_id == b.id:
                         utility = lo.total_interest_paid - lo.principal_lost
                         break
 
@@ -518,13 +509,14 @@ def compute_leaderboard(matches: list[dict] | None = None, config: dict | None =
     k = config.get("k", DEFAULT_K)
     initial_elo = config.get("initial_elo", INITIAL_ELO)
 
-    # Collect all model IDs seen
+    # Collect all model IDs seen — use model short name for display
+    # (persona names like "Heritage Trust Bank" vary across match types)
     all_models = {}  # model_id -> display_name
     for match in matches:
         for m in match.get("models", []):
             mid = m["model_id"]
             if mid not in all_models:
-                all_models[mid] = m.get("display_name", mid)
+                all_models[mid] = mid.split("/")[-1]
 
     # Init ratings
     profit_ratings = {mid: float(initial_elo) for mid in all_models}
@@ -533,7 +525,7 @@ def compute_leaderboard(matches: list[dict] | None = None, config: dict | None =
 
     # Track per-model aggregates
     match_counts = {mid: 0 for mid in all_models}
-    total_raroc = {mid: 0.0 for mid in all_models}
+    total_net_pnl = {mid: 0.0 for mid in all_models}
     agg_confusion = {}
     for mid in all_models:
         agg_confusion[mid] = {
@@ -565,7 +557,7 @@ def compute_leaderboard(matches: list[dict] | None = None, config: dict | None =
             credit_ratings.setdefault(mid, float(initial_elo))
             dealshare_ratings.setdefault(mid, float(initial_elo))
             match_counts.setdefault(mid, 0)
-            total_raroc.setdefault(mid, 0.0)
+            total_net_pnl.setdefault(mid, 0.0)
 
         # Update all three Elo systems
         dealshare_ratings = update_dealshare_elo(dealshare_ratings, elo_results, k=k)
@@ -576,7 +568,7 @@ def compute_leaderboard(matches: list[dict] | None = None, config: dict | None =
         for r in match.get("results", []):
             mid = r["model_id"]
             match_counts[mid] = match_counts.get(mid, 0) + 1
-            total_raroc[mid] = total_raroc.get(mid, 0.0) + r.get("raroc_score", 0.0)
+            total_net_pnl[mid] = total_net_pnl.get(mid, 0.0) + r.get("net_pnl", 0.0)
 
             # Confusion matrix
             cm = r.get("confusion_matrix", {})
@@ -627,7 +619,7 @@ def compute_leaderboard(matches: list[dict] | None = None, config: dict | None =
             "credit_elo": round(credit_ratings.get(mid, initial_elo), 1),
             "dealshare_elo": round(dealshare_ratings.get(mid, initial_elo), 1),
             "matches_played": n,
-            "avg_raroc": round(total_raroc.get(mid, 0.0) / n, 2) if n > 0 else 0.0,
+            "avg_net_pnl": round(total_net_pnl.get(mid, 0.0) / n, 2) if n > 0 else 0.0,
             "confusion_agg": agg_confusion.get(mid, {}),
             "rate_analysis": {
                 "avg_rate_good": round(sum(good_rates) / len(good_rates), 2) if good_rates else None,

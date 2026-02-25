@@ -43,17 +43,18 @@ def cmd_standings(args):
     print(f"  {lb.get('n_matches', 0)} matches | computed {lb.get('computed_at', '?')}")
     print(f"{'='*80}")
 
-    print(f"\n  {'#':<4} {'Model':<35} {'Profit':>8} {'Credit':>8} {'Deal':>8} {'Matches':>8} {'RAROC':>8}")
-    print(f"  {'─'*79}")
+    print(f"\n  {'#':<4} {'Model':<35} {'Profit':>8} {'Credit':>8} {'Deal':>8} {'Matches':>8} {'Avg P&L':>12}")
+    print(f"  {'─'*83}")
 
     for i, s in enumerate(standings, 1):
         name = s["display_name"]
         if len(name) > 33:
             name = name[:30] + "..."
+        avg_pnl = s.get("avg_net_pnl", s.get("avg_raroc", 0.0))
         print(
             f"  {i:<4} {name:<35} "
             f"{s['profit_elo']:>7.0f} {s['credit_elo']:>7.0f} {s['dealshare_elo']:>7.0f} "
-            f"{s['matches_played']:>8} {s['avg_raroc']:>+7.1f}%"
+            f"{s['matches_played']:>8} ${avg_pnl:>+10,.0f}"
         )
 
     # Confusion matrix summary
@@ -218,13 +219,14 @@ def _export_markdown(lb, standings):
     print(f"")
     print(f"*{lb.get('n_matches', 0)} matches | updated {lb.get('computed_at', '?')}*")
     print(f"")
-    print(f"| # | Model | Profit Elo | Credit Elo | DealShare Elo | Matches | Avg RAROC |")
-    print(f"|---|-------|-----------|-----------|--------------|---------|-----------|")
+    print(f"| # | Model | Profit Elo | Credit Elo | DealShare Elo | Matches | Avg Net P&L |")
+    print(f"|---|-------|-----------|-----------|--------------|---------|-------------|")
     for i, s in enumerate(standings, 1):
+        avg_pnl = s.get("avg_net_pnl", s.get("avg_raroc", 0.0))
         print(
             f"| {i} | {s['display_name']} | "
             f"{s['profit_elo']:.0f} | {s['credit_elo']:.0f} | {s['dealshare_elo']:.0f} | "
-            f"{s['matches_played']} | {s['avg_raroc']:+.1f}% |"
+            f"{s['matches_played']} | ${avg_pnl:+,.0f} |"
         )
 
     print(f"")

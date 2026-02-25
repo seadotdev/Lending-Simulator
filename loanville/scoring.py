@@ -1113,16 +1113,18 @@ def _score_portfolio_management(state: SeasonLenderState, season_length: int) ->
     score = 0.0
 
     # Capital utilization (0-40)
+    # Sweet spot: 60-85%. Symmetric penalties outside this range:
+    #   below 60%: linear decrease to 0 at 30% (penalizes idle capital)
+    #   above 85%: linear decrease to 0 at 115% (penalizes over-deployment)
+    # Same slope both sides so conservative inactivity isn't rewarded.
     if state.weekly_utilization:
         avg_util = sum(state.weekly_utilization) / len(state.weekly_utilization)
-        # Sweet spot: 60-85%
         if 0.60 <= avg_util <= 0.85:
             util_score = 40.0
         elif avg_util < 0.60:
-            util_score = 40.0 * (avg_util / 0.60)
+            util_score = 40.0 * max(0.0, (avg_util - 0.30) / 0.30)
         else:
-            # Over 85%: linearly decrease
-            util_score = 40.0 * max(0.0, 1.0 - (avg_util - 0.85) / 0.15)
+            util_score = 40.0 * max(0.0, 1.0 - (avg_util - 0.85) / 0.30)
         score += util_score
 
     # Concentration discipline (0-30)

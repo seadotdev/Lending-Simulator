@@ -252,6 +252,7 @@ class SeasonEngine:
                         loan_id=loan.loan_id,
                         lender_id=loan.lender_id,
                         borrower_name=loan.borrower_name,
+                        borrower_id=loan.borrower_id,
                         sector=loan.sector,
                         principal=loan.principal,
                         total_interest_paid=loan.total_interest_collected,
@@ -282,6 +283,7 @@ class SeasonEngine:
                         loan_id=loan.loan_id,
                         lender_id=loan.lender_id,
                         borrower_name=loan.borrower_name,
+                        borrower_id=loan.borrower_id,
                         sector=loan.sector,
                         principal=loan.principal,
                         total_interest_paid=loan.total_interest_collected,
@@ -549,16 +551,28 @@ class SeasonEngine:
                 util = 0.0
             state.weekly_utilization.append(util)
 
-            # Check concentration violations
-            for sector, exposure in state.sector_exposure.items():
-                lender = next(
-                    (l for l in self.base_lenders if l.id == state.lender_id), None
-                )
-                if lender:
+            # Check concentration violations — only count if the season's own
+            # lending pushed a sector over the limit. Inherited concentration from
+            # the existing portfolio is not penalized.
+            lender = next(
+                (l for l in self.base_lenders if l.id == state.lender_id), None
+            )
+            if lender and state.total_capital > 0:
+                baseline_exposure: dict[str, float] = {}
+                for ex in lender.existing_portfolio:
+                    baseline_exposure[ex.sector] = (
+                        baseline_exposure.get(ex.sector, 0.0) + ex.remaining_balance
+                    )
+                violated = False
+                for sector, exposure in state.sector_exposure.items():
                     limit = lender.sector_limits.get(sector, 1.0)
-                    if state.total_capital > 0 and exposure / state.total_capital > limit:
-                        state.weeks_with_concentration_violations += 1
+                    pct = exposure / state.total_capital
+                    baseline_pct = baseline_exposure.get(sector, 0.0) / lender.total_capital
+                    if pct > limit and pct > baseline_pct:
+                        violated = True
                         break
+                if violated:
+                    state.weeks_with_concentration_violations += 1
 
     def _record_week_snapshots(self, week: int) -> None:
         """Save structured per-week snapshot for analytics."""
@@ -647,6 +661,7 @@ class SeasonEngine:
                     loan_id=loan.loan_id,
                     lender_id=loan.lender_id,
                     borrower_name=loan.borrower_name,
+                    borrower_id=loan.borrower_id,
                     sector=loan.sector,
                     principal=loan.principal,
                     total_interest_paid=loan.total_interest_collected,

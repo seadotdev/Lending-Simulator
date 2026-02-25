@@ -12,14 +12,10 @@ Three models that showed close outcomes in legacy ELO tournaments:
 
 Each model gets one lender slot — pure 3-way head-to-head.
 
-Known issues / observations:
-  - Concentration penalty from existing portfolio can dominate portfolio mgmt score.
-    Lenders with baseline books that overlap a single sector get 0% concentration
-    even if their season lending is diversified. This makes the score volatile.
+Notes:
   - LLM non-determinism causes score swings across runs despite fixed seed=42
     (seed controls borrower generation, not LLM outputs).
-  - Nemotron tends to be very selective (many rejections), which gives it perfect
-    portfolio scores but fewer deals won and sometimes lower P&L.
+  - Results are emitted to the leaderboard (leaderboard/matches/) for Elo tracking.
 """
 
 import asyncio

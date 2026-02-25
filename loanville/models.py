@@ -121,6 +121,7 @@ class LoanOutcome:
     loan_id: str
     lender_id: str
     borrower_name: str
+    borrower_id: str
     sector: str
     principal: float
     total_interest_paid: float
