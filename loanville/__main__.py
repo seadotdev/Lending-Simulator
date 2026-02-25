@@ -4,6 +4,7 @@ Entry point for: python -m loanville
 Usage:
   python -m loanville                    # Live mode, easy mix (default)
   python -m loanville --mock             # Mock mode (no API key needed)
+  python -m loanville --season --mock    # Season mode (multi-week, carry-forward)
   python -m loanville --mix hard         # Adversarial stress test
   python -m loanville --compare          # Compare big vs small models (mock)
   python -m loanville --rotate           # Rotate models across lender roles (live)
@@ -104,6 +105,52 @@ def _run_single(borrowers, lenders, api_key="", mock=False, data_mode="full",
         borrowers=borrowers,
         economics=economics,
         runs=engine.runs,
+    )
+    print_final_report(scores, economics=economics)
+    return scores
+
+
+def _run_season(lenders, api_key="", mock=False, data_mode="full",
+                use_los=False, los_url="http://localhost:3000",
+                los_provider="openrouter", los_mode="rules_only",
+                underwrite_only=False, los_model=None,
+                economics=None, weeks=10, cohort_size=5,
+                months_per_week=2, season_mix="realistic", seed=42):
+    """Run a multi-week season with persistent lender state."""
+    from .season import SeasonConfig, SeasonEngine
+
+    season_cfg = SeasonConfig(
+        weeks=weeks,
+        cohort_size=cohort_size,
+        months_per_week=months_per_week,
+        season_mix=season_mix,
+        seed=seed,
+    )
+    season = SeasonEngine(
+        config=season_cfg,
+        lenders=lenders,
+        openrouter_api_key=api_key,
+        mock=mock,
+        data_mode=data_mode,
+        use_los=use_los,
+        los_url=los_url,
+        los_provider=los_provider,
+        los_mode=los_mode,
+        underwrite_only=underwrite_only,
+        los_model=los_model,
+        economics=economics,
+    )
+    asyncio.run(season.run())
+
+    scores = score_lenders(
+        lenders,
+        season.all_decisions,
+        season.booked_loans,
+        season.loan_outcomes,
+        season.deal_results,
+        borrowers=season.borrowers_seen,
+        economics=economics,
+        runs=season.runs,
     )
     print_final_report(scores, economics=economics)
     return scores
@@ -279,6 +326,8 @@ def main() -> None:
     load_dotenv()
 
     parser = argparse.ArgumentParser(description="Loanville — The LLM Lending Simulator")
+    parser.add_argument("--season", action="store_true",
+                        help="Run season mode (multi-week, carry-forward state)")
     parser.add_argument("--mock", action="store_true",
                         help="Use mock LLM responses (no API key needed)")
     parser.add_argument("--compare", action="store_true",
@@ -289,6 +338,15 @@ def main() -> None:
                         help="Number of rotation rounds (default: 3)")
     parser.add_argument("--mix", choices=list(MIX_PRESETS.keys()), default="easy",
                         help="Borrower population mix (default: easy)")
+    parser.add_argument("--season-mix", choices=["gentle", "realistic", "adversarial", "escalating"],
+                        default="realistic",
+                        help="Season profile mix (default: realistic). Used only with --season.")
+    parser.add_argument("--weeks", type=int, default=10,
+                        help="Season length in weeks (default: 10). Used only with --season.")
+    parser.add_argument("--cohort-size", type=int, default=5,
+                        help="Borrowers per week in season mode (default: 5).")
+    parser.add_argument("--months-per-week", type=int, default=2,
+                        help="Simulated months advanced per week (default: 2).")
     parser.add_argument("--data-mode",
                         choices=["full", "quarterly_only", "aggregate_only", "statements_inline", "lite"],
                         default="full",
@@ -318,6 +376,11 @@ def main() -> None:
                         default="balanced",
                         help="Economics preset: balanced (default), aggressive, conservative")
     args = parser.parse_args()
+
+    if args.season and args.compare:
+        parser.error("--season and --compare cannot be used together.")
+    if args.season and args.rotate:
+        parser.error("--season and --rotate cannot be used together.")
 
     if args.compare:
         print("=" * 70)
@@ -355,6 +418,8 @@ def main() -> None:
     print("  LOANVILLE — THE LLM LENDING SIMULATOR")
     if mock:
         print("  [MOCK MODE]")
+    if args.season:
+        print("  [SEASON MODE]")
     elif use_los:
         uw_flag = " underwrite-only" if args.underwrite_only else ""
         model_flag = f" model={args.los_model}" if args.los_model else ""
@@ -362,18 +427,52 @@ def main() -> None:
     print(f"  Economics: {economics.name}")
     print("=" * 70)
 
-    borrowers = get_borrowers(args.mix, seed=args.seed)
     lenders = get_lenders()
 
-    print(f"\nLoaded {len(borrowers)} borrower applications")
-    _print_mix_info(args.mix, borrowers)
-    print(f"Loaded {len(lenders)} competing lenders:\n")
+    print(f"\nLoaded {len(lenders)} competing lenders:\n")
     for l in lenders:
         deployed = sum(x.remaining_balance for x in l.existing_portfolio)
         print(f"  {l.name} ({l.model})")
         print(f"    Capital: ${l.total_capital:,.0f} | "
               f"Deployed: ${deployed:,.0f} | "
               f"Target Yield: {l.target_yield_pct}%")
+
+    if args.season:
+        season_seed = args.seed if args.seed is not None else 42
+        print(
+            f"\nSeason settings: weeks={args.weeks}, cohort_size={args.cohort_size}, "
+            f"months_per_week={args.months_per_week}, season_mix={args.season_mix}, "
+            f"seed={season_seed}"
+        )
+        if not mock and not use_los:
+            from .llm import clear_usage
+            clear_usage()
+        _run_season(
+            lenders=lenders,
+            api_key=api_key,
+            mock=mock,
+            data_mode=args.data_mode,
+            use_los=use_los,
+            los_url=args.los_url,
+            los_provider=args.los_provider,
+            los_mode=args.los_mode,
+            underwrite_only=args.underwrite_only,
+            los_model=args.los_model,
+            economics=economics,
+            weeks=args.weeks,
+            cohort_size=args.cohort_size,
+            months_per_week=args.months_per_week,
+            season_mix=args.season_mix,
+            seed=season_seed,
+        )
+        if not mock and not use_los:
+            _print_cost_summary()
+        print("\nSeason complete.\n")
+        return
+
+    borrowers = get_borrowers(args.mix, seed=args.seed)
+    print(f"\nLoaded {len(borrowers)} borrower applications")
+    _print_mix_info(args.mix, borrowers)
 
     if not mock and not use_los:
         from .llm import clear_usage
