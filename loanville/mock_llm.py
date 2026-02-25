@@ -100,7 +100,13 @@ def _evaluate_mock(
 
     # === FRAUD DETECTION ===
     # Rates depend on data_mode: fraud patterns are in raw bank statements
-    if data_mode in ("full", "statements_inline"):
+    if data_mode == "brenner":
+        # Brenner mode: structured hypothesis testing boosts detection.
+        # The explicit falsification framework makes models consider fraud
+        # as a first-class hypothesis rather than an afterthought, and the
+        # discriminative test design targets high-information-gain queries.
+        fraud_detection_rate = {"large": 0.98, "medium": 0.65, "small": 0.30}[tier]
+    elif data_mode in ("full", "statements_inline"):
         # Raw transaction data available — full detection capability
         fraud_detection_rate = {"large": 0.95, "medium": 0.50, "small": 0.20}[tier]
     elif data_mode in ("quarterly_only", "lite"):
@@ -131,9 +137,26 @@ def _evaluate_mock(
                        "business should have a handful of large client payments, not 15+ sub-$10K "
                        "deposits. This pattern is consistent with structuring to avoid CTR thresholds.",
         }
+        fraud_hypotheses = None
+        fraud_dominant = None
+        if data_mode == "brenner":
+            fraud_hypotheses = [
+                {"id": "H1", "label": "Legitimate healthy business",
+                 "prior": 0.5, "posterior": 0.02,
+                 "evidence": ["Bank statement anomalies FALSIFY legitimate business hypothesis"]},
+                {"id": "H2", "label": "Legitimate but over-leveraged",
+                 "prior": 0.3, "posterior": 0.03,
+                 "evidence": ["Anomaly pattern inconsistent with simple credit issues"]},
+                {"id": "H3", "label": "Potential fraud",
+                 "prior": 0.2, "posterior": 0.95,
+                 "evidence": [reasons.get(bid, "Fraud indicators detected")]},
+            ]
+            fraud_dominant = "H3"
         return LenderDecision(
             lender_id=lid, borrower_id=bid, decision="REJECT",
             reasoning=reasons.get(bid, "Fraud indicators detected in financial statements."),
+            hypotheses=fraud_hypotheses,
+            dominant_hypothesis=fraud_dominant,
         )
 
     # === BAD BUSINESS DETECTION ===
@@ -150,7 +173,11 @@ def _evaluate_mock(
 
     if is_cash_conversion:
         # Only detectable from raw bank statements
-        if data_mode in ("full", "statements_inline"):
+        if data_mode == "brenner":
+            # Brenner: explicit "over-leveraged/declining" hypothesis drives
+            # targeted cash-flow queries that expose conversion issues.
+            bad_detection_rate = {"large": 0.90, "medium": 0.45, "small": 0.15}[tier]
+        elif data_mode in ("full", "statements_inline"):
             bad_detection_rate = {"large": 0.80, "medium": 0.35, "small": 0.10}[tier]
         elif data_mode in ("quarterly_only", "lite"):
             # Quarterly P&L looks fine — nearly undetectable
@@ -159,7 +186,11 @@ def _evaluate_mock(
             # Annual totals look great — essentially invisible
             bad_detection_rate = {"large": 0.05, "medium": 0.02, "small": 0.01}[tier]
     else:
-        if data_mode in ("full", "quarterly_only"):
+        if data_mode == "brenner":
+            # Brenner: parallel hypothesis framework catches subtle margin
+            # compression and DSCR issues that single-pass analysis misses.
+            bad_detection_rate = {"large": 0.92, "medium": 0.55, "small": 0.22}[tier]
+        elif data_mode in ("full", "quarterly_only"):
             # Quarterly trends visible — good detection of margin/revenue issues
             bad_detection_rate = {"large": 0.85, "medium": 0.40, "small": 0.15}[tier]
         elif data_mode == "lite":
@@ -209,9 +240,26 @@ def _evaluate_mock(
                        "collections, creating a widening cash gap. Additional debt service would "
                        "push working capital negative.",
         }
+        bad_hypotheses = None
+        bad_dominant = None
+        if data_mode == "brenner":
+            bad_hypotheses = [
+                {"id": "H1", "label": "Legitimate healthy business",
+                 "prior": 0.5, "posterior": 0.05,
+                 "evidence": ["Financial trend analysis FALSIFIES healthy business hypothesis"]},
+                {"id": "H2", "label": "Legitimate but over-leveraged / declining",
+                 "prior": 0.3, "posterior": 0.90,
+                 "evidence": [reasons.get(bid, "Fundamental business weaknesses detected")]},
+                {"id": "H3", "label": "Potential fraud",
+                 "prior": 0.2, "posterior": 0.05,
+                 "evidence": ["No fraud indicators — issues are genuine credit weakness"]},
+            ]
+            bad_dominant = "H2"
         return LenderDecision(
             lender_id=lid, borrower_id=bid, decision="REJECT",
             reasoning=reasons.get(bid, "Fundamental business weaknesses detected."),
+            hypotheses=bad_hypotheses,
+            dominant_hypothesis=bad_dominant,
         )
 
     # === SECTOR CONCENTRATION CHECK ===
@@ -283,6 +331,23 @@ def _evaluate_mock(
     else:
         reasoning = f"Business financials reviewed. Revenue and cash flow appear sufficient."
 
+    # Build Brenner hypothesis trace for brenner mode
+    hypotheses = None
+    dominant_hypothesis = None
+    if data_mode == "brenner":
+        hypotheses = [
+            {"id": "H1", "label": "Legitimate healthy business",
+             "prior": 0.5, "posterior": 0.75,
+             "evidence": ["Quarterly revenue stable/growing", "Cash flow adequate for DSCR"]},
+            {"id": "H2", "label": "Legitimate but over-leveraged",
+             "prior": 0.3, "posterior": 0.20,
+             "evidence": ["DSCR analysis shows coverage above 1.0x"]},
+            {"id": "H3", "label": "Potential fraud",
+             "prior": 0.2, "posterior": 0.05,
+             "evidence": ["Bank statement deposits show normal business patterns"]},
+        ]
+        dominant_hypothesis = "H1"
+
     return LenderDecision(
         lender_id=lid, borrower_id=bid, decision="APPROVE",
         reasoning=reasoning,
@@ -291,6 +356,8 @@ def _evaluate_mock(
             interest_rate=round(rate, 2),
             term_months=term,
         ),
+        hypotheses=hypotheses,
+        dominant_hypothesis=dominant_hypothesis,
     )
 
 

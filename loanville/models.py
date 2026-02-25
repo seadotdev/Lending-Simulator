@@ -100,6 +100,9 @@ class LenderDecision:
     decision: str  # "APPROVE" or "REJECT"
     reasoning: str
     term_sheet: Optional[TermSheet] = None
+    # Brenner Method: hypothesis trace from structured evaluation
+    hypotheses: Optional[list[dict]] = None
+    dominant_hypothesis: Optional[str] = None
 
 
 @dataclass

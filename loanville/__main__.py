@@ -292,10 +292,18 @@ def main() -> None:
     parser.add_argument("--mix", choices=list(MIX_PRESETS.keys()), default="easy",
                         help="Borrower population mix (default: easy)")
     parser.add_argument("--data-mode",
-                        choices=["full", "quarterly_only", "aggregate_only", "statements_inline", "lite"],
+                        choices=["full", "quarterly_only", "aggregate_only",
+                                 "statements_inline", "lite", "brenner"],
                         default="full",
                         help="Financial data presentation mode (default: full). "
-                             "'lite' uses compact prompts optimized for small models (3B-30B).")
+                             "'lite' uses compact prompts optimized for small models (3B-30B). "
+                             "'brenner' uses the Brenner Method — structured hypothesis-driven "
+                             "analysis with explicit falsification, Bayesian updating, and "
+                             "discriminative tool use for improved fraud/risk detection.")
+    parser.add_argument("--brenner", action="store_true",
+                        help="Shorthand for --data-mode brenner. Enables the Brenner Method: "
+                             "hypothesis-driven underwriting with explicit falsification testing "
+                             "and iterative Bayesian updating.")
     parser.add_argument("--seed", type=int, default=None,
                         help="Random seed for deterministic borrower ordering")
     parser.add_argument("--los", action="store_true",
@@ -347,6 +355,10 @@ def main() -> None:
         parser.error("--season and --compare cannot be used together.")
     if args.season and args.rotate:
         parser.error("--season and --rotate cannot be used together.")
+
+    # --brenner is shorthand for --data-mode brenner
+    if args.brenner:
+        args.data_mode = "brenner"
 
     # Configure logging — errors always shown, -v adds per-call progress
     logging.basicConfig(
@@ -431,6 +443,8 @@ def main() -> None:
 
     print("=" * 70)
     print("  LOANVILLE — THE LLM LENDING SIMULATOR")
+    if args.data_mode == "brenner":
+        print("  [BRENNER METHOD] Hypothesis-driven underwriting")
     if mock:
         print("  [MOCK MODE]")
     elif use_los:

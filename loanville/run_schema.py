@@ -205,6 +205,17 @@ class DecisionRationale:
 
 
 @dataclass
+class BrennerHypothesisTrace:
+    """Hypothesis trace from Brenner Method evaluation."""
+    id: str = ""
+    label: str = ""
+    prior: float = 0.0
+    posterior: float = 0.0
+    evidence: list[str] = field(default_factory=list)
+    falsified: bool = False
+
+
+@dataclass
 class RunDecision:
     """The underwriting decision."""
     action: str  # "approve" | "decline" | "counter" | "refer"
@@ -215,6 +226,10 @@ class RunDecision:
     covenants: list[str] = field(default_factory=list)
     rationale: DecisionRationale = field(default_factory=DecisionRationale)
     confidence: float = 0.0
+    # Brenner Method: hypothesis trace
+    brenner_hypotheses: list[BrennerHypothesisTrace] = field(default_factory=list)
+    brenner_dominant: str = ""
+    brenner_info_score: float = 0.0  # Brenner objective function score
 
     @classmethod
     def from_lender_decision(cls, d: LenderDecision) -> RunDecision:
@@ -226,10 +241,30 @@ class RunDecision:
                 apr=normalize_apr_to_decimal(d.term_sheet.interest_rate),
                 tenor_months=d.term_sheet.term_months,
             )
+
+        # Carry through Brenner hypothesis traces if present
+        brenner_hyps = []
+        brenner_dominant = ""
+        if d.hypotheses:
+            for h in d.hypotheses:
+                if isinstance(h, dict):
+                    brenner_hyps.append(BrennerHypothesisTrace(
+                        id=h.get("id", ""),
+                        label=h.get("label", ""),
+                        prior=h.get("prior", 0.0),
+                        posterior=h.get("posterior", 0.0),
+                        evidence=h.get("evidence", []),
+                        falsified=h.get("posterior", 1.0) < 0.05,
+                    ))
+        if d.dominant_hypothesis:
+            brenner_dominant = d.dominant_hypothesis
+
         return cls(
             action=action,
             terms=terms,
             rationale=DecisionRationale(summary=d.reasoning or ""),
+            brenner_hypotheses=brenner_hyps,
+            brenner_dominant=brenner_dominant,
         )
 
 

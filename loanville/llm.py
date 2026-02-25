@@ -278,8 +278,8 @@ def _format_dossier(borrower: Borrower, data_mode: str = "full") -> str:
     lines.append(d.narrative)
     lines.append("")
 
-    # --- Quarterly income (full, quarterly_only, lite) ---
-    if data_mode in ("full", "quarterly_only", "lite"):
+    # --- Quarterly income (full, quarterly_only, lite, brenner) ---
+    if data_mode in ("full", "quarterly_only", "lite", "brenner"):
         lines.append("--- QUARTERLY INCOME STATEMENTS ---")
         lines.append("")
         header = f"  {'':20s}"
@@ -319,7 +319,7 @@ def _format_dossier(borrower: Borrower, data_mode: str = "full") -> str:
         lines.append("")
 
     # --- Data availability note ---
-    if data_mode == "full":
+    if data_mode in ("full", "brenner"):
         lines.append("NOTE: You have access to a sandboxed bash environment via the run_bash tool.")
         lines.append("The applicant's 12-month bank statements are at /data/bank_statements.json.")
         lines.append("Use jq queries to analyse deposit patterns, customer names, and anomalies.")
@@ -374,6 +374,10 @@ def _analysis_instructions(data_mode: str) -> str:
     """Generate mode-specific analysis instructions for the system prompt."""
     parts = []
 
+    # Brenner mode: analysis instructions are embedded in the Brenner prompt
+    if data_mode == "brenner":
+        return ""
+
     # Lite mode: compact instructions optimized for small models
     if data_mode == "lite":
         parts.append("INSTRUCTIONS:")
@@ -401,7 +405,7 @@ def _analysis_instructions(data_mode: str) -> str:
     parts.append("")
 
     # 1. CREDITWORTHINESS
-    if data_mode in ("full", "quarterly_only"):
+    if data_mode in ("full", "quarterly_only", "brenner"):
         parts.append(
             "1. CREDITWORTHINESS: Review the quarterly income statements carefully.\n"
             "   - Look at revenue trends across quarters — is revenue growing, flat, or declining?\n"
@@ -424,7 +428,7 @@ def _analysis_instructions(data_mode: str) -> str:
         )
 
     # 2. FRAUD DETECTION
-    if data_mode == "full":
+    if data_mode in ("full", "brenner"):
         parts.append(
             "\n2. FRAUD DETECTION: Use the run_bash tool to query the bank statement data at\n"
             "   /data/bank_statements.json with jq. Examine the raw transactions for any\n"
@@ -459,8 +463,8 @@ def _analysis_instructions(data_mode: str) -> str:
         "   - Factor in the new loan amount when checking limits"
     )
 
-    # Tool usage note (only for full mode)
-    if data_mode == "full":
+    # Tool usage note (only for full / brenner mode)
+    if data_mode in ("full", "brenner"):
         parts.append(
             "\nIMPORTANT: You SHOULD use the run_bash tool to query /data/bank_statements.json\n"
             "before making your decision. The file is a JSON array of monthly statements,\n"
@@ -475,6 +479,23 @@ def _analysis_instructions(data_mode: str) -> str:
 
 def _build_system_prompt(lender: LenderConfig, data_mode: str = "full") -> str:
     """Build the system prompt that defines the lender's persona and guidelines."""
+
+    # Brenner mode: hypothesis-driven structured analysis
+    if data_mode == "brenner":
+        from .brenner import build_brenner_system_prompt
+
+        sector_limits_str = "\n".join(
+            f"    - {sector}: max {pct*100:.0f}% of total capital"
+            for sector, pct in sorted(lender.sector_limits.items())
+        )
+        return build_brenner_system_prompt(
+            lender_persona=lender.persona,
+            target_yield_pct=lender.target_yield_pct,
+            max_single_loan=lender.max_single_loan,
+            total_capital=lender.total_capital,
+            sector_limits_str=sector_limits_str,
+            portfolio_summary=_format_portfolio_summary(lender),
+        )
 
     # Lite mode: compact system prompt for small models
     if data_mode == "lite":
@@ -635,12 +656,18 @@ def _parse_decision(lender_id: str, borrower_id: str, raw: dict | None) -> Lende
                 decision = "REJECT"
                 reasoning += " [SYSTEM: Invalid term sheet values]"
 
+    # Extract Brenner hypotheses if present
+    hypotheses = raw.get("hypotheses")
+    dominant_hypothesis = raw.get("dominant_hypothesis")
+
     return LenderDecision(
         lender_id=lender_id,
         borrower_id=borrower_id,
         decision=decision,
         reasoning=reasoning,
         term_sheet=term_sheet,
+        hypotheses=hypotheses if isinstance(hypotheses, list) else None,
+        dominant_hypothesis=str(dominant_hypothesis) if dominant_hypothesis else None,
     )
 
 
@@ -706,9 +733,9 @@ async def evaluate_borrower(
 
     tool_calls_made: list[str] = []  # Track tool usage for tracing
 
-    # Create a per-evaluation sandbox if in full mode
+    # Create a per-evaluation sandbox if in full or brenner mode
     sandbox: JustBash | None = None
-    if data_mode == "full":
+    if data_mode in ("full", "brenner"):
         sandbox = _create_sandbox(borrower)
 
     async with semaphore:
@@ -721,7 +748,7 @@ async def evaluate_borrower(
                     "temperature": 0.3,
                     "max_tokens": 2048,
                 }
-                if round_num < MAX_TOOL_ROUNDS and data_mode == "full":
+                if round_num < MAX_TOOL_ROUNDS and data_mode in ("full", "brenner"):
                     kwargs["tools"] = TOOLS_SANDBOX
                 else:
                     # No tools: either not full mode, or final round
@@ -781,7 +808,7 @@ async def evaluate_borrower(
                 decision = _parse_decision(lender.id, borrower.id, raw)
 
                 # Log the full trace
-                _call_traces.append({
+                trace_entry = {
                     "lender_id": lender.id,
                     "lender_name": lender.name,
                     "model": lender.model,
@@ -795,7 +822,12 @@ async def evaluate_borrower(
                     "parsed_json": raw,
                     "decision": decision.decision,
                     "reasoning": decision.reasoning,
-                })
+                }
+                # Include Brenner hypothesis trace if present
+                if decision.hypotheses:
+                    trace_entry["brenner_hypotheses"] = decision.hypotheses
+                    trace_entry["brenner_dominant"] = decision.dominant_hypothesis
+                _call_traces.append(trace_entry)
 
                 return decision
 

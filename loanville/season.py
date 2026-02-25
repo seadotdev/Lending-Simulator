@@ -7,6 +7,11 @@ import copy
 from collections import Counter
 
 from .borrower_gen import generate_cohort
+from .brenner import (
+    PortfolioHypothesis,
+    build_portfolio_hypothesis_briefing,
+    parse_portfolio_hypotheses_from_events,
+)
 from .cost_tracking import print_season_cost_summary
 from .custom_tools import LenderToolkit
 from .engine import SimulationEngine, resolve_loan_period
@@ -88,6 +93,8 @@ class SeasonEngine:
         self.toolkits: dict[str, LenderToolkit] = {}
         self.week_results: list[WeekResult] = []
         self.used_static_ids: set[str] = set()
+        # Brenner portfolio-level hypothesis tracking per lender
+        self.portfolio_hypotheses: dict[str, list[PortfolioHypothesis]] = {}
 
         # Pass-through kwargs for SimulationEngine
         self.engine_kwargs = dict(
@@ -145,6 +152,21 @@ class SeasonEngine:
 
             # 1. Resolve aging loans
             events = self._resolve_week(week)
+
+            # 1b. Update portfolio-level Brenner hypotheses
+            is_brenner = self.engine_kwargs.get("data_mode") == "brenner"
+            if is_brenner:
+                for lid in self.lender_states:
+                    existing_hyps = self.portfolio_hypotheses.get(lid, [])
+                    lender_events = [
+                        e for e in events
+                        if self.lender_states[lid].lender_name in e
+                    ]
+                    self.portfolio_hypotheses[lid] = (
+                        parse_portfolio_hypotheses_from_events(
+                            week, existing_hyps, lender_events
+                        )
+                    )
 
             # 2. Build and print portfolio briefings
             briefings = self._build_briefings(week, events)
@@ -354,6 +376,16 @@ class SeasonEngine:
                 f"losses: -${state.cumulative_losses:,.0f})"
             )
             lines.append("---")
+
+            # Append Brenner portfolio hypothesis briefing if in brenner mode
+            is_brenner = self.engine_kwargs.get("data_mode") == "brenner"
+            if is_brenner:
+                hyps = self.portfolio_hypotheses.get(lid, [])
+                lender_events = [e for e in events if state.lender_name in e]
+                brenner_section = build_portfolio_hypothesis_briefing(
+                    week, hyps, lender_events,
+                )
+                lines.append(brenner_section)
 
             briefings[lid] = "\n".join(lines)
 
@@ -646,6 +678,17 @@ class SeasonEngine:
             frauds = sum(1 for o in resolved if o.was_fraud)
             print(f"    Resolved Loans: {len(resolved)} "
                   f"(defaults: {defaults}, frauds funded: {frauds})")
+
+        # Brenner portfolio hypothesis final state
+        is_brenner = self.engine_kwargs.get("data_mode") == "brenner"
+        if is_brenner and self.portfolio_hypotheses:
+            print(f"\n  --- BRENNER PORTFOLIO HYPOTHESES (Final State) ---")
+            for lid, hyps in self.portfolio_hypotheses.items():
+                state = self.lender_states[lid]
+                print(f"\n  {state.lender_name}:")
+                for h in hyps:
+                    status = "RESOLVED" if h.resolved else f"P={h.posterior:.0%}"
+                    print(f"    {h.id}: {h.label} [{status}]")
 
         # Cost summary
         is_mock = self.engine_kwargs.get("mock", False)
