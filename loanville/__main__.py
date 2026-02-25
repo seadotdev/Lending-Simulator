@@ -341,6 +341,8 @@ def main() -> None:
                         help="Emit match record to leaderboard after scoring")
     parser.add_argument("-v", "--verbose", action="store_true",
                         help="Enable detailed logging (LOS calls, per-borrower progress)")
+    parser.add_argument("--json", type=str, default=None, metavar="FILE",
+                        help="Export season results to JSON file (for web viewer)")
     args = parser.parse_args()
 
     if args.season and args.compare:
@@ -438,6 +440,36 @@ def main() -> None:
             match_path, lb_path = emit_and_update(record)
             print(f"\n  Leaderboard: match -> {match_path.name}")
             print(f"  Leaderboard: standings -> {lb_path.name}")
+
+        # JSON export for web viewer
+        import json
+        from datetime import datetime
+        season_json = season.to_json()
+
+        # Save to web/seasons/ with timestamped name and rebuild index
+        web_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "web")
+        seasons_dir = os.path.join(web_dir, "seasons")
+        if os.path.isdir(web_dir):
+            os.makedirs(seasons_dir, exist_ok=True)
+            ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+            lender_names = "-".join(l["name"].split()[0] for l in season_json.get("lenders", [])[:3])
+            filename = f"{ts}_{lender_names}.json"
+            filepath = os.path.join(seasons_dir, filename)
+            with open(filepath, "w") as f:
+                json.dump(season_json, f, indent=2)
+            # Rebuild index: list all .json files sorted newest first
+            all_files = sorted(
+                [f for f in os.listdir(seasons_dir) if f.endswith(".json") and f != "index.json"],
+                reverse=True,
+            )
+            with open(os.path.join(seasons_dir, "index.json"), "w") as f:
+                json.dump(all_files, f, indent=2)
+            print(f"\nSeason data saved to: seasons/{filename}")
+
+        if args.json:
+            with open(args.json, "w") as f:
+                json.dump(season_json, f, indent=2)
+            print(f"Season data also exported to: {args.json}")
 
         print("\nSeason complete.\n")
         return

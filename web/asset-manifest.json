@@ -1,0 +1,90 @@
+{
+  "activePack": "city-builder",
+  "characterPack": "blocky-characters",
+  "packs": {
+    "city-builder": {
+      "basePath": "assets/city-builder",
+      "buildings": [
+        "building_A.gltf", "building_B.gltf", "building_C.gltf", "building_D.gltf",
+        "building_E.gltf", "building_F.gltf", "building_G.gltf", "building_H.gltf"
+      ],
+      "buildingTiers": [
+        "building_F.gltf", "building_G.gltf", "building_B.gltf", "building_D.gltf",
+        "building_H.gltf", "building_E.gltf", "building_C.gltf", "building_A.gltf"
+      ],
+      "roads": {
+        "straight": "road_straight.gltf",
+        "corner": "road_corner.gltf",
+        "corner_curved": "road_corner_curved.gltf",
+        "junction": "road_junction.gltf",
+        "tsplit": "road_tsplit.gltf",
+        "crossing": "road_straight_crossing.gltf"
+      },
+      "vehicles": [
+        "car_sedan.gltf", "car_taxi.gltf", "car_hatchback.gltf",
+        "car_police.gltf", "car_stationwagon.gltf"
+      ],
+      "props": {
+        "streetlight": "streetlight.gltf",
+        "bench": "bench.gltf",
+        "bush": "bush.gltf",
+        "firehydrant": "firehydrant.gltf",
+        "dumpster": "dumpster.gltf",
+        "trash_A": "trash_A.gltf",
+        "watertower": "watertower.gltf"
+      }
+    },
+    "suburban": {
+      "basePath": "assets/suburban",
+      "buildings": [
+        "building-type-a.glb", "building-type-b.glb", "building-type-c.glb",
+        "building-type-d.glb", "building-type-e.glb", "building-type-f.glb",
+        "building-type-g.glb", "building-type-h.glb", "building-type-i.glb",
+        "building-type-j.glb", "building-type-k.glb", "building-type-l.glb",
+        "building-type-m.glb", "building-type-n.glb", "building-type-o.glb",
+        "building-type-p.glb", "building-type-q.glb", "building-type-r.glb",
+        "building-type-s.glb", "building-type-t.glb", "building-type-u.glb"
+      ],
+      "buildingTiers": [
+        "building-type-s.glb", "building-type-t.glb", "building-type-u.glb",
+        "building-type-p.glb", "building-type-q.glb", "building-type-r.glb",
+        "building-type-m.glb", "building-type-n.glb", "building-type-o.glb",
+        "building-type-j.glb", "building-type-k.glb", "building-type-l.glb",
+        "building-type-g.glb", "building-type-h.glb", "building-type-i.glb",
+        "building-type-d.glb", "building-type-e.glb", "building-type-f.glb",
+        "building-type-a.glb", "building-type-b.glb", "building-type-c.glb"
+      ],
+      "roads": {
+        "straight": "path-long.glb"
+      },
+      "props": {
+        "streetlight": "planter.glb",
+        "bench": "fence.glb",
+        "bush": "tree-small.glb",
+        "tree": "tree-large.glb"
+      }
+    },
+    "adventurers": {
+      "basePath": "assets/adventurers",
+      "characters": [
+        "Barbarian.glb", "Knight.glb", "Mage.glb",
+        "Ranger.glb", "Rogue.glb", "Rogue_Hooded.glb"
+      ],
+      "animations": {
+        "general": "Rig_Medium_General.glb",
+        "movement": "Rig_Medium_MovementBasic.glb"
+      }
+    },
+    "blocky-characters": {
+      "basePath": "assets/blocky-characters",
+      "characters": [
+        "character-a.glb", "character-b.glb", "character-c.glb",
+        "character-d.glb", "character-e.glb", "character-f.glb",
+        "character-g.glb", "character-h.glb", "character-i.glb",
+        "character-j.glb", "character-k.glb", "character-l.glb",
+        "character-m.glb", "character-n.glb", "character-o.glb",
+        "character-p.glb", "character-q.glb", "character-r.glb"
+      ]
+    }
+  }
+}

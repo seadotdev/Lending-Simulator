@@ -88,6 +88,7 @@ class SeasonEngine:
         self.toolkits: dict[str, LenderToolkit] = {}
         self.week_results: list[WeekResult] = []
         self.used_static_ids: set[str] = set()
+        self.week_details: list[dict] = []  # per-week JSON-serializable detail
 
         # Accumulated data for leaderboard integration.
         # NOTE: these grow linearly with weeks*cohort_size. For large seasons
@@ -190,6 +191,9 @@ class SeasonEngine:
             week_result = self._ingest_results(week, engine)
             week_result.events = events
             self.week_results.append(week_result)
+
+            # 8b. Capture per-week detail for JSON export
+            self._capture_week_detail(week, cohort, engine, events)
 
             # 9. Snapshot utilization + weekly analytics
             self._snapshot_utilization()
@@ -740,6 +744,125 @@ class SeasonEngine:
                 l for l in state.active_loans if l.status == "performing"
             ]
             self._recompute_sector_exposure(state)
+
+    # ------------------------------------------------------------------
+    # Per-week detail capture (for JSON export)
+    # ------------------------------------------------------------------
+
+    def _capture_week_detail(self, week: int, cohort, engine, events: list[str]) -> None:
+        """Capture JSON-serializable per-week detail for the web viewer."""
+        borrowers = []
+        for b in cohort:
+            borrowers.append({
+                "id": b.id,
+                "name": b.dossier.company_name,
+                "sector": b.dossier.sector,
+                "amount": b.dossier.loan_request_amount,
+                "true_outcome": b.true_outcome,
+            })
+
+        decisions = []
+        for lender_id, decs in engine.all_decisions.items():
+            for d in decs:
+                decisions.append({
+                    "lender_id": lender_id,
+                    "borrower_id": d.borrower_id,
+                    "decision": d.decision,
+                    "reasoning": d.reasoning[:200] if d.reasoning else "",
+                    "term_sheet": {
+                        "amount": d.term_sheet.loan_amount,
+                        "rate": d.term_sheet.interest_rate,
+                        "term_months": d.term_sheet.term_months,
+                    } if d.term_sheet else None,
+                })
+
+        booked = []
+        for loan in engine.booked_loans:
+            booked.append({
+                "id": loan.id,
+                "borrower_id": loan.borrower_id,
+                "borrower_name": loan.borrower_name,
+                "lender_id": loan.lender_id,
+                "sector": loan.sector,
+                "principal": loan.principal,
+                "interest_rate": loan.interest_rate,
+                "term_months": loan.term_months,
+            })
+
+        # Snapshot lender states at end of this week
+        lender_snapshots = {}
+        for lid, state in self.lender_states.items():
+            total_pnl = (state.cumulative_interest + state.cumulative_fees
+                         - state.cumulative_losses)
+            lender_snapshots[lid] = {
+                "name": state.lender_name,
+                "model": state.model,
+                "net_pnl": round(total_pnl, 2),
+                "deployed": round(state.deployed_capital, 2),
+                "available": round(state.available_capital, 2),
+                "effective_capital": round(self._effective_capital(state), 2),
+                "deals_won": state.deals_won,
+                "deals_rejected": state.deals_rejected,
+                "deals_lost": state.deals_lost,
+                "active_loans": len(state.active_loans),
+                "cumulative_interest": round(state.cumulative_interest, 2),
+                "cumulative_losses": round(state.cumulative_losses, 2),
+                "cumulative_fees": round(state.cumulative_fees, 2),
+                "defaults": sum(1 for o in state.resolved_loans if o.defaulted),
+                "frauds_funded": sum(1 for o in state.resolved_loans if o.was_fraud),
+            }
+
+        self.week_details.append({
+            "week": week,
+            "borrowers": borrowers,
+            "decisions": decisions,
+            "booked_loans": booked,
+            "events": events,
+            "lender_snapshots": lender_snapshots,
+        })
+
+    # ------------------------------------------------------------------
+    # JSON export
+    # ------------------------------------------------------------------
+
+    def to_json(self) -> dict:
+        """Export full season data as a JSON-serializable dict for the web viewer."""
+        lenders = []
+        for lender in self.base_lenders:
+            state = self.lender_states[lender.id]
+            total_pnl = (state.cumulative_interest + state.cumulative_fees
+                         - state.cumulative_losses)
+            lenders.append({
+                "id": lender.id,
+                "name": state.lender_name,
+                "model": state.model,
+                "total_capital": state.total_capital,
+                "net_pnl": round(total_pnl, 2),
+                "deployed": round(state.deployed_capital, 2),
+                "deals_won": state.deals_won,
+                "deals_rejected": state.deals_rejected,
+                "deals_lost": state.deals_lost,
+                "cumulative_interest": round(state.cumulative_interest, 2),
+                "cumulative_losses": round(state.cumulative_losses, 2),
+                "cumulative_fees": round(state.cumulative_fees, 2),
+                "defaults": sum(1 for o in state.resolved_loans if o.defaulted),
+                "frauds_funded": sum(1 for o in state.resolved_loans if o.was_fraud),
+                "weekly_utilization": [round(u, 4) for u in state.weekly_utilization],
+                "weekly_snapshots": state.weekly_snapshots,
+            })
+
+        return {
+            "type": "season",
+            "config": {
+                "weeks": self.config.weeks,
+                "cohort_size": self.config.cohort_size,
+                "months_per_week": self.config.months_per_week,
+                "season_mix": self.config.season_mix,
+                "seed": self.config.seed,
+            },
+            "lenders": lenders,
+            "weeks": self.week_details,
+        }
 
     # ------------------------------------------------------------------
     # Season report

@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Loanville</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+    }
+  }
+  </script>
+</head>
+<body>
+
+  <!-- Top Bar -->
+  <header class="top-bar">
+    <div class="logo">
+      <span class="logo-icon">&#x1f3e6;</span>
+      <h1>Loanville</h1>
+    </div>
+
+    <!-- Season Selector -->
+    <div id="season-selector" class="season-selector">
+      <label class="pack-label">Season:</label>
+      <select id="select-season" class="pack-select season-select">
+        <option value="">Load file...</option>
+      </select>
+    </div>
+
+    <!-- Playback Controls -->
+    <div id="controls-group" class="controls-group" hidden>
+      <button id="btn-play" class="btn btn-control" title="Play/Pause">&#x25B6;</button>
+      <button id="btn-speed" class="btn btn-control" title="Speed">1x</button>
+      <button id="btn-reset" class="btn btn-control" title="Reset">&#x21BB;</button>
+      <span id="week-label" class="week-label">Ready</span>
+      <div class="progress-track"><div id="progress-bar" class="progress-fill"></div></div>
+      <span id="phase-label" class="phase-label">IDLE</span>
+    </div>
+
+    <!-- Asset Pack Selector -->
+    <div id="pack-selector" class="pack-selector" hidden>
+      <label class="pack-label">Buildings:</label>
+      <select id="select-building-pack" class="pack-select">
+        <option value="city-builder">City Builder</option>
+        <option value="suburban">Suburban</option>
+      </select>
+      <label class="pack-label">Characters:</label>
+      <select id="select-character-pack" class="pack-select">
+        <option value="adventurers">Adventurers</option>
+        <option value="blocky-characters" selected>Blocky</option>
+      </select>
+    </div>
+
+    <!-- Page Tabs -->
+    <div class="page-tabs">
+      <button id="tab-game" class="tab-btn active">Game</button>
+      <button id="tab-trace" class="tab-btn">LLM Trace</button>
+    </div>
+  </header>
+
+  <!-- Drop Overlay -->
+  <div id="drop-overlay" class="drop-overlay">
+    <div class="drop-overlay-content">
+      <div class="drop-zone-icon">&#x1f4c2;</div>
+      <p class="drop-zone-label">Drop <code>.json</code> trace or match files here</p>
+      <p class="drop-zone-hint">or</p>
+      <label class="btn btn-primary drop-zone-browse">
+        Browse Files
+        <input type="file" id="file-input" accept=".json" multiple hidden>
+      </label>
+    </div>
+  </div>
+
+  <!-- Game Page -->
+  <div id="page-game" class="page-game">
+    <div class="game-layout">
+      <!-- 3D Canvas -->
+      <div class="town-area">
+        <div id="town-container" class="town-container"></div>
+        <div id="timeline" class="timeline"></div>
+      </div>
+
+      <!-- Sidebar -->
+      <aside class="sidebar">
+        <div class="sidebar-section">
+          <h2 class="sidebar-title">Leaderboard</h2>
+          <div id="leaderboard" class="leaderboard"></div>
+        </div>
+
+        <div class="sidebar-section">
+          <h2 class="sidebar-title">Detail</h2>
+          <div id="detail-panel" class="detail-panel">
+            <div class="detail-placeholder">Click a building to inspect</div>
+          </div>
+        </div>
+
+        <div class="sidebar-section">
+          <h2 class="sidebar-title">Event Log</h2>
+          <div id="event-log" class="event-log">
+            <div id="event-log-body" class="event-log-body"></div>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </div>
+
+  <!-- Trace Page -->
+  <div id="page-trace" class="page-trace" hidden>
+    <div id="trace-toolbar" class="toolbar" hidden>
+      <div class="toolbar-filters">
+        <select id="filter-lender"><option value="">All lenders</option></select>
+        <select id="filter-model"><option value="">All models</option></select>
+        <select id="filter-decision">
+          <option value="">All decisions</option>
+          <option value="APPROVE">Approve</option>
+          <option value="REJECT">Reject</option>
+          <option value="ERROR">Error</option>
+        </select>
+        <input type="search" id="filter-search" placeholder="Search prompts &amp; responses..." class="search-input">
+      </div>
+      <div id="trace-stats" class="toolbar-stats"></div>
+    </div>
+    <div id="trace-content" class="content"></div>
+  </div>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>
