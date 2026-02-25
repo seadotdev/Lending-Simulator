@@ -72,10 +72,8 @@ class SeasonEngine:
         self,
         config: SeasonConfig,
         lenders: list[LenderConfig],
-        openrouter_api_key: str = "",
         mock: bool = False,
         data_mode: str = "full",
-        use_los: bool = False,
         los_url: str = "http://localhost:3000",
         los_provider: str = "openrouter",
         los_mode: str = "rules_only",
@@ -99,10 +97,8 @@ class SeasonEngine:
 
         # Pass-through kwargs for SimulationEngine
         self.engine_kwargs = dict(
-            openrouter_api_key=openrouter_api_key,
             mock=mock,
             data_mode=data_mode,
-            use_los=use_los,
             los_url=los_url,
             los_provider=los_provider,
             los_mode=los_mode,
