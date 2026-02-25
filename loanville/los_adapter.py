@@ -1,16 +1,13 @@
 """
 LOS Adapter — calls the Open LOS REST API to evaluate borrowers.
 
-Replaces llm.py when running with --los flag. The adapter translates
-SIM Borrower + LenderConfig into LOS API calls and maps the
-UnderwritingRun response back into the SIM's data model.
+The adapter translates SIM Borrower + LenderConfig into LOS API calls
+and maps the UnderwritingRun response back into the SIM's data model.
+This is the default evaluation path for all non-mock simulations.
 
 Two modes:
-  --los                  Full LOS pipeline (entity/deal/docs/spread/stages/evaluate)
-  --los --underwrite-only  Just POST /v1/underwrite with dossier inline (no LOS ceremony)
-
-Both modes send the full dossier to the evaluate endpoint, ensuring the
-LOS has the same quality of data as the sim's direct llm.py path.
+  (default)              Full LOS pipeline (entity/deal/docs/spread/stages/evaluate)
+  --underwrite-only      Just POST /v1/underwrite with dossier inline (no LOS ceremony)
 
 APR convention (per los-cutover.md section 5):
   UnderwritingRun.DecisionTerms.apr uses DECIMAL (0.095 = 9.5%)

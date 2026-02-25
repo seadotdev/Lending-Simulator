@@ -28,11 +28,6 @@ from loanville.models import ECONOMICS_PRESETS, SeasonConfig
 from loanville.scoring import score_season, print_season_report
 from loanville.season import SeasonEngine
 
-API_KEY = os.environ.get("OPENROUTER_API_KEY", "")
-if not API_KEY:
-    print("ERROR: OPENROUTER_API_KEY not set. Add it to ~/.env")
-    sys.exit(1)
-
 # ── Config ────────────────────────────────────────────────────────────────
 MODEL_A = "meta-llama/llama-3.1-405b-instruct"
 MODEL_B = "deepseek/deepseek-r1"
@@ -88,7 +83,6 @@ t0 = time.time()
 season = SeasonEngine(
     config=config,
     lenders=lenders,
-    openrouter_api_key=API_KEY,
     mock=False,
     data_mode="lite",
 )

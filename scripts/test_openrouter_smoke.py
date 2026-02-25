@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
-"""OpenRouter live smoke test using a cheap small model."""
+"""LOS live smoke test using a cheap small model."""
 
 import argparse
 import asyncio
-import os
 import sys
 from pathlib import Path
 
@@ -18,24 +17,19 @@ from loanville.engine import SimulationEngine  # noqa: E402
 
 
 def run() -> int:
-    parser = argparse.ArgumentParser(description="Smoke test OpenRouter underwriting flow")
+    parser = argparse.ArgumentParser(description="Smoke test LOS underwriting flow")
     parser.add_argument(
         "--model",
         default="meta-llama/llama-3.1-8b-instruct",
-        help="Cheap/small OpenRouter model to use for all lenders",
+        help="Cheap/small model to use for all lenders (via LOS)",
     )
     parser.add_argument("--mix", choices=list(MIX_PRESETS.keys()), default="easy")
     parser.add_argument("--seed", type=int, default=7)
     parser.add_argument("--sample-size", type=int, default=2)
-    parser.add_argument("--data-mode", choices=["lite", "aggregate_only", "quarterly_only", "full"], default="lite")
+    parser.add_argument("--los-url", default="http://localhost:3000")
     args = parser.parse_args()
 
     load_dotenv()
-    api_key = os.environ.get("OPENROUTER_API_KEY", "").strip()
-    if not api_key:
-        print("SMOKE BLOCKED: OPENROUTER_API_KEY is not set.")
-        print("Set it in SIM/.env or export it, then rerun this script.")
-        return 2
 
     borrowers = get_borrowers(args.mix, seed=args.seed, sample_size=args.sample_size)
     lenders = get_lenders()
@@ -45,17 +39,16 @@ def run() -> int:
 
     expected = len(borrowers) * len(lenders)
     print(
-        f"Running OpenRouter smoke: model={args.model}, mix={args.mix}, "
+        f"Running LOS smoke: model={args.model}, mix={args.mix}, "
         f"borrowers={len(borrowers)}, lenders={len(lenders)}, evals={expected}"
     )
 
     engine = SimulationEngine(
         borrowers=borrowers,
         lenders=lenders,
-        openrouter_api_key=api_key,
         max_concurrent_per_lender=1,
         mock=False,
-        data_mode=args.data_mode,
+        los_url=args.los_url,
     )
     asyncio.run(engine.run())
 

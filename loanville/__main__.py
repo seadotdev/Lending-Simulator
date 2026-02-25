@@ -2,16 +2,14 @@
 Entry point for: python -m loanville
 
 Usage:
-  python -m loanville                    # Live mode, easy mix (default)
+  python -m loanville                    # LOS mode, easy mix (default)
   python -m loanville --mock             # Mock mode (no API key needed)
   python -m loanville --mix hard         # Adversarial stress test
   python -m loanville --compare          # Compare big vs small models (mock)
-  python -m loanville --rotate           # Rotate models across lender roles (live)
 """
 
 import argparse
 import asyncio
-import copy
 import logging
 import os
 import sys
@@ -25,72 +23,15 @@ from .scoring import print_final_report, print_season_report, score_lenders, sco
 from .season import SeasonEngine
 
 
-# ---------------------------------------------------------------------------
-# Model rotation pools — cheap frontier models with strong tool-use support
-# ---------------------------------------------------------------------------
-
-# All models verified: tool-use support on OpenRouter
-ROTATION_POOL = [
-    "deepseek/deepseek-chat-v3-0324",
-    "qwen/qwen3-235b-a22b",
-    "meta-llama/llama-3.3-70b-instruct",
-    "nvidia/llama-3.3-nemotron-super-49b-v1.5",
-    "qwen/qwen3-30b-a3b",
-    "meta-llama/llama-3.1-8b-instruct",
-]
-
-
-def _print_cost_summary() -> None:
-    """Print token usage and estimated cost per model."""
-    from .llm import get_cost_summary, get_token_usage
-
-    usage = get_token_usage()
-    costs = get_cost_summary()
-    if not usage:
-        return
-
-    print(f"\n{'─'*60}")
-    print(f"  API COST ESTIMATE")
-    print(f"{'─'*60}")
-    total_cost = 0.0
-    total_prompt = 0
-    total_completion = 0
-    for model in sorted(usage.keys()):
-        u = usage[model]
-        c = costs.get(model, 0.0)
-        total_cost += c
-        total_prompt += u["prompt"]
-        total_completion += u["completion"]
-        print(f"  {model}")
-        print(f"    Tokens: {u['prompt']:>10,} prompt + {u['completion']:>10,} completion")
-        print(f"    Est. cost: ${c:.4f}")
-    print(f"  {'─'*56}")
-    print(f"  TOTAL: {total_prompt:>10,} prompt + {total_completion:>10,} completion")
-    print(f"  TOTAL COST: ${total_cost:.4f}")
-
-    # Project cost for larger pools
-    n_borrowers = sum(1 for _ in usage)  # rough proxy
-    per_call = total_cost / max(1, total_prompt + total_completion) * (total_prompt + total_completion)
-    calls_made = sum(u["prompt"] > 0 for u in usage.values())
-    if total_cost > 0:
-        avg_per_eval = total_cost / max(1, sum(u["prompt"] > 0 for u in usage.values()))
-        print(f"\n  Projections (at current avg cost per evaluation):")
-        for pool_size in [25, 50, 100, 200]:
-            for n_lenders in [3, 5]:
-                projected = avg_per_eval * pool_size * n_lenders
-                print(f"    {pool_size} borrowers x {n_lenders} lenders = "
-                      f"~${projected:.2f}")
-
-
-def _run_single(borrowers, lenders, api_key="", mock=False, data_mode="full",
-                 use_los=False, los_url="http://localhost:3000",
+def _run_single(borrowers, lenders, mock=False, data_mode="full",
+                 los_url="http://localhost:3000",
                  los_provider="openrouter", los_mode="rules_only",
                  underwrite_only=False, los_model=None,
                  economics=None):
     """Run a single simulation and return (scores, engine)."""
     engine = SimulationEngine(
-        borrowers, lenders, api_key, mock=mock, data_mode=data_mode,
-        use_los=use_los, los_url=los_url,
+        borrowers, lenders, mock=mock, data_mode=data_mode,
+        los_url=los_url,
         los_provider=los_provider, los_mode=los_mode,
         underwrite_only=underwrite_only, los_model=los_model,
         economics=economics,
@@ -220,63 +161,6 @@ def run_compare(mix: str):
     print(f"{'*'*70}\n")
 
 
-def run_rotate(api_key: str, mix: str, rounds: int = 3):
-    """Run multiple rounds, rotating which model plays which lender role."""
-    borrowers = get_borrowers(mix)
-    n_models = len(ROTATION_POOL)
-    all_round_scores = []
-
-    for r in range(rounds):
-        print(f"\n{'#'*70}")
-        print(f"#  ROTATION ROUND {r+1}/{rounds}")
-        print(f"{'#'*70}")
-
-        lenders = get_lenders()
-        for i, lender in enumerate(lenders):
-            model_idx = (i + r) % n_models
-            model = ROTATION_POOL[model_idx]
-            lender.model = model
-            short_name = model.split("/")[-1]
-            base_name = lender.name.split("[")[0].strip()
-            lender.name = f"{base_name} [{short_name}]"
-            print(f"  {base_name} -> {model}")
-
-        scores, _ = _run_single(borrowers, lenders, api_key, mock=False, data_mode="full")
-        all_round_scores.append(scores)
-
-    # Summary across rounds
-    print(f"\n\n{'='*70}")
-    print(f"  ROTATION SUMMARY ({rounds} rounds)")
-    print(f"{'='*70}")
-
-    model_stats: dict[str, list[float]] = {}
-    model_frauds: dict[str, int] = {}
-    model_defaults: dict[str, int] = {}
-    for round_scores in all_round_scores:
-        for s in round_scores:
-            model = s.model
-            model_stats.setdefault(model, []).append(s.final_adjusted_score)
-            model_frauds[model] = model_frauds.get(model, 0) + s.frauds_funded
-            model_defaults[model] = model_defaults.get(model, 0) + s.defaults_count
-
-    print(f"\n  {'Model':<40s} {'Avg Score':>10s} {'Frauds':>8s} {'Defaults':>10s} {'Rounds':>8s}")
-    print(f"  {'─'*76}")
-    for model in sorted(model_stats.keys()):
-        scores_list = model_stats[model]
-        avg = sum(scores_list) / len(scores_list)
-        print(f"  {model:<40s} {avg:>9.2f}% {model_frauds[model]:>8d} "
-              f"{model_defaults[model]:>10d} {len(scores_list):>8d}")
-
-    print(f"\n{'*'*70}")
-    best_model = max(model_stats.keys(), key=lambda m: sum(model_stats[m]) / len(model_stats[m]))
-    best_avg = sum(model_stats[best_model]) / len(model_stats[best_model])
-    print(f"  BEST MODEL: {best_model}")
-    print(f"  Average Score: {best_avg:.2f}%")
-    print(f"{'*'*70}")
-
-    _print_cost_summary()
-
-
 def main() -> None:
     load_dotenv()
 
@@ -285,10 +169,6 @@ def main() -> None:
                         help="Use mock LLM responses (no API key needed)")
     parser.add_argument("--compare", action="store_true",
                         help="Run frontier-vs-small model comparison (uses mock mode)")
-    parser.add_argument("--rotate", action="store_true",
-                        help="Run rotation: different models in different roles (live)")
-    parser.add_argument("--rounds", type=int, default=3,
-                        help="Number of rotation rounds (default: 3)")
     parser.add_argument("--mix", choices=list(MIX_PRESETS.keys()), default="easy",
                         help="Borrower population mix (default: easy)")
     parser.add_argument("--data-mode",
@@ -298,8 +178,6 @@ def main() -> None:
                              "'lite' uses compact prompts optimized for small models (3B-30B).")
     parser.add_argument("--seed", type=int, default=None,
                         help="Random seed for deterministic borrower ordering")
-    parser.add_argument("--los", action="store_true",
-                        help="Use Open LOS for evaluation instead of direct OpenRouter")
     parser.add_argument("--los-url", default="http://localhost:3000",
                         help="Open LOS API URL (default: http://localhost:3000)")
     parser.add_argument("--los-provider", default="anthropic",
@@ -310,7 +188,7 @@ def main() -> None:
                         help="LOS evaluation mode: 'full' uses LLM agent, "
                              "'rules_only' uses deterministic rules (default: rules_only)")
     parser.add_argument("--underwrite-only", action="store_true",
-                        help="With --los: skip LOS pipeline ceremony (entity/deal/docs/spread/stages), "
+                        help="Skip LOS pipeline ceremony (entity/deal/docs/spread/stages), "
                              "just POST dossier to /v1/underwrite for standalone LLM evaluation")
     parser.add_argument("--los-model", default=None,
                         help="Override the LLM model used by the LOS for underwriting "
@@ -347,8 +225,6 @@ def main() -> None:
 
     if args.season and args.compare:
         parser.error("--season and --compare cannot be used together.")
-    if args.season and args.rotate:
-        parser.error("--season and --rotate cannot be used together.")
 
     # Configure logging — errors always shown, -v adds per-call progress
     logging.basicConfig(
@@ -371,26 +247,6 @@ def main() -> None:
         return
 
     mock = args.mock
-    use_los = args.los
-    api_key = os.environ.get("OPENROUTER_API_KEY", "")
-
-    if not mock and not use_los and not api_key:
-        print("ERROR: OPENROUTER_API_KEY environment variable is not set.")
-        print("Set it in a .env file or export it directly:")
-        print("  export OPENROUTER_API_KEY=your-key-here")
-        print("\nOr run with --mock for offline simulation:")
-        print("  python -m loanville --mock")
-        print("\nOr run with --los to use the Open LOS:")
-        print("  python -m loanville --los")
-        sys.exit(1)
-
-    if args.rotate:
-        print("=" * 70)
-        print("  LOANVILLE — MODEL ROTATION TOURNAMENT")
-        print("=" * 70)
-        run_rotate(api_key, args.mix, rounds=args.rounds)
-        print("\nRotation complete.\n")
-        return
 
     economics = ECONOMICS_PRESETS[args.economics]
 
@@ -409,10 +265,8 @@ def main() -> None:
         season = SeasonEngine(
             config=season_config,
             lenders=lenders,
-            openrouter_api_key=api_key,
             mock=mock,
             data_mode=args.data_mode,
-            use_los=use_los,
             los_url=args.los_url,
             los_provider=args.los_provider,
             los_mode=args.los_mode,
@@ -424,9 +278,6 @@ def main() -> None:
         # Score and report
         season_scores = score_season(season.lender_states, season_config)
         print_season_report(season_scores)
-
-        if not mock and not use_los:
-            _print_cost_summary()
 
         # Leaderboard integration for season mode
         if args.leaderboard:
@@ -478,7 +329,7 @@ def main() -> None:
     print("  LOANVILLE — THE LLM LENDING SIMULATOR")
     if mock:
         print("  [MOCK MODE]")
-    elif use_los:
+    else:
         uw_flag = " underwrite-only" if args.underwrite_only else ""
         model_flag = f" model={args.los_model}" if args.los_model else ""
         print(f"  [LOS MODE{uw_flag}] → {args.los_url} (mode={args.los_mode}{model_flag})")
@@ -498,18 +349,13 @@ def main() -> None:
               f"Deployed: ${deployed:,.0f} | "
               f"Target Yield: {l.target_yield_pct}%")
 
-    if not mock and not use_los:
-        from .llm import clear_usage
-        clear_usage()
     scores, engine = _run_single(
-        borrowers, lenders, api_key, mock=mock, data_mode=args.data_mode,
-        use_los=use_los, los_url=args.los_url,
+        borrowers, lenders, mock=mock, data_mode=args.data_mode,
+        los_url=args.los_url,
         los_provider=args.los_provider, los_mode=args.los_mode,
         underwrite_only=args.underwrite_only, los_model=args.los_model,
         economics=economics,
     )
-    if not mock and not use_los:
-        _print_cost_summary()
 
     # Emit match record to leaderboard
     if args.leaderboard:
