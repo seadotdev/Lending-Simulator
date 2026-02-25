@@ -89,6 +89,13 @@ class SeasonEngine:
         self.week_results: list[WeekResult] = []
         self.used_static_ids: set[str] = set()
 
+        # Accumulated data for leaderboard integration.
+        # NOTE: these grow linearly with weeks*cohort_size. For large seasons
+        # (many weeks, large cohorts) this could use significant memory.
+        self.all_decisions: dict[str, list] = {}   # lender_id -> [LenderDecision, ...]
+        self.all_borrowers: list = []               # all borrowers across all weeks
+        self.all_deal_results: dict[str, dict] = {} # borrower_id -> deal result
+
         # Pass-through kwargs for SimulationEngine
         self.engine_kwargs = dict(
             openrouter_api_key=openrouter_api_key,
@@ -514,6 +521,12 @@ class SeasonEngine:
 
         for state in self.lender_states.values():
             self._recompute_sector_exposure(state)
+
+        # Accumulate data for leaderboard
+        for lid, decisions in engine.all_decisions.items():
+            self.all_decisions.setdefault(lid, []).extend(decisions)
+        self.all_borrowers.extend(engine.borrowers)
+        self.all_deal_results.update(engine.deal_results)
 
         return WeekResult(
             week=week,

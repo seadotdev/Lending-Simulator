@@ -5,6 +5,7 @@ from .core import (
     compute_leaderboard,
     emit_and_update,
     emit_match_record_from_elo,
+    emit_match_record_from_season,
     emit_match_record_from_sim,
     load_all_matches,
     load_config,

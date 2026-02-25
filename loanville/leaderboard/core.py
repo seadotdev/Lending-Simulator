@@ -287,6 +287,122 @@ def emit_match_record_from_sim(
     return record
 
 
+def emit_match_record_from_season(
+    season_engine,
+    season_scores,
+    lenders,
+    mix: str,
+) -> dict:
+    """Build a match record from a completed season run.
+
+    Season mode accumulates per-borrower decisions across weeks.
+    We reconstruct the per_borrower data from the season engine's
+    accumulated all_decisions, all_borrowers, and all_deal_results.
+
+    Known issues:
+    - raroc_score is set to SeasonScore.final_score (0-100 composite) rather than
+      actual RAROC %. This doesn't affect Elo computation (which uses per-borrower
+      utility), but the avg_raroc display on the leaderboard mixes scales when
+      season and single-run matches coexist.
+    - display_name comes from the lender persona (e.g. "Heritage [Gemini-Flash]")
+      which can differ from single-run display names for the same model_id. The
+      leaderboard keys by model_id so Elo is correct, but standings show whichever
+      display_name was seen first.
+    - Utility for won deals is matched by borrower_name (company name), which could
+      collide if two borrowers across different weeks share a name. In practice the
+      generator avoids this within a season, but it's not guaranteed.
+    """
+    from ..scoring import compute_confusion_matrix
+
+    models_info = [
+        {"model_id": l.model, "display_name": l.name}
+        for l in lenders
+    ]
+
+    # Build borrower ground truth lookup
+    borrower_truth = {b.id: b.true_outcome for b in season_engine.all_borrowers}
+
+    # Build deal winner lookup: borrower_id -> winning lender_id
+    deal_winners = {}
+    for bid, deal in season_engine.all_deal_results.items():
+        if deal.get("outcome") == "booked":
+            deal_winners[bid] = deal.get("winner")
+
+    results = []
+    for lender in lenders:
+        state = season_engine.lender_states[lender.id]
+        score = next((s for s in season_scores if s.lender_id == lender.id), None)
+
+        decisions = season_engine.all_decisions.get(lender.id, [])
+        cm = compute_confusion_matrix(decisions, season_engine.all_borrowers)
+
+        # Build per_borrower data
+        per_borrower = {}
+        decision_map = {d.borrower_id: d for d in decisions}
+
+        for b in season_engine.all_borrowers:
+            bid = b.id
+            d = decision_map.get(bid)
+            if d is None:
+                continue
+
+            # Determine decision state
+            if d.decision != "APPROVE":
+                decision_state = "declined"
+            elif deal_winners.get(bid) == lender.id:
+                decision_state = "won"
+            else:
+                decision_state = "lost"
+
+            # Compute utility from resolved loans
+            utility = 0.0
+            if decision_state == "won":
+                for lo in state.resolved_loans:
+                    if lo.borrower_name == b.dossier.company_name:
+                        utility = lo.total_interest_paid - lo.principal_lost
+                        break
+
+            rate_offered = None
+            if d.decision == "APPROVE" and d.term_sheet:
+                rate_offered = d.term_sheet.interest_rate
+
+            per_borrower[bid] = {
+                "decision_state": decision_state,
+                "ground_truth": b.true_outcome,
+                "utility": utility,
+                "rate_offered": rate_offered,
+            }
+
+        # Aggregate stats
+        frauds_funded = sum(1 for lo in state.resolved_loans if lo.was_fraud)
+        defaults = sum(1 for lo in state.resolved_loans if lo.defaulted)
+        net_pnl = state.cumulative_interest + state.cumulative_fees - state.cumulative_losses
+
+        result = {
+            "model_id": lender.model,
+            "raroc_score": score.final_score if score else 0.0,
+            "deals_won": state.deals_won,
+            "deals_rejected": state.deals_rejected,
+            "deals_errored": 0,
+            "frauds_funded": frauds_funded,
+            "defaults": defaults,
+            "deployed": state.deployed_capital,
+            "net_pnl": net_pnl,
+            "confusion_matrix": cm,
+            "per_borrower": per_borrower,
+        }
+        results.append(result)
+
+    record = build_match_record(
+        models=models_info,
+        results=results,
+        mix=f"season-{mix}",
+        n_borrowers=len(season_engine.all_borrowers),
+    )
+
+    return record
+
+
 def emit_match_record_from_elo(
     triplet: list[tuple[str, str]],
     match_results: list[dict],

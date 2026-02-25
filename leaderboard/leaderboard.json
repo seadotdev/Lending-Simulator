@@ -1,0 +1,655 @@
+{
+  "computed_at": "2026-02-25T14:54:22Z",
+  "n_matches": 8,
+  "config": {
+    "k": 32,
+    "initial_elo": 1500,
+    "utility_epsilon": 500.0
+  },
+  "standings": [
+    {
+      "model_id": "deepseek/deepseek-chat-v3-0324",
+      "display_name": "Velocity Capital",
+      "profit_elo": 1524.5,
+      "credit_elo": 1503.8,
+      "dealshare_elo": 1475.5,
+      "matches_played": 4,
+      "avg_raroc": -56.32,
+      "confusion_agg": {
+        "good": {
+          "approved": 45,
+          "rejected": 0
+        },
+        "bad": {
+          "approved": 3,
+          "rejected": 4
+        },
+        "fraud": {
+          "approved": 0,
+          "rejected": 4
+        }
+      },
+      "rate_analysis": {
+        "avg_rate_good": 14.02,
+        "avg_rate_bad": 14.57,
+        "n_good_offers": 45,
+        "n_bad_offers": 3
+      }
+    },
+    {
+      "model_id": "meta-llama/llama-3.3-70b-instruct",
+      "display_name": "Meridian Partners",
+      "profit_elo": 1520.1,
+      "credit_elo": 1502.5,
+      "dealshare_elo": 1479.9,
+      "matches_played": 4,
+      "avg_raroc": -6.5,
+      "confusion_agg": {
+        "good": {
+          "approved": 41,
+          "rejected": 4
+        },
+        "bad": {
+          "approved": 0,
+          "rejected": 7
+        },
+        "fraud": {
+          "approved": 0,
+          "rejected": 4
+        }
+      },
+      "rate_analysis": {
+        "avg_rate_good": 11.06,
+        "avg_rate_bad": null,
+        "n_good_offers": 41,
+        "n_bad_offers": 0
+      }
+    },
+    {
+      "model_id": "qwen/qwen3-30b-a3b",
+      "display_name": "Heritage [Qwen3-30B]",
+      "profit_elo": 1518.4,
+      "credit_elo": 1497.5,
+      "dealshare_elo": 1518.2,
+      "matches_played": 2,
+      "avg_raroc": -1.57,
+      "confusion_agg": {
+        "good": {
+          "approved": 16,
+          "rejected": 2
+        },
+        "bad": {
+          "approved": 0,
+          "rejected": 4
+        },
+        "fraud": {
+          "approved": 1,
+          "rejected": 1
+        }
+      },
+      "rate_analysis": {
+        "avg_rate_good": 8.0,
+        "avg_rate_bad": 8.0,
+        "n_good_offers": 16,
+        "n_bad_offers": 1
+      }
+    },
+    {
+      "model_id": "openai/gpt-4.1-nano",
+      "display_name": "Meridian [GPT-4.1-Nano]",
+      "profit_elo": 1501.2,
+      "credit_elo": 1508.0,
+      "dealshare_elo": 1503.3,
+      "matches_played": 2,
+      "avg_raroc": 92.0,
+      "confusion_agg": {
+        "good": {
+          "approved": 48,
+          "rejected": 0
+        },
+        "bad": {
+          "approved": 0,
+          "rejected": 12
+        },
+        "fraud": {
+          "approved": 0,
+          "rejected": 0
+        }
+      },
+      "rate_analysis": {
+        "avg_rate_good": 11.0,
+        "avg_rate_bad": null,
+        "n_good_offers": 48,
+        "n_bad_offers": 0
+      }
+    },
+    {
+      "model_id": "nvidia/llama-3.3-nemotron-super-49b-v1.5",
+      "display_name": "Velocity [Nemotron-49B]",
+      "profit_elo": 1493.8,
+      "credit_elo": 1499.8,
+      "dealshare_elo": 1497.4,
+      "matches_played": 2,
+      "avg_raroc": 84.85,
+      "confusion_agg": {
+        "good": {
+          "approved": 38,
+          "rejected": 10
+        },
+        "bad": {
+          "approved": 1,
+          "rejected": 11
+        },
+        "fraud": {
+          "approved": 0,
+          "rejected": 0
+        }
+      },
+      "rate_analysis": {
+        "avg_rate_good": 13.47,
+        "avg_rate_bad": 14.0,
+        "n_good_offers": 38,
+        "n_bad_offers": 1
+      }
+    },
+    {
+      "model_id": "qwen/qwen3-235b-a22b",
+      "display_name": "Heritage Trust Bank",
+      "profit_elo": 1491.7,
+      "credit_elo": 1500.2,
+      "dealshare_elo": 1508.3,
+      "matches_played": 1,
+      "avg_raroc": -4.91,
+      "confusion_agg": {
+        "good": {
+          "approved": 8,
+          "rejected": 1
+        },
+        "bad": {
+          "approved": 0,
+          "rejected": 2
+        },
+        "fraud": {
+          "approved": 0,
+          "rejected": 1
+        }
+      },
+      "rate_analysis": {
+        "avg_rate_good": 8.29,
+        "avg_rate_bad": null,
+        "n_good_offers": 8,
+        "n_bad_offers": 0
+      }
+    },
+    {
+      "model_id": "meta-llama/llama-3.1-8b-instruct",
+      "display_name": "Velocity [Llama-8B]",
+      "profit_elo": 1481.6,
+      "credit_elo": 1502.5,
+      "dealshare_elo": 1481.8,
+      "matches_played": 4,
+      "avg_raroc": -42.55,
+      "confusion_agg": {
+        "good": {
+          "approved": 36,
+          "rejected": 0
+        },
+        "bad": {
+          "approved": 0,
+          "rejected": 8
+        },
+        "fraud": {
+          "approved": 3,
+          "rejected": 1
+        }
+      },
+      "rate_analysis": {
+        "avg_rate_good": 10.11,
+        "avg_rate_bad": 10.0,
+        "n_good_offers": 36,
+        "n_bad_offers": 2
+      }
+    },
+    {
+      "model_id": "google/gemini-2.5-flash",
+      "display_name": "Heritage Trust Bank",
+      "profit_elo": 1468.7,
+      "credit_elo": 1485.6,
+      "dealshare_elo": 1535.6,
+      "matches_played": 5,
+      "avg_raroc": 30.86,
+      "confusion_agg": {
+        "good": {
+          "approved": 59,
+          "rejected": 25
+        },
+        "bad": {
+          "approved": 3,
+          "rejected": 14
+        },
+        "fraud": {
+          "approved": 3,
+          "rejected": 0
+        }
+      },
+      "rate_analysis": {
+        "avg_rate_good": 7.58,
+        "avg_rate_bad": 8.88,
+        "n_good_offers": 59,
+        "n_bad_offers": 6
+      }
+    }
+  ],
+  "match_ids": [
+    "2026-02-25T07-44-42_6b6d78",
+    "2026-02-25T07-44-55_c002ce",
+    "2026-02-25T08-03-50_bae019",
+    "2026-02-25T08-05-53_f6dc61",
+    "2026-02-25T08-08-48_e3c737",
+    "2026-02-25T08-10-36_f7ae1e",
+    "2026-02-25T14-50-03_1bd434",
+    "2026-02-25T14-54-22_cabc6d"
+  ],
+  "elo_history": {
+    "deepseek/deepseek-chat-v3-0324": [
+      {
+        "match_id": "2026-02-25T07-44-42_6b6d78",
+        "profit_elo": 1507.1,
+        "credit_elo": 1501.3,
+        "dealshare_elo": 1492.9
+      },
+      {
+        "match_id": "2026-02-25T07-44-55_c002ce",
+        "profit_elo": 1514.4,
+        "credit_elo": 1502.8,
+        "dealshare_elo": 1485.6
+      },
+      {
+        "match_id": "2026-02-25T08-03-50_bae019",
+        "profit_elo": 1520.5,
+        "credit_elo": 1503.9,
+        "dealshare_elo": 1479.5
+      },
+      {
+        "match_id": "2026-02-25T08-05-53_f6dc61",
+        "profit_elo": 1524.5,
+        "credit_elo": 1503.8,
+        "dealshare_elo": 1475.5
+      },
+      {
+        "match_id": "2026-02-25T08-08-48_e3c737",
+        "profit_elo": 1524.5,
+        "credit_elo": 1503.8,
+        "dealshare_elo": 1475.5
+      },
+      {
+        "match_id": "2026-02-25T08-10-36_f7ae1e",
+        "profit_elo": 1524.5,
+        "credit_elo": 1503.8,
+        "dealshare_elo": 1475.5
+      },
+      {
+        "match_id": "2026-02-25T14-50-03_1bd434",
+        "profit_elo": 1524.5,
+        "credit_elo": 1503.8,
+        "dealshare_elo": 1475.5
+      },
+      {
+        "match_id": "2026-02-25T14-54-22_cabc6d",
+        "profit_elo": 1524.5,
+        "credit_elo": 1503.8,
+        "dealshare_elo": 1475.5
+      }
+    ],
+    "google/gemini-2.5-flash": [
+      {
+        "match_id": "2026-02-25T07-44-42_6b6d78",
+        "profit_elo": 1487.7,
+        "credit_elo": 1497.5,
+        "dealshare_elo": 1512.3
+      },
+      {
+        "match_id": "2026-02-25T07-44-55_c002ce",
+        "profit_elo": 1474.3,
+        "credit_elo": 1495.7,
+        "dealshare_elo": 1525.7
+      },
+      {
+        "match_id": "2026-02-25T08-03-50_bae019",
+        "profit_elo": 1463.7,
+        "credit_elo": 1493.5,
+        "dealshare_elo": 1536.3
+      },
+      {
+        "match_id": "2026-02-25T08-05-53_f6dc61",
+        "profit_elo": 1463.7,
+        "credit_elo": 1493.5,
+        "dealshare_elo": 1536.3
+      },
+      {
+        "match_id": "2026-02-25T08-08-48_e3c737",
+        "profit_elo": 1463.7,
+        "credit_elo": 1493.5,
+        "dealshare_elo": 1536.3
+      },
+      {
+        "match_id": "2026-02-25T08-10-36_f7ae1e",
+        "profit_elo": 1463.7,
+        "credit_elo": 1493.5,
+        "dealshare_elo": 1536.3
+      },
+      {
+        "match_id": "2026-02-25T14-50-03_1bd434",
+        "profit_elo": 1466.6,
+        "credit_elo": 1490.6,
+        "dealshare_elo": 1536.0
+      },
+      {
+        "match_id": "2026-02-25T14-54-22_cabc6d",
+        "profit_elo": 1468.7,
+        "credit_elo": 1485.6,
+        "dealshare_elo": 1535.6
+      }
+    ],
+    "meta-llama/llama-3.3-70b-instruct": [
+      {
+        "match_id": "2026-02-25T07-44-42_6b6d78",
+        "profit_elo": 1505.2,
+        "credit_elo": 1501.2,
+        "dealshare_elo": 1494.8
+      },
+      {
+        "match_id": "2026-02-25T07-44-55_c002ce",
+        "profit_elo": 1511.4,
+        "credit_elo": 1501.5,
+        "dealshare_elo": 1488.6
+      },
+      {
+        "match_id": "2026-02-25T08-03-50_bae019",
+        "profit_elo": 1515.8,
+        "credit_elo": 1502.6,
+        "dealshare_elo": 1484.2
+      },
+      {
+        "match_id": "2026-02-25T08-05-53_f6dc61",
+        "profit_elo": 1520.1,
+        "credit_elo": 1502.5,
+        "dealshare_elo": 1479.9
+      },
+      {
+        "match_id": "2026-02-25T08-08-48_e3c737",
+        "profit_elo": 1520.1,
+        "credit_elo": 1502.5,
+        "dealshare_elo": 1479.9
+      },
+      {
+        "match_id": "2026-02-25T08-10-36_f7ae1e",
+        "profit_elo": 1520.1,
+        "credit_elo": 1502.5,
+        "dealshare_elo": 1479.9
+      },
+      {
+        "match_id": "2026-02-25T14-50-03_1bd434",
+        "profit_elo": 1520.1,
+        "credit_elo": 1502.5,
+        "dealshare_elo": 1479.9
+      },
+      {
+        "match_id": "2026-02-25T14-54-22_cabc6d",
+        "profit_elo": 1520.1,
+        "credit_elo": 1502.5,
+        "dealshare_elo": 1479.9
+      }
+    ],
+    "qwen/qwen3-235b-a22b": [
+      {
+        "match_id": "2026-02-25T07-44-42_6b6d78",
+        "profit_elo": 1500.0,
+        "credit_elo": 1500.0,
+        "dealshare_elo": 1500.0
+      },
+      {
+        "match_id": "2026-02-25T07-44-55_c002ce",
+        "profit_elo": 1500.0,
+        "credit_elo": 1500.0,
+        "dealshare_elo": 1500.0
+      },
+      {
+        "match_id": "2026-02-25T08-03-50_bae019",
+        "profit_elo": 1500.0,
+        "credit_elo": 1500.0,
+        "dealshare_elo": 1500.0
+      },
+      {
+        "match_id": "2026-02-25T08-05-53_f6dc61",
+        "profit_elo": 1491.7,
+        "credit_elo": 1500.2,
+        "dealshare_elo": 1508.3
+      },
+      {
+        "match_id": "2026-02-25T08-08-48_e3c737",
+        "profit_elo": 1491.7,
+        "credit_elo": 1500.2,
+        "dealshare_elo": 1508.3
+      },
+      {
+        "match_id": "2026-02-25T08-10-36_f7ae1e",
+        "profit_elo": 1491.7,
+        "credit_elo": 1500.2,
+        "dealshare_elo": 1508.3
+      },
+      {
+        "match_id": "2026-02-25T14-50-03_1bd434",
+        "profit_elo": 1491.7,
+        "credit_elo": 1500.2,
+        "dealshare_elo": 1508.3
+      },
+      {
+        "match_id": "2026-02-25T14-54-22_cabc6d",
+        "profit_elo": 1491.7,
+        "credit_elo": 1500.2,
+        "dealshare_elo": 1508.3
+      }
+    ],
+    "meta-llama/llama-3.1-8b-instruct": [
+      {
+        "match_id": "2026-02-25T07-44-42_6b6d78",
+        "profit_elo": 1500.0,
+        "credit_elo": 1500.0,
+        "dealshare_elo": 1500.0
+      },
+      {
+        "match_id": "2026-02-25T07-44-55_c002ce",
+        "profit_elo": 1500.0,
+        "credit_elo": 1500.0,
+        "dealshare_elo": 1500.0
+      },
+      {
+        "match_id": "2026-02-25T08-03-50_bae019",
+        "profit_elo": 1500.0,
+        "credit_elo": 1500.0,
+        "dealshare_elo": 1500.0
+      },
+      {
+        "match_id": "2026-02-25T08-05-53_f6dc61",
+        "profit_elo": 1500.0,
+        "credit_elo": 1500.0,
+        "dealshare_elo": 1500.0
+      },
+      {
+        "match_id": "2026-02-25T08-08-48_e3c737",
+        "profit_elo": 1491.1,
+        "credit_elo": 1501.3,
+        "dealshare_elo": 1491.1
+      },
+      {
+        "match_id": "2026-02-25T08-10-36_f7ae1e",
+        "profit_elo": 1481.6,
+        "credit_elo": 1502.5,
+        "dealshare_elo": 1481.8
+      },
+      {
+        "match_id": "2026-02-25T14-50-03_1bd434",
+        "profit_elo": 1481.6,
+        "credit_elo": 1502.5,
+        "dealshare_elo": 1481.8
+      },
+      {
+        "match_id": "2026-02-25T14-54-22_cabc6d",
+        "profit_elo": 1481.6,
+        "credit_elo": 1502.5,
+        "dealshare_elo": 1481.8
+      }
+    ],
+    "qwen/qwen3-30b-a3b": [
+      {
+        "match_id": "2026-02-25T07-44-42_6b6d78",
+        "profit_elo": 1500.0,
+        "credit_elo": 1500.0,
+        "dealshare_elo": 1500.0
+      },
+      {
+        "match_id": "2026-02-25T07-44-55_c002ce",
+        "profit_elo": 1500.0,
+        "credit_elo": 1500.0,
+        "dealshare_elo": 1500.0
+      },
+      {
+        "match_id": "2026-02-25T08-03-50_bae019",
+        "profit_elo": 1500.0,
+        "credit_elo": 1500.0,
+        "dealshare_elo": 1500.0
+      },
+      {
+        "match_id": "2026-02-25T08-05-53_f6dc61",
+        "profit_elo": 1500.0,
+        "credit_elo": 1500.0,
+        "dealshare_elo": 1500.0
+      },
+      {
+        "match_id": "2026-02-25T08-08-48_e3c737",
+        "profit_elo": 1508.9,
+        "credit_elo": 1498.7,
+        "dealshare_elo": 1508.9
+      },
+      {
+        "match_id": "2026-02-25T08-10-36_f7ae1e",
+        "profit_elo": 1518.4,
+        "credit_elo": 1497.5,
+        "dealshare_elo": 1518.2
+      },
+      {
+        "match_id": "2026-02-25T14-50-03_1bd434",
+        "profit_elo": 1518.4,
+        "credit_elo": 1497.5,
+        "dealshare_elo": 1518.2
+      },
+      {
+        "match_id": "2026-02-25T14-54-22_cabc6d",
+        "profit_elo": 1518.4,
+        "credit_elo": 1497.5,
+        "dealshare_elo": 1518.2
+      }
+    ],
+    "nvidia/llama-3.3-nemotron-super-49b-v1.5": [
+      {
+        "match_id": "2026-02-25T07-44-42_6b6d78",
+        "profit_elo": 1500.0,
+        "credit_elo": 1500.0,
+        "dealshare_elo": 1500.0
+      },
+      {
+        "match_id": "2026-02-25T07-44-55_c002ce",
+        "profit_elo": 1500.0,
+        "credit_elo": 1500.0,
+        "dealshare_elo": 1500.0
+      },
+      {
+        "match_id": "2026-02-25T08-03-50_bae019",
+        "profit_elo": 1500.0,
+        "credit_elo": 1500.0,
+        "dealshare_elo": 1500.0
+      },
+      {
+        "match_id": "2026-02-25T08-05-53_f6dc61",
+        "profit_elo": 1500.0,
+        "credit_elo": 1500.0,
+        "dealshare_elo": 1500.0
+      },
+      {
+        "match_id": "2026-02-25T08-08-48_e3c737",
+        "profit_elo": 1500.0,
+        "credit_elo": 1500.0,
+        "dealshare_elo": 1500.0
+      },
+      {
+        "match_id": "2026-02-25T08-10-36_f7ae1e",
+        "profit_elo": 1500.0,
+        "credit_elo": 1500.0,
+        "dealshare_elo": 1500.0
+      },
+      {
+        "match_id": "2026-02-25T14-50-03_1bd434",
+        "profit_elo": 1496.7,
+        "credit_elo": 1499.1,
+        "dealshare_elo": 1499.0
+      },
+      {
+        "match_id": "2026-02-25T14-54-22_cabc6d",
+        "profit_elo": 1493.8,
+        "credit_elo": 1499.8,
+        "dealshare_elo": 1497.4
+      }
+    ],
+    "openai/gpt-4.1-nano": [
+      {
+        "match_id": "2026-02-25T07-44-42_6b6d78",
+        "profit_elo": 1500.0,
+        "credit_elo": 1500.0,
+        "dealshare_elo": 1500.0
+      },
+      {
+        "match_id": "2026-02-25T07-44-55_c002ce",
+        "profit_elo": 1500.0,
+        "credit_elo": 1500.0,
+        "dealshare_elo": 1500.0
+      },
+      {
+        "match_id": "2026-02-25T08-03-50_bae019",
+        "profit_elo": 1500.0,
+        "credit_elo": 1500.0,
+        "dealshare_elo": 1500.0
+      },
+      {
+        "match_id": "2026-02-25T08-05-53_f6dc61",
+        "profit_elo": 1500.0,
+        "credit_elo": 1500.0,
+        "dealshare_elo": 1500.0
+      },
+      {
+        "match_id": "2026-02-25T08-08-48_e3c737",
+        "profit_elo": 1500.0,
+        "credit_elo": 1500.0,
+        "dealshare_elo": 1500.0
+      },
+      {
+        "match_id": "2026-02-25T08-10-36_f7ae1e",
+        "profit_elo": 1500.0,
+        "credit_elo": 1500.0,
+        "dealshare_elo": 1500.0
+      },
+      {
+        "match_id": "2026-02-25T14-50-03_1bd434",
+        "profit_elo": 1500.5,
+        "credit_elo": 1503.7,
+        "dealshare_elo": 1501.3
+      },
+      {
+        "match_id": "2026-02-25T14-54-22_cabc6d",
+        "profit_elo": 1501.2,
+        "credit_elo": 1508.0,
+        "dealshare_elo": 1503.3
+      }
+    ]
+  }
+}

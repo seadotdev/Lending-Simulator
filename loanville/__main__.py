@@ -426,6 +426,19 @@ def main() -> None:
         if not mock and not use_los:
             _print_cost_summary()
 
+        # Leaderboard integration for season mode
+        if args.leaderboard:
+            from .leaderboard import emit_match_record_from_season, emit_and_update
+            record = emit_match_record_from_season(
+                season_engine=season,
+                season_scores=season_scores,
+                lenders=lenders,
+                mix=args.season_mix,
+            )
+            match_path, lb_path = emit_and_update(record)
+            print(f"\n  Leaderboard: match -> {match_path.name}")
+            print(f"  Leaderboard: standings -> {lb_path.name}")
+
         print("\nSeason complete.\n")
         return
 
