@@ -30,19 +30,20 @@ SEASON_MIX = {
     "adversarial": {"good": 0.40, "bad": 0.35, "fraud": 0.25},
 }
 
-ESCALATING_SCHEDULE = [
-    (1, 3,  {"good": 0.80, "bad": 0.15, "fraud": 0.05}),
-    (4, 6,  {"good": 0.55, "bad": 0.30, "fraud": 0.15}),
-    (7, 99, {"good": 0.35, "bad": 0.35, "fraud": 0.30}),
+ESCALATING_MIXES = [
+    # (fraction_of_season, mix)  — boundaries computed from config.weeks
+    (0.30, {"good": 0.80, "bad": 0.15, "fraud": 0.05}),
+    (0.60, {"good": 0.55, "bad": 0.30, "fraud": 0.15}),
+    (1.00, {"good": 0.35, "bad": 0.35, "fraud": 0.30}),
 ]
 
 
-def _get_week_mix(week: int, season_mix: str) -> dict[str, float]:
+def _get_week_mix(week: int, season_mix: str, total_weeks: int = 10) -> dict[str, float]:
     if season_mix == "escalating":
-        for start, end, mix in ESCALATING_SCHEDULE:
-            if start <= week <= end:
+        for cutoff_frac, mix in ESCALATING_MIXES:
+            if week <= max(1, round(total_weeks * cutoff_frac)):
                 return mix
-        return ESCALATING_SCHEDULE[-1][2]
+        return ESCALATING_MIXES[-1][1]
     return SEASON_MIX.get(season_mix, SEASON_MIX["realistic"])
 
 
@@ -148,7 +149,7 @@ def _generate_good_borrower(borrower_id: str, rng: random.Random, sector: str) -
     net_income = annual_revenue - annual_expenses
     employees = rng.randint(10, 80)
     years = rng.randint(3, 15)
-    name = _generate_company_name(rng)
+    name = _unique_company_name(rng)
     loan_amount = round(rng.uniform(150000, 600000) / 10000) * 10000
     purpose = rng.choice(_GOOD_PURPOSES)
     opening_balance = round(rng.uniform(50000, 200000), 2)
@@ -203,7 +204,7 @@ def _generate_bad_borrower(borrower_id: str, rng: random.Random, sector: str) ->
     net_income = annual_revenue - annual_expenses
     employees = rng.randint(5, 50)
     years = rng.randint(2, 10)
-    name = _generate_company_name(rng)
+    name = _unique_company_name(rng)
     loan_amount = round(rng.uniform(100000, 500000) / 10000) * 10000
     purpose = rng.choice(_BAD_PURPOSES)
     opening_balance = round(rng.uniform(20000, 80000), 2)
@@ -260,7 +261,7 @@ def _generate_fraud_borrower(borrower_id: str, rng: random.Random, sector: str) 
     net_income = annual_revenue - annual_expenses
     employees = rng.randint(8, 40)
     years = rng.randint(1, 5)
-    name = _generate_company_name(rng)
+    name = _unique_company_name(rng)
     loan_amount = round(rng.uniform(200000, 700000) / 10000) * 10000
     purpose = rng.choice(_FRAUD_PURPOSES)
     opening_balance = round(rng.uniform(30000, 150000), 2)
@@ -299,6 +300,47 @@ def _generate_fraud_borrower(borrower_id: str, rng: random.Random, sector: str) 
 
 
 # ---------------------------------------------------------------------------
+# Mix allocation helper
+# ---------------------------------------------------------------------------
+
+def _split_counts(total: int, mix: dict[str, float]) -> tuple[int, int, int]:
+    """Split total into (n_good, n_bad, n_fraud) respecting mix fractions.
+
+    Uses largest-remainder method so counts always sum to total and every
+    non-zero fraction gets at least 1 when total is large enough.
+    """
+    raw_good = total * mix["good"]
+    raw_bad = total * mix["bad"]
+    raw_fraud = total * mix["fraud"]
+
+    n_good = int(raw_good)
+    n_bad = int(raw_bad)
+    n_fraud = int(raw_fraud)
+
+    # Distribute remainders to the categories with largest fractional parts
+    remainders = [
+        (raw_good - n_good, "good"),
+        (raw_bad - n_bad, "bad"),
+        (raw_fraud - n_fraud, "fraud"),
+    ]
+    remainders.sort(key=lambda x: -x[0])
+
+    shortfall = total - (n_good + n_bad + n_fraud)
+    for _, category in remainders:
+        if shortfall <= 0:
+            break
+        if category == "good":
+            n_good += 1
+        elif category == "bad":
+            n_bad += 1
+        else:
+            n_fraud += 1
+        shortfall -= 1
+
+    return n_good, n_bad, n_fraud
+
+
+# ---------------------------------------------------------------------------
 # Static pool cache (drawn from data.py)
 # ---------------------------------------------------------------------------
 
@@ -309,8 +351,7 @@ def _get_static_pool() -> list[Borrower]:
     """Get all static borrowers from data.py (cached)."""
     global _static_pool_cache
     if _static_pool_cache is None:
-        # 'hard' mix gives all 36 borrowers
-        _static_pool_cache = get_borrowers("hard")
+        _static_pool_cache = get_borrowers("all")
     return list(_static_pool_cache)
 
 
@@ -336,12 +377,8 @@ def generate_cohort(
         used_static_ids = set()
 
     rng = random.Random(config.seed * 1000 + week)
-    mix = _get_week_mix(week, config.season_mix)
-
-    # Determine outcome counts
-    n_good = round(config.cohort_size * mix["good"])
-    n_bad = round(config.cohort_size * mix["bad"])
-    n_fraud = config.cohort_size - n_good - n_bad
+    mix = _get_week_mix(week, config.season_mix, total_weeks=config.weeks)
+    n_good, n_bad, n_fraud = _split_counts(config.cohort_size, mix)
 
     cohort: list[Borrower] = []
 
@@ -351,43 +388,58 @@ def generate_cohort(
         rng.shuffle(pool)
         available = [b for b in pool if b.id not in used_static_ids]
 
+        got = {"good": 0, "bad": 0, "fraud": 0}
         for outcome, count in [("good", n_good), ("bad", n_bad), ("fraud", n_fraud)]:
             matching = [b for b in available if b.true_outcome == outcome]
             drawn = matching[:count]
             cohort.extend(drawn)
+            got[outcome] = len(drawn)
             for b in drawn:
                 used_static_ids.add(b.id)
                 available.remove(b)
 
-        # If not enough static borrowers, fill with procedural
-        shortfall = config.cohort_size - len(cohort)
-        if shortfall > 0:
-            procedural = _generate_procedural(
-                shortfall, mix, week, config.seed, len(cohort), rng,
-            )
-            cohort.extend(procedural)
+        # Fill specific missing outcomes with procedural borrowers
+        need_good = n_good - got["good"]
+        need_bad = n_bad - got["bad"]
+        need_fraud = n_fraud - got["fraud"]
+        if need_good + need_bad + need_fraud > 0:
+            cohort.extend(_generate_exact(
+                need_good, need_bad, need_fraud, week, len(cohort), rng,
+            ))
     else:
         # Fully procedural
-        cohort = _generate_procedural(
-            config.cohort_size, mix, week, config.seed, 0, rng,
-        )
+        cohort = _generate_exact(n_good, n_bad, n_fraud, week, 0, rng)
 
     return cohort
 
 
-def _generate_procedural(
-    count: int,
-    mix: dict[str, float],
+_used_names: set[str] = set()
+
+
+def _unique_company_name(rng: random.Random) -> str:
+    """Generate a company name that hasn't been used this session."""
+    for _ in range(50):
+        name = _generate_company_name(rng)
+        if name not in _used_names:
+            _used_names.add(name)
+            return name
+    # Fallback: append a number
+    name = _generate_company_name(rng)
+    suffix = rng.randint(100, 999)
+    unique = f"{name} {suffix}"
+    _used_names.add(unique)
+    return unique
+
+
+def _generate_exact(
+    n_good: int,
+    n_bad: int,
+    n_fraud: int,
     week: int,
-    seed: int,
     offset: int,
     rng: random.Random,
 ) -> list[Borrower]:
-    """Generate procedural borrowers for a given count and mix."""
-    n_good = round(count * mix["good"])
-    n_bad = round(count * mix["bad"])
-    n_fraud = count - n_good - n_bad
-
+    """Generate exactly n_good + n_bad + n_fraud procedural borrowers."""
     borrowers: list[Borrower] = []
     idx = offset
 
