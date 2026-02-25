@@ -16,6 +16,7 @@ from .models import (
     LenderConfig,
     LenderDecision,
     LoanOutcome,
+    ResolveResult,
 )
 from .mock_llm import mock_evaluate_all
 from .run_schema import UnderwritingRun, build_run
@@ -53,6 +54,153 @@ def _run_lender_id(run: UnderwritingRun) -> str:
     if len(parts) >= 2 and parts[0] == "p":
         return parts[1]
     return pid
+
+
+def resolve_loan_period(
+    principal: float,
+    interest_rate: float,
+    term_months: int,
+    true_outcome: str,
+    months_before_default: int | None,
+    months_already_elapsed: int,
+    months_to_advance: int,
+    economics: EconomicsConfig,
+) -> ResolveResult:
+    """Advance a loan by N months.
+
+    Returns interest collected, principal repaid, whether default/prepay/maturity
+    occurred, and remaining balance. Uses the same amortization math as
+    resolve_loans().
+    """
+    eco = economics
+    monthly_rate = interest_rate / 100.0 / 12.0
+    orig_fee = max(0.0, principal * eco.origination_fee_rate) if months_already_elapsed == 0 else 0.0
+
+    # Compute amortization payment (based on full term from origination)
+    if monthly_rate > 0 and term_months > 0:
+        payment = principal * (monthly_rate * (1 + monthly_rate) ** term_months) / \
+                  ((1 + monthly_rate) ** term_months - 1)
+    else:
+        payment = principal / term_months if term_months > 0 else 0.0
+
+    # Compute remaining principal at the start of this period
+    remaining = principal
+    for _ in range(months_already_elapsed):
+        interest_portion = remaining * monthly_rate
+        principal_portion = payment - interest_portion
+        remaining -= principal_portion
+
+    if true_outcome == "fraud" and months_already_elapsed == 0:
+        # Instant default (no payments)
+        recovery_amt = max(0.0, principal * eco.recovery_rate_fraud)
+        workout_cost = max(0.0, principal * eco.workout_cost_rate)
+        principal_lost = max(0.0, principal - recovery_amt)
+        return ResolveResult(
+            interest=0.0,
+            principal_repaid=0.0,
+            remaining_balance=0.0,
+            principal_lost=principal_lost,
+            recovery_amount=recovery_amt,
+            workout_cost=workout_cost,
+            fees=orig_fee,
+            defaulted=True,
+            matured=False,
+            prepaid=False,
+            months_actually_advanced=0,
+        )
+
+    months_remaining_in_term = term_months - months_already_elapsed
+    months_to_run = min(months_to_advance, months_remaining_in_term)
+
+    # Check if default occurs during this period
+    default_month = None
+    if true_outcome in ("bad", "fraud") and months_before_default is not None:
+        months_until_default = months_before_default - months_already_elapsed
+        if months_until_default <= months_to_run and months_until_default > 0:
+            default_month = months_until_default
+        elif months_until_default <= 0:
+            # Already past default point — default immediately
+            default_month = 0
+
+    # Check prepayment for good loans
+    prepay_month = None
+    if true_outcome == "good":
+        monthly_prepay_hazard = max(0.0, min(0.95, eco.prepayment_rate_annual / 12.0))
+        if monthly_prepay_hazard > 0 and months_remaining_in_term > 1:
+            # Deterministic prepayment based on stable hash
+            u = _stable_u01("prepay_period", str(principal), str(interest_rate),
+                           str(months_already_elapsed))
+            t = int(math.log(max(1e-15, 1.0 - u)) / math.log(max(1e-15, 1.0 - monthly_prepay_hazard))) + 1
+            if t <= months_to_run:
+                prepay_month = max(1, t)
+
+    # Determine how many performing months to simulate
+    if default_month is not None and default_month == 0:
+        performing_months = 0
+    elif default_month is not None:
+        performing_months = default_month
+        if prepay_month is not None:
+            performing_months = min(performing_months, prepay_month)
+    elif prepay_month is not None:
+        performing_months = prepay_month
+    else:
+        performing_months = months_to_run
+
+    # Simulate performing months
+    total_interest = 0.0
+    total_principal_paid = 0.0
+    for _ in range(performing_months):
+        interest_portion = remaining * monthly_rate
+        principal_portion = payment - interest_portion
+        total_interest += interest_portion
+        total_principal_paid += principal_portion
+        remaining -= principal_portion
+
+    defaulted = False
+    matured = False
+    prepaid = False
+    principal_lost = 0.0
+    recovery_amt = 0.0
+    workout_cost = 0.0
+    fees = orig_fee
+
+    if default_month is not None and (prepay_month is None or default_month <= prepay_month):
+        # Default occurred
+        defaulted = True
+        if true_outcome == "fraud":
+            recovery_amt = max(0.0, remaining * eco.recovery_rate_fraud)
+        else:
+            recovery_amt = max(0.0, remaining * eco.recovery_rate_bad)
+        workout_cost = max(0.0, remaining * eco.workout_cost_rate)
+        principal_lost = max(0.0, remaining - recovery_amt)
+        remaining = 0.0
+    elif prepay_month is not None and (default_month is None or prepay_month < default_month):
+        # Prepayment
+        prepaid = True
+        if remaining > 0:
+            fees += max(0.0, remaining * eco.prepayment_penalty_rate)
+            total_principal_paid += remaining
+            remaining = 0.0
+    elif months_already_elapsed + performing_months >= term_months:
+        # Loan matured
+        matured = True
+        if remaining > 0:
+            total_principal_paid += remaining
+            remaining = 0.0
+
+    return ResolveResult(
+        interest=round(total_interest, 2),
+        principal_repaid=round(total_principal_paid, 2),
+        remaining_balance=round(max(0.0, remaining), 2),
+        principal_lost=round(principal_lost, 2),
+        recovery_amount=round(recovery_amt, 2),
+        workout_cost=round(workout_cost, 2),
+        fees=round(fees, 2),
+        defaulted=defaulted,
+        matured=matured,
+        prepaid=prepaid,
+        months_actually_advanced=performing_months,
+    )
 
 
 class SimulationEngine:
@@ -207,12 +355,23 @@ class SimulationEngine:
     # ------------------------------------------------------------------
     # Phase 3: Deal Adjudication
     # ------------------------------------------------------------------
-    def adjudicate_deals(self) -> None:
+    def adjudicate_deals(
+        self,
+        remaining_capital: dict[str, float] | None = None,
+        speed_scoring: bool = False,
+        tool_call_counts: dict[tuple[str, str], int] | None = None,
+    ) -> None:
         """Determine which lender wins each deal based on competitive offers.
 
         Enforces capital limits: a lender cannot deploy more than its available
         capital (total_capital minus existing portfolio).  If the preferred
         lender lacks capacity, the deal falls to the next-best offer.
+
+        If remaining_capital is provided, uses those values instead of computing
+        from existing_portfolio (used by season mode).
+
+        If speed_scoring is True and tool_call_counts provided, computes
+        offer_score = rate_competitiveness + speed_bonus for sorting.
         """
         print("\n" + "=" * 70)
         print("PHASE 3: DEAL ADJUDICATION")
@@ -223,10 +382,13 @@ class SimulationEngine:
         loan_counter = 0
 
         # Track remaining deployable capital per lender
-        remaining_capital: dict[str, float] = {}
-        for lender in self.lenders:
-            existing_deployed = sum(l.remaining_balance for l in lender.existing_portfolio)
-            remaining_capital[lender.id] = lender.total_capital - existing_deployed
+        if remaining_capital is None:
+            remaining_capital = {}
+            for lender in self.lenders:
+                existing_deployed = sum(l.remaining_balance for l in lender.existing_portfolio)
+                remaining_capital[lender.id] = lender.total_capital - existing_deployed
+        else:
+            remaining_capital = dict(remaining_capital)  # copy to avoid mutation
 
         # Index runs by (lender_id, borrower_id) for friction modeling (LOS trace)
         run_index: dict[tuple[str, str], UnderwritingRun] = {}
@@ -253,7 +415,21 @@ class SimulationEngine:
                 continue
 
             # Sort by borrower preference: lowest rate, then highest amount
-            approvals.sort(key=lambda a: (a.term_sheet.interest_rate, -a.term_sheet.loan_amount))
+            # With speed scoring, compute offer_score = rate - speed_bonus
+            if speed_scoring and tool_call_counts:
+                def _offer_sort_key(a):
+                    tc = tool_call_counts.get((a.lender_id, bid), 7)
+                    if tc <= 3:
+                        speed_bonus = 0.15
+                    elif tc <= 6:
+                        speed_bonus = 0.05
+                    else:
+                        speed_bonus = 0.0
+                    # Lower is better: rate minus speed bonus
+                    return (a.term_sheet.interest_rate - speed_bonus, -a.term_sheet.loan_amount)
+                approvals.sort(key=_offer_sort_key)
+            else:
+                approvals.sort(key=lambda a: (a.term_sheet.interest_rate, -a.term_sheet.loan_amount))
 
             if len(approvals) > 1:
                 print(f"\n  {bname}: COMPETITIVE - {len(approvals)} offers")

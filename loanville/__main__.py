@@ -19,8 +19,9 @@ from dotenv import load_dotenv
 
 from .data import get_borrowers, get_lenders, MIX_PRESETS
 from .engine import SimulationEngine
-from .models import EconomicsConfig, ECONOMICS_PRESETS
-from .scoring import print_final_report, score_lenders
+from .models import EconomicsConfig, ECONOMICS_PRESETS, SeasonConfig
+from .scoring import print_final_report, print_season_report, score_lenders, score_season
+from .season import SeasonEngine
 
 
 # ---------------------------------------------------------------------------
@@ -317,6 +318,23 @@ def main() -> None:
                         choices=list(ECONOMICS_PRESETS.keys()),
                         default="balanced",
                         help="Economics preset: balanced (default), aggressive, conservative")
+    # Season mode arguments
+    parser.add_argument("--season", action="store_true",
+                        help="Run multi-week season mode")
+    parser.add_argument("--weeks", type=int, default=10,
+                        help="Number of weeks in season (default: 10)")
+    parser.add_argument("--cohort-size", type=int, default=5,
+                        help="Borrowers per week in season mode (default: 5)")
+    parser.add_argument("--season-mix",
+                        choices=["gentle", "realistic", "adversarial", "escalating"],
+                        default="realistic",
+                        help="Season borrower mix (default: realistic)")
+    parser.add_argument("--speed-scoring", action="store_true",
+                        help="Enable speed-to-offer scoring in season mode")
+    parser.add_argument("--custom-tools", action="store_true",
+                        help="Enable custom tool creation in season mode")
+    parser.add_argument("--months-per-week", type=int, default=2,
+                        help="Months of loan aging per season week (default: 2)")
     args = parser.parse_args()
 
     if args.compare:
@@ -350,6 +368,43 @@ def main() -> None:
         return
 
     economics = ECONOMICS_PRESETS[args.economics]
+
+    if args.season:
+        season_config = SeasonConfig(
+            weeks=args.weeks,
+            cohort_size=args.cohort_size,
+            months_per_week=args.months_per_week,
+            season_mix=args.season_mix,
+            seed=args.seed or 42,
+            speed_scoring=args.speed_scoring,
+            custom_tools=args.custom_tools,
+            economics=economics,
+        )
+        lenders = get_lenders()
+        season = SeasonEngine(
+            config=season_config,
+            lenders=lenders,
+            openrouter_api_key=api_key,
+            mock=mock,
+            data_mode=args.data_mode,
+            use_los=use_los,
+            los_url=args.los_url,
+            los_provider=args.los_provider,
+            los_mode=args.los_mode,
+            underwrite_only=args.underwrite_only,
+            los_model=args.los_model,
+        )
+        asyncio.run(season.run_season())
+
+        # Score and report
+        season_scores = score_season(season.lender_states, season_config)
+        print_season_report(season_scores)
+
+        if not mock and not use_los:
+            _print_cost_summary()
+
+        print("\nSeason complete.\n")
+        return
 
     print("=" * 70)
     print("  LOANVILLE — THE LLM LENDING SIMULATOR")

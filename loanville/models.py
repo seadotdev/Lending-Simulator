@@ -222,6 +222,124 @@ ECONOMICS_PRESETS: dict[str, "EconomicsConfig"] = {
 
 
 @dataclass
+class ActiveLoan:
+    """A booked loan tracked across season weeks."""
+    loan_id: str
+    borrower_id: str
+    borrower_name: str
+    lender_id: str
+    sector: str
+    principal: float
+    interest_rate: float
+    term_months: int
+    true_outcome: str
+    months_before_default: Optional[int]
+    booked_week: int
+    months_elapsed: int = 0
+    total_interest_collected: float = 0.0
+    total_principal_repaid: float = 0.0
+    remaining_balance: float = 0.0  # initialized to principal
+    status: str = "performing"  # performing | defaulted | repaid | prepaid
+
+
+@dataclass
+class SeasonConfig:
+    weeks: int = 10
+    cohort_size: int = 5
+    months_per_week: int = 2
+    season_mix: str = "realistic"  # gentle | realistic | adversarial | escalating
+    seed: int = 42
+    speed_scoring: bool = True
+    custom_tools: bool = True
+    economics: EconomicsConfig = field(default_factory=EconomicsConfig)
+
+
+@dataclass
+class SeasonLenderState:
+    lender_id: str
+    lender_name: str
+    model: str
+    total_capital: float
+    deployed_capital: float = 0.0
+    available_capital: float = 0.0
+    active_loans: list[ActiveLoan] = field(default_factory=list)
+    resolved_loans: list[LoanOutcome] = field(default_factory=list)
+    sector_exposure: dict[str, float] = field(default_factory=dict)
+    cumulative_interest: float = 0.0
+    cumulative_losses: float = 0.0
+    cumulative_fees: float = 0.0
+    total_tool_calls: int = 0
+    total_evaluations: int = 0
+    deals_won: int = 0
+    deals_lost: int = 0
+    deals_rejected: int = 0
+    # Portfolio management tracking
+    weekly_utilization: list[float] = field(default_factory=list)
+    weeks_with_concentration_violations: int = 0
+    adaptation_score: float = 0.0
+    # Speed tracking
+    speed_wins: int = 0
+    # Custom tools
+    custom_tools: list = field(default_factory=list)
+
+
+@dataclass
+class WeekResult:
+    week: int
+    cohort_size: int
+    loans_booked: int
+    defaults_this_week: int
+    repayments_this_week: int
+    events: list[str] = field(default_factory=list)
+
+
+@dataclass
+class SeasonScore:
+    lender_id: str
+    lender_name: str
+    model: str
+    # Credit Quality (70%)
+    credit_quality_score: float
+    net_pnl: float
+    frauds_funded: int
+    defaults_count: int
+    # Portfolio Management (20%)
+    portfolio_mgmt_score: float
+    avg_utilization: float
+    concentration_discipline: float
+    adaptation_score: float
+    # Efficiency (10%)
+    efficiency_score: float
+    tool_call_efficiency: float
+    custom_tool_adoption: float
+    speed_win_rate: float
+    # Final
+    final_score: float
+    # Raw totals
+    total_deployed: float
+    total_interest: float
+    total_losses: float
+    deals_won: int
+    deals_rejected: int
+
+
+@dataclass
+class ResolveResult:
+    """Result of advancing a loan by N months."""
+    interest: float
+    principal_repaid: float
+    remaining_balance: float
+    principal_lost: float
+    recovery_amount: float
+    workout_cost: float
+    fees: float
+    defaulted: bool
+    matured: bool
+    prepaid: bool
+    months_actually_advanced: int
+
+
+@dataclass
 class LenderScore:
     lender_id: str
     lender_name: str
