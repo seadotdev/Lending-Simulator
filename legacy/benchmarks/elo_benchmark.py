@@ -670,6 +670,104 @@ def update_elo_batch(
 
 
 # ---------------------------------------------------------------------------
+# Epsilon neutrality validation
+# ---------------------------------------------------------------------------
+
+def validate_epsilon_neutrality(
+    match_history: list[list[dict]],
+    model_ids: list[str],
+    epsilons: list[float] | None = None,
+    k: float = DEFAULT_K,
+) -> dict:
+    """Analyze how UTILITY_EPSILON affects Profit Elo rankings.
+
+    Replays match history with different epsilon values to detect whether
+    the current epsilon systematically favors conservative or aggressive
+    strategies.  If rankings are stable across epsilon values, the current
+    setting is neutral.
+
+    Args:
+        match_history: List of match results (each is a list[dict] from run_match)
+        model_ids: All model IDs to track
+        epsilons: Epsilon values to test (default: 0, 100, 250, 500, 1000, 2000)
+        k: Elo K-factor
+
+    Returns:
+        {
+            "epsilons": [float, ...],
+            "rankings_by_epsilon": {eps: [model_id ranked by Profit Elo]},
+            "rating_deltas": {model_id: {eps: profit_elo}},
+            "rank_variance": {model_id: float},  # variance of rank across epsilons
+            "stable": bool,  # True if top-3 ranking is identical across all epsilons
+            "summary": str,
+        }
+    """
+    if epsilons is None:
+        epsilons = [0.0, 100.0, 250.0, 500.0, 1000.0, 2000.0]
+
+    rankings_by_epsilon: dict[float, list[str]] = {}
+    ratings_by_epsilon: dict[float, dict[str, float]] = {}
+
+    for eps in epsilons:
+        ratings = {mid: float(INITIAL_ELO) for mid in model_ids}
+        for match_results in match_history:
+            if len(match_results) < 2:
+                continue
+            ratings = update_profit_elo(
+                ratings, match_results, k=k, epsilon=eps,
+                match_cap=ELO_MATCH_CAP,
+            )
+
+        ranked = sorted(ratings.items(), key=lambda x: x[1], reverse=True)
+        rankings_by_epsilon[eps] = [mid for mid, _ in ranked]
+        ratings_by_epsilon[eps] = dict(ratings)
+
+    # Compute per-model rank variance across epsilon values
+    model_ranks: dict[str, list[int]] = {mid: [] for mid in model_ids}
+    for eps in epsilons:
+        for rank, mid in enumerate(rankings_by_epsilon[eps]):
+            model_ranks[mid].append(rank)
+
+    rank_variance = {}
+    for mid, ranks in model_ranks.items():
+        mean = sum(ranks) / len(ranks)
+        rank_variance[mid] = sum((r - mean) ** 2 for r in ranks) / len(ranks)
+
+    # Check if top-3 is stable
+    top3_sets = [tuple(rankings_by_epsilon[eps][:3]) for eps in epsilons]
+    stable = len(set(top3_sets)) == 1
+
+    # Build summary
+    if stable:
+        summary = (
+            f"STABLE: Top-3 ranking is identical across all {len(epsilons)} "
+            f"epsilon values ({epsilons[0]}-{epsilons[-1]}). "
+            f"Current epsilon ${UTILITY_EPSILON:.0f} is neutral."
+        )
+    else:
+        max_var_model = max(rank_variance, key=rank_variance.get)
+        summary = (
+            f"UNSTABLE: Top-3 ranking varies across epsilon values. "
+            f"Most affected model: {max_var_model} "
+            f"(rank variance: {rank_variance[max_var_model]:.2f}). "
+            f"Consider investigating whether epsilon ${UTILITY_EPSILON:.0f} "
+            f"favors specific strategy types."
+        )
+
+    return {
+        "epsilons": epsilons,
+        "rankings_by_epsilon": rankings_by_epsilon,
+        "rating_deltas": {
+            mid: {eps: ratings_by_epsilon[eps].get(mid, INITIAL_ELO) for eps in epsilons}
+            for mid in model_ids
+        },
+        "rank_variance": rank_variance,
+        "stable": stable,
+        "summary": summary,
+    }
+
+
+# ---------------------------------------------------------------------------
 # Matchup generation
 # ---------------------------------------------------------------------------
 

@@ -114,6 +114,7 @@ class SeasonEngine:
             underwrite_only=underwrite_only,
             los_model=los_model,
             economics=config.economics,
+            info_asymmetry=config.info_asymmetry,
         )
 
         self._init_states(lenders)
