@@ -247,8 +247,9 @@ class SimulationEngine:
                 self.lenders, self.borrowers, self.data_mode,
             )
         else:
-            from .los_adapter import evaluate_all_via_los
+            from .los_adapter import check_los_health, evaluate_all_via_los
 
+            await check_los_health(self.los_url)
             mode_label = "underwrite-only" if self.underwrite_only else self.los_mode
             print(f"\n[LOS MODE] Evaluating via Open LOS at {self.los_url} "
                   f"(mode={mode_label})...\n")
@@ -272,9 +273,11 @@ class SimulationEngine:
         for lender in self.lenders:
             decisions = self.all_decisions[lender.id]
             approvals = sum(1 for d in decisions if d.decision == "APPROVE")
+            llm_errors = sum(1 for d in decisions if d.reasoning.startswith("[LLM_ERROR]"))
             rejections = len(decisions) - approvals
             print(f"  {lender.name} ({lender.model}):")
-            print(f"    Approved: {approvals} | Rejected: {rejections}")
+            error_str = f" | LLM Errors: {llm_errors}" if llm_errors else ""
+            print(f"    Approved: {approvals} | Rejected: {rejections}{error_str}")
             for d in decisions:
                 status = "APPROVED" if d.decision == "APPROVE" else "REJECTED"
                 bname = borrower_names.get(d.borrower_id, d.borrower_id)

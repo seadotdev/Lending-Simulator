@@ -381,4 +381,8 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except RuntimeError as exc:
+        print(f"\nERROR: {exc}", file=sys.stderr)
+        sys.exit(1)

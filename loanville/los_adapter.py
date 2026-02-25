@@ -53,6 +53,24 @@ from .run_schema import (
 DEFAULT_LOS_URL = "http://localhost:3000"
 
 
+async def check_los_health(los_url: str = DEFAULT_LOS_URL, timeout: float = 5.0) -> None:
+    """Verify the LOS is reachable before starting a run. Raises on failure."""
+    base = los_url.rstrip("/")
+    try:
+        async with httpx.AsyncClient(timeout=timeout) as client:
+            resp = await client.get(f"{base}/health")
+            resp.raise_for_status()
+    except (httpx.ConnectError, httpx.ConnectTimeout):
+        raise RuntimeError(
+            f"Cannot connect to Open LOS at {los_url}. "
+            f"Start it with: cd open-los/packages/api && npm run start"
+        )
+    except httpx.HTTPStatusError as exc:
+        raise RuntimeError(
+            f"Open LOS at {los_url} returned {exc.response.status_code} on health check."
+        )
+
+
 def serialize_dossier(borrower: Borrower) -> dict:
     """Serialize a Borrower's dossier into the LOS FinancialDossier format."""
     d = borrower.dossier
@@ -449,13 +467,30 @@ def _map_los_response(
     return run
 
 
+LLM_FAILURE_PREFIX = "LLM evaluation failed:"
+
+
 def run_to_decision(run: UnderwritingRun) -> LenderDecision:
     """Convert an UnderwritingRun back to a LenderDecision for adjudication.
 
     APR conversion: Run uses decimal (0.095), TermSheet uses percentage (9.5).
+
+    When the LOS returns a decline due to an LLM failure (model 404, no tool
+    call, etc.) rather than a genuine underwriting decision, the reasoning is
+    prefixed with "[LLM_ERROR]" so callers can distinguish infrastructure
+    failures from real rejections.
     """
     decision_str = "APPROVE" if run.decision.action == "approve" else "REJECT"
     reasoning = run.decision.rationale.summary or ""
+
+    # Detect LLM infrastructure failures masquerading as declines
+    if reasoning.startswith(LLM_FAILURE_PREFIX):
+        logger.warning(
+            "LLM failure for %s/%s: %s",
+            run.policy.policy_id, run.case.case_id, reasoning,
+        )
+        reasoning = f"[LLM_ERROR] {reasoning}"
+
     term_sheet = None
 
     if run.decision.action == "approve":
