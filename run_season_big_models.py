@@ -1,21 +1,18 @@
 #!/usr/bin/env python3
 """
-Season test: conservative scenario, 3 competitive models.
+Season test: BIG models — do they actually read portfolio briefings?
 
-Gentle mix: 70% good, 20% bad, 10% fraud — rewards good underwriting.
-Conservative economics: higher fraud penalties, tighter default thresholds.
+Hypothesis: smaller models (49B, nano) ignore the weekly portfolio briefing
+and offer static rates. Larger/frontier models might actually adapt their
+strategy based on capital state, sector exposure, and P&L history.
 
-Three models that showed close outcomes in legacy ELO tournaments:
-  - nvidia/llama-3.3-nemotron-super-49b-v1.5  (strong analytical, close to Gemini)
-  - google/gemini-2.5-flash                    (strong all-around)
-  - openai/gpt-4.1-nano                        (compact but sharp)
+Models tested (all 200B+ or frontier reasoning):
+  - meta-llama/llama-3.1-405b-instruct  (405B params, largest open model)
+  - deepseek/deepseek-r1                 (reasoning model, should analyze)
+  - google/gemini-2.5-pro                (frontier, long-context reasoning)
 
-Each model gets one lender slot — pure 3-way head-to-head.
-
-Notes:
-  - LLM non-determinism causes score swings across runs despite fixed seed=42
-    (seed controls borrower generation, not LLM outputs).
-  - Results are emitted to the leaderboard (leaderboard/matches/) for Elo tracking.
+Short season: 5 weeks, 5 borrowers/week = 25 evaluations per model.
+Focus: watch for rate variation, sector awareness, risk adjustment.
 """
 
 import asyncio
@@ -37,16 +34,16 @@ if not API_KEY:
     sys.exit(1)
 
 # ── Config ────────────────────────────────────────────────────────────────
-MODEL_A = "nvidia/llama-3.3-nemotron-super-49b-v1.5"
-MODEL_B = "google/gemini-2.5-flash"
-MODEL_C = "openai/gpt-4.1-nano"
-NAME_A = "Nemotron-49B"
-NAME_B = "Gemini-Flash"
-NAME_C = "GPT-4.1-Nano"
+MODEL_A = "meta-llama/llama-3.1-405b-instruct"
+MODEL_B = "deepseek/deepseek-r1"
+MODEL_C = "google/gemini-2.5-pro"
+NAME_A = "Llama-405B"
+NAME_B = "DeepSeek-R1"
+NAME_C = "Gemini-Pro"
 
 WEEKS = 5
-COHORT_SIZE = 5          # 5 borrowers/week = 50 total evaluations per lender
-MONTHS_PER_WEEK = 2      # 20 months of loan aging total
+COHORT_SIZE = 5          # 5 borrowers/week = 25 total evaluations per lender
+MONTHS_PER_WEEK = 2      # 10 months of loan aging total
 SEASON_MIX = "gentle"
 ECONOMICS = "conservative"
 SEED = 42
@@ -75,13 +72,14 @@ config = SeasonConfig(
 
 # ── Banner ────────────────────────────────────────────────────────────────
 print("=" * 70)
-print("  LOANVILLE SEASON — CONSERVATIVE UNDERWRITING TEST")
+print("  LOANVILLE SEASON — BIG MODEL ADAPTATION TEST")
 print(f"  {WEEKS} weeks | {COHORT_SIZE}/week | {SEASON_MIX} mix | {ECONOMICS} economics")
 print(f"  {NAME_A} vs {NAME_B} vs {NAME_C}")
 print("=" * 70)
+print(f"\n  Hypothesis: do 200B+ models adapt rates/strategy based on")
+print(f"  portfolio briefings, unlike smaller models which stay static?")
 print(f"\n  Mix: 70% good, 20% bad, 10% fraud")
 print(f"  Conservative: high fraud penalty, tight default threshold")
-print(f"  Best underwriting judgment wins — not just volume.")
 print()
 
 # ── Run ───────────────────────────────────────────────────────────────────
@@ -162,7 +160,7 @@ for state, score in zip(season.lender_states.values(), season_scores):
     print(f"    P&L: ${net:>+,.0f} (interest: ${state.cumulative_interest:,.0f}, "
           f"fees: ${state.cumulative_fees:,.0f}, losses: -${state.cumulative_losses:,.0f})")
 
-# ── Model comparison summary ──────────────────────────────────────────────
+# ── Head-to-head ─────────────────────────────────────────────────────────
 print("\n" + "=" * 70)
 print("  HEAD-TO-HEAD")
 print("=" * 70)

@@ -110,6 +110,10 @@ class SeasonEngine:
             economics=config.economics,
         )
 
+        # Per-week competition stats for briefing feedback
+        # lid -> {won, lost, rejected, avg_offered_rate, avg_winning_rate}
+        self._last_week_stats: dict[str, dict] = {}
+
         self._init_states(lenders)
 
     def _init_states(self, lenders: list[LenderConfig]) -> None:
@@ -382,6 +386,35 @@ class SeasonEngine:
                 f"fees: ${state.cumulative_fees:,.0f}, "
                 f"losses: -${state.cumulative_losses:,.0f})"
             )
+
+            # Competition feedback from last week
+            stats = self._last_week_stats.get(lid)
+            if stats:
+                lines.append("Competition (last week):")
+                lines.append(
+                    f"  Your deals: {stats['won']} won, "
+                    f"{stats['lost']} lost to cheaper offers, "
+                    f"{stats['rejected']} rejected"
+                )
+                avg_off = stats["avg_offered_rate"]
+                avg_win = stats["avg_winning_rate"]
+                if avg_off > 0:
+                    lines.append(
+                        f"  Your avg offered rate: {avg_off:.1f}% | "
+                        f"Avg winning rate: {avg_win:.1f}%"
+                    )
+                    gap = avg_off - avg_win
+                    if gap > 1.0:
+                        lines.append(
+                            f"  Note: You are pricing {gap:.1f}% above winning rates. "
+                            f"Consider lowering to win more deals."
+                        )
+                    elif gap < -0.5:
+                        lines.append(
+                            f"  Note: You are pricing {-gap:.1f}% below winning rates. "
+                            f"You may be leaving margin on the table."
+                        )
+
             lines.append("---")
 
             briefings[lid] = "\n".join(lines)
@@ -529,6 +562,31 @@ class SeasonEngine:
             self.all_decisions.setdefault(lid, []).extend(decisions)
         self.all_borrowers.extend(engine.borrowers)
         self.all_deal_results.update(engine.deal_results)
+
+        # Compute per-week competition stats for briefing feedback
+        winning_rates: list[float] = []
+        for loan in engine.booked_loans:
+            winning_rates.append(loan.interest_rate)
+
+        self._last_week_stats.clear()
+        for lender in self.base_lenders:
+            lid = lender.id
+            decisions = engine.all_decisions.get(lid, [])
+            won = sum(1 for l in engine.booked_loans if l.lender_id == lid)
+            rejected = sum(1 for d in decisions if d.decision != "APPROVE")
+            approved = sum(1 for d in decisions if d.decision == "APPROVE")
+            lost = approved - won
+            offered_rates = [
+                d.term_sheet.interest_rate for d in decisions
+                if d.decision == "APPROVE" and d.term_sheet
+            ]
+            avg_offered = sum(offered_rates) / len(offered_rates) if offered_rates else 0.0
+            avg_winning = sum(winning_rates) / len(winning_rates) if winning_rates else 0.0
+            self._last_week_stats[lid] = {
+                "won": won, "lost": lost, "rejected": rejected,
+                "avg_offered_rate": avg_offered,
+                "avg_winning_rate": avg_winning,
+            }
 
         return WeekResult(
             week=week,

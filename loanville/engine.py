@@ -296,10 +296,11 @@ class SimulationEngine:
         else:
             # Run all lenders in parallel via OpenRouter
             run_lender_evaluations, _, _ = _load_llm_functions()
+            funding_pct = self.economics.funding_rate * 100  # decimal → percentage
             tasks = [
                 run_lender_evaluations(
                     self.client, lender, self.borrowers, self.max_concurrent,
-                    self.data_mode,
+                    self.data_mode, funding_rate_pct=funding_pct,
                 )
                 for lender in self.lenders
             ]
