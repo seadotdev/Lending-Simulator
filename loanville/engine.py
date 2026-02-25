@@ -9,7 +9,6 @@ import hashlib
 import json
 import math
 import random
-from openai import AsyncOpenAI
 
 from .models import (
     BookedLoan,
@@ -23,19 +22,6 @@ from .models import (
 from .mock_llm import mock_evaluate_all
 from .run_schema import UnderwritingRun, build_run
 from .run_logger import RunLogger
-
-
-def _load_llm_functions():
-    """Import LLM helpers lazily so LOS mode doesn't require direct-LLM deps."""
-    try:
-        from .llm import run_lender_evaluations, get_call_traces, clear_call_traces
-    except ModuleNotFoundError as exc:
-        missing = getattr(exc, "name", "unknown")
-        raise RuntimeError(
-            f"Missing dependency '{missing}' required for direct OpenRouter mode. "
-            "Install dependencies with: pip install -r requirements.txt"
-        ) from exc
-    return run_lender_evaluations, get_call_traces, clear_call_traces
 
 
 def _stable_u01(*parts: str) -> float:
@@ -266,11 +252,9 @@ class SimulationEngine:
         self,
         borrowers: list[Borrower],
         lenders: list[LenderConfig],
-        openrouter_api_key: str = "",
         max_concurrent_per_lender: int = 5,
         mock: bool = False,
         data_mode: str = "full",
-        use_los: bool = False,
         los_url: str = "http://localhost:3000",
         los_provider: str = "openrouter",
         los_mode: str = "rules_only",
@@ -282,7 +266,6 @@ class SimulationEngine:
         self.borrowers = borrowers
         self.lenders = lenders
         self.mock = mock
-        self.use_los = use_los
         self.los_url = los_url
         self.los_provider = los_provider
         self.los_mode = los_mode
@@ -292,14 +275,6 @@ class SimulationEngine:
         self.max_concurrent = max_concurrent_per_lender
         self.economics = economics or EconomicsConfig()
         self.info_asymmetry = info_asymmetry
-
-        if not mock and not use_los:
-            self.client = AsyncOpenAI(
-                base_url="https://openrouter.ai/api/v1",
-                api_key=openrouter_api_key,
-            )
-        else:
-            self.client = None
 
         # State
         self.all_decisions: dict[str, list[LenderDecision]] = {}  # lender_id -> decisions
@@ -330,9 +305,15 @@ class SimulationEngine:
             print(f"  [INFO ASYMMETRY: {self.info_asymmetry}] "
                   f"Each lender sees a different view of borrower data.")
 
-        if self.use_los:
-            from .los_adapter import evaluate_all_via_los, run_to_decision
+        if self.mock:
+            print(f"\n[MOCK MODE] Simulating LLM evaluations (data_mode={self.data_mode})...\n")
+            self.all_decisions = mock_evaluate_all(
+                self.lenders, self.borrowers, self.data_mode,
+            )
+        else:
+            from .los_adapter import check_los_health, evaluate_all_via_los
 
+            await check_los_health(self.los_url)
             mode_label = "underwrite-only" if self.underwrite_only else self.los_mode
             print(f"\n[LOS MODE] Evaluating via Open LOS at {self.los_url} "
                   f"(mode={mode_label})...\n")
@@ -356,37 +337,15 @@ class SimulationEngine:
                 self.all_decisions[lender.id] = decisions
                 self.runs.extend(runs)
 
-        elif self.mock:
-            print(f"\n[MOCK MODE] Simulating LLM evaluations (data_mode={self.data_mode})...\n")
-            self.all_decisions = mock_evaluate_all(
-                self.lenders, self.borrowers, self.data_mode,
-            )
-        else:
-            # Run all lenders in parallel via OpenRouter
-            run_lender_evaluations, _, _ = _load_llm_functions()
-            tasks = [
-                run_lender_evaluations(
-                    self.client, lender,
-                    _create_borrower_views(
-                        self.borrowers, lender.id, self.info_asymmetry,
-                    ),
-                    self.max_concurrent,
-                    self.data_mode,
-                )
-                for lender in self.lenders
-            ]
-            print("\nLenders are evaluating applications...\n")
-            results = await asyncio.gather(*tasks)
-            for lender, decisions in zip(self.lenders, results):
-                self.all_decisions[lender.id] = decisions
-
         # Print results
         for lender in self.lenders:
             decisions = self.all_decisions[lender.id]
             approvals = sum(1 for d in decisions if d.decision == "APPROVE")
+            llm_errors = sum(1 for d in decisions if d.reasoning.startswith("[LLM_ERROR]"))
             rejections = len(decisions) - approvals
             print(f"  {lender.name} ({lender.model}):")
-            print(f"    Approved: {approvals} | Rejected: {rejections}")
+            error_str = f" | LLM Errors: {llm_errors}" if llm_errors else ""
+            print(f"    Approved: {approvals} | Rejected: {rejections}{error_str}")
             for d in decisions:
                 status = "APPROVED" if d.decision == "APPROVE" else "REJECTED"
                 bname = borrower_names.get(d.borrower_id, d.borrower_id)
@@ -397,20 +356,9 @@ class SimulationEngine:
                 if d.reasoning and not d.reasoning.startswith("[SYSTEM"):
                     print(f"        Reasoning: {d.reasoning}")
 
-        # Write trace file for live (non-mock) runs
-        if not self.mock and not self.use_los:
-            _, get_call_traces, clear_call_traces = _load_llm_functions()
-            traces = get_call_traces()
-            if traces:
-                trace_path = "loanville_trace.json"
-                with open(trace_path, "w") as f:
-                    json.dump(traces, f, indent=2)
-                print(f"\n  Trace log written to {trace_path} ({len(traces)} calls)")
-                clear_call_traces()
-
-        # Emit UnderwritingRun artifacts for every (lender, borrower) evaluation
-        # Skip if LOS mode — runs already emitted by the adapter
-        if not self.use_los:
+        # Emit UnderwritingRun artifacts for mock evaluations.
+        # LOS mode runs are already emitted by the adapter.
+        if self.mock:
             borrower_map = {b.id: b for b in self.borrowers}
             for lender in self.lenders:
                 for decision in self.all_decisions.get(lender.id, []):

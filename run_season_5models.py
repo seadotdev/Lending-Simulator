@@ -1,21 +1,14 @@
 #!/usr/bin/env python3
 """
-Season test: conservative scenario, 3 competitive models.
+Season test: 5-way competition with cheap models.
 
-Gentle mix: 70% good, 20% bad, 10% fraud — rewards good underwriting.
-Conservative economics: higher fraud penalties, tighter default thresholds.
+  - nvidia/llama-3.3-nemotron-super-49b-v1.5  ($0.20/M, proven strong)
+  - qwen/qwen3-next-80b-a3b-instruct          ($0.09/M, new Qwen MoE)
+  - z-ai/glm-4.7-flash                        ($0.06/M, Zhipu GLM)
+  - z-ai/glm-4-32b                             ($0.10/M, Zhipu GLM 32B)
+  - openai/gpt-4.1-nano                        ($0.10/M, compact baseline)
 
-Three models that showed close outcomes in legacy ELO tournaments:
-  - nvidia/llama-3.3-nemotron-super-49b-v1.5  (strong analytical, close to Gemini)
-  - google/gemini-2.5-flash                    (strong all-around)
-  - openai/gpt-4.1-nano                        (compact but sharp)
-
-Each model gets one lender slot — pure 3-way head-to-head.
-
-Notes:
-  - LLM non-determinism causes score swings across runs despite fixed seed=42
-    (seed controls borrower generation, not LLM outputs).
-  - Results are emitted to the leaderboard (leaderboard/matches/) for Elo tracking.
+All under $0.20/M. 5 lenders, 5 weeks, 5 borrowers/week = 125 evaluations.
 """
 
 import asyncio
@@ -31,29 +24,38 @@ from loanville.models import ECONOMICS_PRESETS, SeasonConfig
 from loanville.scoring import score_season, print_season_report
 from loanville.season import SeasonEngine
 
+API_KEY = os.environ.get("OPENROUTER_API_KEY", "")
+if not API_KEY:
+    print("ERROR: OPENROUTER_API_KEY not set. Add it to ~/.env")
+    sys.exit(1)
+
 # ── Config ────────────────────────────────────────────────────────────────
-MODEL_A = "nvidia/llama-3.3-nemotron-super-49b-v1.5"
-MODEL_B = "google/gemini-2.5-flash"
-MODEL_C = "openai/gpt-4.1-nano"
-NAME_A = "Nemotron-49B"
-NAME_B = "Gemini-Flash"
-NAME_C = "GPT-4.1-Nano"
+MODELS = [
+    ("nvidia/llama-3.3-nemotron-super-49b-v1.5", "Nemotron-49B"),
+    ("qwen/qwen3-next-80b-a3b-instruct",         "Qwen3-Next-80B"),
+    ("z-ai/glm-4.7-flash",                        "GLM-4.7-Flash"),
+    ("z-ai/glm-4-32b",                            "GLM-4-32B"),
+    ("openai/gpt-4.1-nano",                        "GPT-4.1-Nano"),
+]
 
 WEEKS = 5
-COHORT_SIZE = 5          # 5 borrowers/week = 50 total evaluations per lender
-MONTHS_PER_WEEK = 2      # 20 months of loan aging total
+COHORT_SIZE = 5
+MONTHS_PER_WEEK = 2
 SEASON_MIX = "gentle"
 ECONOMICS = "conservative"
 SEED = 42
 
 # ── Setup ─────────────────────────────────────────────────────────────────
 lenders = get_lenders()
-lenders[0].model = MODEL_A
-lenders[0].name = f"Velocity [{NAME_A}]"
-lenders[1].model = MODEL_B
-lenders[1].name = f"Heritage [{NAME_B}]"
-lenders[2].model = MODEL_C
-lenders[2].name = f"Meridian [{NAME_C}]"
+assert len(lenders) >= len(MODELS), f"Need {len(MODELS)} lenders, got {len(lenders)}"
+
+for i, (model_id, display_name) in enumerate(MODELS):
+    lenders[i].model = model_id
+    lenders[i].name = f"{lenders[i].name.split('[')[0].strip()} [{display_name}]" \
+        if "[" in lenders[i].name else f"{lenders[i].name} [{display_name}]"
+
+# Only use the lenders we need
+lenders = lenders[:len(MODELS)]
 
 economics = ECONOMICS_PRESETS[ECONOMICS]
 
@@ -70,13 +72,13 @@ config = SeasonConfig(
 
 # ── Banner ────────────────────────────────────────────────────────────────
 print("=" * 70)
-print("  LOANVILLE SEASON — CONSERVATIVE UNDERWRITING TEST")
+print("  LOANVILLE SEASON — 5-WAY COMPETITION")
 print(f"  {WEEKS} weeks | {COHORT_SIZE}/week | {SEASON_MIX} mix | {ECONOMICS} economics")
-print(f"  {NAME_A} vs {NAME_B} vs {NAME_C}")
 print("=" * 70)
+for i, (_, name) in enumerate(MODELS):
+    print(f"  {i+1}. {lenders[i].name} (target {lenders[i].target_yield_pct}%, ${lenders[i].total_capital/1e6:.1f}M)")
 print(f"\n  Mix: 70% good, 20% bad, 10% fraud")
-print(f"  Conservative: high fraud penalty, tight default threshold")
-print(f"  Best underwriting judgment wins — not just volume.")
+print(f"  Total evaluations: {WEEKS * COHORT_SIZE * len(MODELS)}")
 print()
 
 # ── Run ───────────────────────────────────────────────────────────────────
@@ -85,6 +87,7 @@ t0 = time.time()
 season = SeasonEngine(
     config=config,
     lenders=lenders,
+    openrouter_api_key=API_KEY,
     mock=False,
     data_mode="lite",
 )
@@ -108,20 +111,20 @@ match_path, lb_path = emit_and_update(record)
 print(f"\n  Leaderboard: match -> {match_path.name}")
 print(f"  Leaderboard: standings -> {lb_path.name}")
 
-# ── Deep dive: per-week trajectory ────────────────────────────────────────
+# ── Weekly trajectory ────────────────────────────────────────────────────
 print("\n" + "=" * 70)
 print("  WEEKLY TRAJECTORY")
 print("=" * 70)
 
-print(f"\n  {'Week':<6}", end="")
+print(f"\n  {'Wk':<4}", end="")
 for l in lenders:
     short = l.name.split("[")[1].rstrip("]") if "[" in l.name else l.model.split("/")[-1]
-    print(f"  {short:>12s} {'Depl%':>6} {'Dflt':>5}", end="")
+    print(f" {short[:12]:>12s} {'D%':>4} {'Df':>3}", end="")
 print()
-print(f"  {'─'*78}")
+print(f"  {'─'*(4 + len(lenders)*21)}")
 
 for week in range(1, WEEKS + 1):
-    print(f"  {week:<6}", end="")
+    print(f"  {week:<4}", end="")
     for state in season.lender_states.values():
         snap = None
         for s in state.weekly_snapshots:
@@ -133,35 +136,17 @@ for week in range(1, WEEKS + 1):
             depl = snap["deployed_capital"]
             ratio = depl / eff * 100 if eff > 0 else 0
             defaults = snap["defaults_to_date"]
-            print(f"  ${eff/1000:>8.0f}k {ratio:>5.0f}% {defaults:>5}", end="")
+            print(f" ${eff/1000:>8.0f}k {ratio:>3.0f}% {defaults:>3}", end="")
         else:
-            print(f"  {'—':>12} {'—':>6} {'—':>5}", end="")
+            print(f" {'—':>12} {'—':>4} {'—':>3}", end="")
     print()
 
-# ── Per-lender detail ────────────────────────────────────────────────────
+# ── Head-to-head ─────────────────────────────────────────────────────────
 print("\n" + "=" * 70)
-print("  PER-LENDER DETAIL")
+print("  HEAD-TO-HEAD (sorted by score)")
 print("=" * 70)
 
-for state, score in zip(season.lender_states.values(), season_scores):
-    net = state.cumulative_interest + state.cumulative_fees - state.cumulative_losses
-    frauds = sum(1 for loan in state.resolved_loans if loan.was_fraud and loan.defaulted)
-    defaults = sum(1 for loan in state.resolved_loans if loan.defaulted and not loan.was_fraud)
-    good_repaid = sum(1 for loan in state.resolved_loans if not loan.defaulted)
-    print(f"\n  {state.lender_name}")
-    print(f"    Score: {score.final_score:.1f}/100 (Credit: {score.credit_quality_score:.1f}, "
-          f"Portfolio: {score.portfolio_mgmt_score:.1f}, Efficiency: {score.efficiency_score:.1f})")
-    print(f"    Deals: {state.deals_won} won, {state.deals_lost} lost, {state.deals_rejected} rejected")
-    print(f"    Outcomes: {good_repaid} repaid, {defaults} defaults, {frauds} fraud defaults")
-    print(f"    P&L: ${net:>+,.0f} (interest: ${state.cumulative_interest:,.0f}, "
-          f"fees: ${state.cumulative_fees:,.0f}, losses: -${state.cumulative_losses:,.0f})")
-
-# ── Model comparison summary ──────────────────────────────────────────────
-print("\n" + "=" * 70)
-print("  HEAD-TO-HEAD")
-print("=" * 70)
-
-print(f"\n  {'Model':<35s} {'Score':>8} {'Won':>5} {'Rej':>5} {'Dflt':>5} {'Fraud':>6} {'Net P&L':>12}")
+print(f"\n  {'Model':<30s} {'Persona':<12s} {'Score':>7} {'Won':>5} {'Rej':>5} {'Dflt':>5} {'Net P&L':>12}")
 print(f"  {'─'*76}")
 for state, score in sorted(
     zip(season.lender_states.values(), season_scores),
@@ -170,9 +155,10 @@ for state, score in sorted(
     frauds = sum(1 for loan in state.resolved_loans if loan.was_fraud and loan.defaulted)
     defaults = sum(1 for loan in state.resolved_loans if loan.defaulted)
     net = state.cumulative_interest + state.cumulative_fees - state.cumulative_losses
-    short = state.model.split("/")[-1]
-    print(f"  {short:<35s} {score.final_score:>7.1f} {state.deals_won:>5} "
-          f"{state.deals_rejected:>5} {defaults:>5} {frauds:>6} ${net:>+10,.0f}")
+    short = state.model.split("/")[-1][:28]
+    persona = state.lender_name.split("[")[0].strip() if "[" in state.lender_name else ""
+    print(f"  {short:<30s} {persona:<12s} {score.final_score:>6.1f} {state.deals_won:>5} "
+          f"{state.deals_rejected:>5} {defaults:>5} ${net:>+10,.0f}")
 
 scores_sorted = sorted(season_scores, key=lambda s: -s.final_score)
 print(f"\n  Winner: {scores_sorted[0].lender_name} ({scores_sorted[0].final_score:.1f}/100)")

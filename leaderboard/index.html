@@ -175,11 +175,12 @@ function renderLeaderboard() {
   html += `<table>
     <thead><tr>
       <th>#</th><th>Model</th><th>Profit Elo</th><th>Credit Elo</th><th>DealShare Elo</th>
-      <th>Matches</th><th>Avg RAROC</th><th>Trend</th>
+      <th>Matches</th><th>Avg Net P&L</th><th>Trend</th>
     </tr></thead><tbody>`;
 
   s.forEach((m, i) => {
     const h = hist[m.model_id] || [];
+    const avgPnl = m.avg_net_pnl != null ? m.avg_net_pnl : 0;
     html += `<tr>
       <td>${i + 1}</td>
       <td><a onclick="navigate('model','${m.model_id}')">${m.display_name}</a></td>
@@ -187,7 +188,7 @@ function renderLeaderboard() {
       <td class="${eloClass(m.credit_elo)}">${elo(m.credit_elo)}</td>
       <td class="${eloClass(m.dealshare_elo)}">${elo(m.dealshare_elo)}</td>
       <td>${m.matches_played}</td>
-      <td>${m.avg_raroc >= 0 ? '+' : ''}${m.avg_raroc.toFixed(1)}%</td>
+      <td class="${avgPnl >= 0 ? 'num-pos' : 'num-neg'}">${dollar(avgPnl)}</td>
       <td>${sparklineSVG(h, 'profit_elo')}</td>
     </tr>`;
   });
@@ -290,10 +291,10 @@ function renderModelDetail() {
     html += '<h2>Rate Analysis</h2>';
     html += `<div class="card">
       <table>
-        <tr><td>Avg rate on good borrowers</td><td>${ra.avg_rate_good != null ? (ra.avg_rate_good * 100).toFixed(1) + '%' : '—'} (${ra.n_good_offers} offers)</td></tr>
-        <tr><td>Avg rate on bad borrowers</td><td>${ra.avg_rate_bad != null ? (ra.avg_rate_bad * 100).toFixed(1) + '%' : '—'} (${ra.n_bad_offers} offers)</td></tr>
+        <tr><td>Avg rate on good borrowers</td><td>${ra.avg_rate_good != null ? ra.avg_rate_good.toFixed(1) + '%' : '—'} (${ra.n_good_offers} offers)</td></tr>
+        <tr><td>Avg rate on bad borrowers</td><td>${ra.avg_rate_bad != null ? ra.avg_rate_bad.toFixed(1) + '%' : '—'} (${ra.n_bad_offers} offers)</td></tr>
         ${ra.avg_rate_good != null && ra.avg_rate_bad != null ?
-          `<tr><td>Spread (bad - good)</td><td>${((ra.avg_rate_bad - ra.avg_rate_good) * 100).toFixed(1)}pp</td></tr>` : ''}
+          `<tr><td>Spread (bad - good)</td><td>${(ra.avg_rate_bad - ra.avg_rate_good).toFixed(1)}pp</td></tr>` : ''}
       </table>
     </div>`;
   }
@@ -471,7 +472,7 @@ function renderMatchDetailFromData(match) {
       if (state === 'declined') {
         content = '<span style="color:var(--text-muted)">DECLINE</span>';
       } else if (state === 'won' || state === 'lost') {
-        const rateStr = rate != null ? (rate * 100).toFixed(1) + '%' : '';
+        const rateStr = rate != null ? rate.toFixed(1) + '%' : '';
         content = `APPROVE ${rateStr}`;
         if (isWinner) content += ' ★';
       } else {

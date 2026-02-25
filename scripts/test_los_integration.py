@@ -38,7 +38,6 @@ def run() -> int:
         lenders=lenders,
         mock=False,
         data_mode="full",
-        use_los=True,
         los_url=args.los_base_url,
     )
     asyncio.run(engine.run())

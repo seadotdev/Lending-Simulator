@@ -13,3 +13,4 @@ env/
 *.log
 .DS_Store
 loanville_trace.json
+web/assets/

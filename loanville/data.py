@@ -1807,6 +1807,95 @@ def _build_lenders() -> list[LenderConfig]:
                 ExistingLoan("AgroTech Vertical", "Urban Agriculture", 150000, 120000, 8.5, 16),
             ],
         ),
+        LenderConfig(
+            id="LND-004",
+            name="Pinnacle Finance",
+            persona=(
+                "You are Pinnacle Finance, a data-driven specialty lender focused on "
+                "mid-market companies. You use rigorous financial analysis to price risk "
+                "precisely. You are comfortable with moderate risk if the spread compensates. "
+                "You prefer medium-term loans (18-36 months) and price each deal individually "
+                "based on the borrower's financials."
+            ),
+            model="qwen/qwen3-30b-a3b",
+            target_yield_pct=12.0,
+            max_single_loan=700000,
+            total_capital=3200000,
+            sector_limits={
+                "Aero-Logistics": 0.25,
+                "Bio-Synthetics": 0.25,
+                "Quantum Computing": 0.25,
+                "Green Energy": 0.30,
+                "Urban Agriculture": 0.25,
+                "Digital Media": 0.25,
+                "Advanced Manufacturing": 0.30,
+                "Construction Services": 0.25,
+                "Enterprise SaaS": 0.30,
+                "Food Distribution": 0.25,
+                "Legal Technology": 0.25,
+                "Hospitality Services": 0.25,
+                "Professional Services": 0.25,
+                "Marine Services": 0.25,
+                "Print Services": 0.25,
+                "Healthcare Services": 0.30,
+                "Furniture Manufacturing": 0.25,
+                "Education Services": 0.25,
+                "Auto Parts Distribution": 0.25,
+                "IT Services": 0.30,
+                "Property Services": 0.25,
+            },
+            existing_portfolio=[
+                ExistingLoan("PrecisionTech Robotics", "Advanced Manufacturing", 350000, 280000, 11.0, 20),
+                ExistingLoan("CloudNine SaaS", "Enterprise SaaS", 300000, 240000, 10.5, 18),
+                ExistingLoan("MedCore Analytics", "Healthcare Services", 250000, 200000, 11.5, 16),
+                ExistingLoan("LogiTrack Systems", "Aero-Logistics", 200000, 160000, 10.0, 14),
+            ],
+        ),
+        LenderConfig(
+            id="LND-005",
+            name="Atlas Credit",
+            persona=(
+                "You are Atlas Credit, a relationship-focused commercial lender. You value "
+                "long-term client relationships and steady portfolio growth over aggressive "
+                "returns. You prefer well-established businesses with proven track records. "
+                "You offer competitive rates to win quality deals and are willing to take "
+                "slightly lower margins for strong credits. You favor longer terms (24-48 months)."
+            ),
+            model="meta-llama/llama-3.3-70b-instruct",
+            target_yield_pct=9.5,
+            max_single_loan=600000,
+            total_capital=3800000,
+            sector_limits={
+                "Aero-Logistics": 0.25,
+                "Bio-Synthetics": 0.20,
+                "Quantum Computing": 0.20,
+                "Green Energy": 0.25,
+                "Urban Agriculture": 0.25,
+                "Digital Media": 0.25,
+                "Advanced Manufacturing": 0.25,
+                "Construction Services": 0.30,
+                "Enterprise SaaS": 0.25,
+                "Food Distribution": 0.30,
+                "Legal Technology": 0.25,
+                "Hospitality Services": 0.30,
+                "Professional Services": 0.30,
+                "Marine Services": 0.25,
+                "Print Services": 0.25,
+                "Healthcare Services": 0.25,
+                "Furniture Manufacturing": 0.25,
+                "Education Services": 0.30,
+                "Auto Parts Distribution": 0.25,
+                "IT Services": 0.25,
+                "Property Services": 0.30,
+            },
+            existing_portfolio=[
+                ExistingLoan("SteelBridge Construction", "Construction Services", 400000, 320000, 9.0, 24),
+                ExistingLoan("EduPath Learning", "Education Services", 300000, 250000, 8.5, 20),
+                ExistingLoan("GreenHarvest Farms", "Urban Agriculture", 250000, 200000, 9.5, 18),
+                ExistingLoan("ServicePro Solutions", "Professional Services", 200000, 160000, 8.0, 16),
+                ExistingLoan("ComfortStay Hotels", "Hospitality Services", 180000, 140000, 9.0, 22),
+            ],
+        ),
     ]
 
 

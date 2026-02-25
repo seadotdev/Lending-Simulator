@@ -10,10 +10,9 @@
 # borrower dossiers to the LOS, which uses an LLM to make underwriting
 # decisions (approve/reject, set terms, detect fraud).
 #
-# This is the "unified" path — a port of the old direct llm.py evaluation
-# into the full LOS pipeline. Instead of Loanville calling OpenRouter
-# directly, it now goes through Open LOS which orchestrates the LLM calls
-# with proper audit trails, financial spreading, and stage management.
+# All non-mock simulations run through the Open LOS pipeline. The LOS
+# orchestrates the LLM calls with proper audit trails, financial spreading,
+# and stage management.
 #
 # ARCHITECTURE
 # ============
@@ -214,7 +213,6 @@ cd "$SCRIPT_DIR"
 LB_FLAG=""
 if $LEADERBOARD; then LB_FLAG="--leaderboard"; fi
 python -m loanville \
-    --los \
     --los-url "http://localhost:$LOS_PORT" \
     --los-provider "$LOS_PROVIDER" \
     --los-mode "$LOS_MODE" \

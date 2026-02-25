@@ -1,21 +1,13 @@
 #!/usr/bin/env python3
 """
-Season test: conservative scenario, 3 competitive models.
+Season test: newer cheap models — Qwen3-Next, GLM-4.7, MiniMax-01.
 
-Gentle mix: 70% good, 20% bad, 10% fraud — rewards good underwriting.
-Conservative economics: higher fraud penalties, tighter default thresholds.
+Do newer/cheaper models handle the pricing guidance well?
+All under $0.20/M input — very cheap to run.
 
-Three models that showed close outcomes in legacy ELO tournaments:
-  - nvidia/llama-3.3-nemotron-super-49b-v1.5  (strong analytical, close to Gemini)
-  - google/gemini-2.5-flash                    (strong all-around)
-  - openai/gpt-4.1-nano                        (compact but sharp)
-
-Each model gets one lender slot — pure 3-way head-to-head.
-
-Notes:
-  - LLM non-determinism causes score swings across runs despite fixed seed=42
-    (seed controls borrower generation, not LLM outputs).
-  - Results are emitted to the leaderboard (leaderboard/matches/) for Elo tracking.
+  - qwen/qwen3-next-80b-a3b-instruct  ($0.09/M, Qwen3 Next MoE 80B)
+  - z-ai/glm-4.7-flash                ($0.06/M, Zhipu GLM 4.7 Flash)
+  - minimax/minimax-01                 ($0.20/M, MiniMax 01)
 """
 
 import asyncio
@@ -31,17 +23,22 @@ from loanville.models import ECONOMICS_PRESETS, SeasonConfig
 from loanville.scoring import score_season, print_season_report
 from loanville.season import SeasonEngine
 
+API_KEY = os.environ.get("OPENROUTER_API_KEY", "")
+if not API_KEY:
+    print("ERROR: OPENROUTER_API_KEY not set. Add it to ~/.env")
+    sys.exit(1)
+
 # ── Config ────────────────────────────────────────────────────────────────
-MODEL_A = "nvidia/llama-3.3-nemotron-super-49b-v1.5"
-MODEL_B = "google/gemini-2.5-flash"
-MODEL_C = "openai/gpt-4.1-nano"
-NAME_A = "Nemotron-49B"
-NAME_B = "Gemini-Flash"
-NAME_C = "GPT-4.1-Nano"
+MODEL_A = "qwen/qwen3-next-80b-a3b-instruct"
+MODEL_B = "z-ai/glm-4.7-flash"
+MODEL_C = "minimax/minimax-01"
+NAME_A = "Qwen3-Next-80B"
+NAME_B = "GLM-4.7-Flash"
+NAME_C = "MiniMax-01"
 
 WEEKS = 5
-COHORT_SIZE = 5          # 5 borrowers/week = 50 total evaluations per lender
-MONTHS_PER_WEEK = 2      # 20 months of loan aging total
+COHORT_SIZE = 5
+MONTHS_PER_WEEK = 2
 SEASON_MIX = "gentle"
 ECONOMICS = "conservative"
 SEED = 42
@@ -70,13 +67,12 @@ config = SeasonConfig(
 
 # ── Banner ────────────────────────────────────────────────────────────────
 print("=" * 70)
-print("  LOANVILLE SEASON — CONSERVATIVE UNDERWRITING TEST")
+print("  LOANVILLE SEASON — NEW CHEAP MODELS TEST")
 print(f"  {WEEKS} weeks | {COHORT_SIZE}/week | {SEASON_MIX} mix | {ECONOMICS} economics")
 print(f"  {NAME_A} vs {NAME_B} vs {NAME_C}")
 print("=" * 70)
-print(f"\n  Mix: 70% good, 20% bad, 10% fraud")
-print(f"  Conservative: high fraud penalty, tight default threshold")
-print(f"  Best underwriting judgment wins — not just volume.")
+print(f"\n  All models under $0.20/M input pricing")
+print(f"  Mix: 70% good, 20% bad, 10% fraud")
 print()
 
 # ── Run ───────────────────────────────────────────────────────────────────
@@ -85,6 +81,7 @@ t0 = time.time()
 season = SeasonEngine(
     config=config,
     lenders=lenders,
+    openrouter_api_key=API_KEY,
     mock=False,
     data_mode="lite",
 )
@@ -156,7 +153,7 @@ for state, score in zip(season.lender_states.values(), season_scores):
     print(f"    P&L: ${net:>+,.0f} (interest: ${state.cumulative_interest:,.0f}, "
           f"fees: ${state.cumulative_fees:,.0f}, losses: -${state.cumulative_losses:,.0f})")
 
-# ── Model comparison summary ──────────────────────────────────────────────
+# ── Head-to-head ─────────────────────────────────────────────────────────
 print("\n" + "=" * 70)
 print("  HEAD-TO-HEAD")
 print("=" * 70)

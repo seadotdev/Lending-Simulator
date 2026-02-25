@@ -9,6 +9,7 @@ the borrower's 12-month bank statement data.
 
 import asyncio
 import json
+import math
 import re
 from just_bash import Bash as JustBash
 from openai import AsyncOpenAI
@@ -370,14 +371,14 @@ def _format_portfolio_summary(lender: LenderConfig) -> str:
     return "\n".join(lines)
 
 
-def _analysis_instructions(data_mode: str) -> str:
+def _analysis_instructions(data_mode: str, funding_rate_pct: float = 4.0) -> str:
     """Generate mode-specific analysis instructions for the system prompt."""
     parts = []
 
     # Lite mode: compact instructions optimized for small models
     if data_mode == "lite":
         parts.append("INSTRUCTIONS:")
-        parts.append("Evaluate this loan application. Check three things:")
+        parts.append("Evaluate this loan application. Check four things:")
         parts.append("")
         parts.append(
             "1. REVENUE TREND: Is quarterly revenue growing, flat, or declining?\n"
@@ -393,6 +394,14 @@ def _analysis_instructions(data_mode: str) -> str:
             "   - Company names in the narrative that overlap with related entities\n"
             "   - Very thin margins (net margin < 8%) combined with large loan requests\n"
             "   - Over-reliance on a single customer or revenue source"
+        )
+        parts.append(
+            f"\n4. PRICING: Set your interest rate based on borrower risk.\n"
+            f"   - Your cost of funds is {funding_rate_pct:.1f}%. Every loan must earn above this.\n"
+            f"   - Adjust rate UP (+1-4%) for: declining revenue, thin margins, high leverage, risky sector\n"
+            f"   - Adjust rate DOWN (-1-3%) for: strong growth, high margins, low leverage\n"
+            f"   - You compete with other lenders — borrower picks the lowest rate.\n"
+            f"     Price too high = lose the deal. Price too low = poor returns."
         )
         return "\n".join(parts)
 
@@ -459,6 +468,16 @@ def _analysis_instructions(data_mode: str) -> str:
         "   - Factor in the new loan amount when checking limits"
     )
 
+    # 4. PRICING (always the same)
+    parts.append(
+        f"\n4. PRICING: Set your interest rate based on borrower risk.\n"
+        f"   - Your cost of funds is {funding_rate_pct:.1f}%. Every loan must earn above this.\n"
+        f"   - Adjust rate UP (+1-4%) for: declining revenue, thin margins, high leverage, risky sector\n"
+        f"   - Adjust rate DOWN (-1-3%) for: strong growth, high margins, low leverage\n"
+        f"   - You compete with other lenders — borrower picks the lowest rate.\n"
+        f"     Price too high = lose the deal. Price too low = poor returns."
+    )
+
     # Tool usage note (only for full mode)
     if data_mode == "full":
         parts.append(
@@ -473,7 +492,8 @@ def _analysis_instructions(data_mode: str) -> str:
     return "\n".join(parts)
 
 
-def _build_system_prompt(lender: LenderConfig, data_mode: str = "full") -> str:
+def _build_system_prompt(lender: LenderConfig, data_mode: str = "full",
+                         funding_rate_pct: float = 4.0) -> str:
     """Build the system prompt that defines the lender's persona and guidelines."""
 
     # Lite mode: compact system prompt for small models
@@ -481,11 +501,12 @@ def _build_system_prompt(lender: LenderConfig, data_mode: str = "full") -> str:
         return f"""You are a loan underwriter. Evaluate loan applications and decide APPROVE or REJECT.
 
 YOUR GUIDELINES:
-- Target yield: {lender.target_yield_pct}% annual
+- Cost of funds: {funding_rate_pct:.1f}% annual (your breakeven — charge above this)
+- Target yield: {lender.target_yield_pct}% annual (guideline — adjust based on borrower risk and competition)
 - Max single loan: ${lender.max_single_loan:,.0f}
 - Available capital: ${lender.total_capital:,.0f}
 
-{_analysis_instructions(data_mode)}
+{_analysis_instructions(data_mode, funding_rate_pct=funding_rate_pct)}
 
 Respond with ONLY a JSON object:
 {{{{"decision": "APPROVE" or "REJECT", "reasoning": "Brief explanation", "term_sheet": {{{{"loan_amount": <number or null>, "interest_rate": <percent or null>, "term_months": <integer or null>}}}}}}}}"""
@@ -498,7 +519,8 @@ Respond with ONLY a JSON object:
     return f"""{lender.persona}
 
 YOUR LENDING GUIDELINES:
-- Target Portfolio Yield: {lender.target_yield_pct}% annual
+- Cost of Funds: {funding_rate_pct:.1f}% annual (your minimum breakeven rate)
+- Target Portfolio Yield: {lender.target_yield_pct}% annual (guideline — adjust based on borrower risk and competition)
 - Maximum Single Loan Amount: ${lender.max_single_loan:,.0f}
 - Sector Concentration Limits:
 {sector_limits_str}
@@ -506,7 +528,7 @@ YOUR LENDING GUIDELINES:
 YOUR CURRENT PORTFOLIO:
 {_format_portfolio_summary(lender)}
 
-{_analysis_instructions(data_mode)}
+{_analysis_instructions(data_mode, funding_rate_pct=funding_rate_pct)}
 
 When you are ready to give your final decision, respond with ONLY a valid JSON
 object in exactly this format:
@@ -605,12 +627,12 @@ def _extract_decision_from_text(text: str, loan_amount: float) -> dict | None:
         }
 
 
-def _parse_decision(lender_id: str, borrower_id: str, raw: dict | None) -> LenderDecision:
-    """Parse a raw JSON dict into a LenderDecision, with fallback for bad data."""
+def _parse_decision(lender: LenderConfig, borrower: Borrower, raw: dict | None) -> LenderDecision:
+    """Parse and normalize a raw JSON dict into a bounded LenderDecision."""
     if raw is None:
         return LenderDecision(
-            lender_id=lender_id,
-            borrower_id=borrower_id,
+            lender_id=lender.id,
+            borrower_id=borrower.id,
             decision="REJECT",
             reasoning="[SYSTEM: Failed to parse LLM response as valid JSON]",
         )
@@ -621,23 +643,55 @@ def _parse_decision(lender_id: str, borrower_id: str, raw: dict | None) -> Lende
 
     reasoning = str(raw.get("reasoning", "No reasoning provided"))
 
-    term_sheet = None
+    term_sheet: TermSheet | None = None
     if decision == "APPROVE":
         ts = raw.get("term_sheet", {})
         if isinstance(ts, dict) and ts.get("loan_amount") is not None:
             try:
-                term_sheet = TermSheet(
-                    loan_amount=float(ts["loan_amount"]),
-                    interest_rate=float(ts.get("interest_rate", 10.0)),
-                    term_months=int(ts.get("term_months", 24)),
+                raw_amount = float(ts["loan_amount"])
+                raw_rate = float(ts.get("interest_rate", lender.target_yield_pct))
+                raw_term = int(ts.get("term_months", 24))
+
+                if not math.isfinite(raw_amount) or not math.isfinite(raw_rate):
+                    raise ValueError("non-finite terms")
+
+                max_amount = min(
+                    float(lender.max_single_loan),
+                    float(borrower.dossier.loan_request_amount),
                 )
+                norm_amount = max(0.0, min(raw_amount, max_amount))
+                norm_rate = max(0.1, min(raw_rate, 60.0))
+                norm_term = max(1, min(raw_term, 120))
+
+                if norm_amount <= 0:
+                    decision = "REJECT"
+                    reasoning += " [SYSTEM: Non-positive loan amount after policy clamp]"
+                else:
+                    term_sheet = TermSheet(
+                        loan_amount=norm_amount,
+                        interest_rate=norm_rate,
+                        term_months=norm_term,
+                    )
+                    normalized = (
+                        not math.isclose(norm_amount, raw_amount)
+                        or not math.isclose(norm_rate, raw_rate)
+                        or norm_term != raw_term
+                    )
+                    if normalized:
+                        reasoning += " [SYSTEM: Term sheet normalized to policy bounds]"
             except (ValueError, TypeError):
                 decision = "REJECT"
                 reasoning += " [SYSTEM: Invalid term sheet values]"
+        else:
+            decision = "REJECT"
+            reasoning += " [SYSTEM: Missing term sheet for APPROVE decision]"
+
+    if decision != "APPROVE":
+        term_sheet = None
 
     return LenderDecision(
-        lender_id=lender_id,
-        borrower_id=borrower_id,
+        lender_id=lender.id,
+        borrower_id=borrower.id,
         decision=decision,
         reasoning=reasoning,
         term_sheet=term_sheet,
@@ -686,6 +740,7 @@ async def evaluate_borrower(
     borrower: Borrower,
     semaphore: asyncio.Semaphore,
     data_mode: str = "full",
+    funding_rate_pct: float = 4.0,
 ) -> LenderDecision:
     """Have a lender LLM evaluate a borrower, with tool-use support.
 
@@ -696,7 +751,7 @@ async def evaluate_borrower(
     - "statements_inline": raw bank statements in prompt, no tool
     - "lite": compact prompt with quarterly income, no tool (optimized for small models)
     """
-    system_prompt = _build_system_prompt(lender, data_mode)
+    system_prompt = _build_system_prompt(lender, data_mode, funding_rate_pct=funding_rate_pct)
     user_prompt = _build_user_prompt(borrower, data_mode)
 
     messages: list[dict] = [
@@ -778,7 +833,7 @@ async def evaluate_borrower(
                         content, borrower.dossier.loan_request_amount,
                     )
 
-                decision = _parse_decision(lender.id, borrower.id, raw)
+                decision = _parse_decision(lender, borrower, raw)
 
                 # Log the full trace
                 _call_traces.append({
@@ -836,11 +891,13 @@ async def run_lender_evaluations(
     borrowers: list[Borrower],
     max_concurrent: int = 5,
     data_mode: str = "full",
+    funding_rate_pct: float = 4.0,
 ) -> list[LenderDecision]:
     """Run all borrower evaluations for a single lender concurrently."""
     semaphore = asyncio.Semaphore(max_concurrent)
     tasks = [
-        evaluate_borrower(client, lender, borrower, semaphore, data_mode)
+        evaluate_borrower(client, lender, borrower, semaphore, data_mode,
+                          funding_rate_pct=funding_rate_pct)
         for borrower in borrowers
     ]
     return await asyncio.gather(*tasks)

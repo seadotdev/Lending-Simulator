@@ -69,15 +69,34 @@ def validate_match(match_data: dict, config: dict | None = None) -> dict:
     if "models" not in match_data or "results" not in match_data:
         return {"valid": False, "errors": ["Missing 'models' or 'results' fields"]}
 
+    models = match_data.get("models", [])
     results = match_data.get("results", [])
     n_borrowers = match_data.get("n_borrowers", 0)
+
+    # 0. Basic model/result consistency
+    model_ids = [m.get("model_id", "") for m in models if isinstance(m, dict)]
+    if not model_ids:
+        errors.append("No models provided")
+    dup_model_ids = sorted({mid for mid in model_ids if model_ids.count(mid) > 1})
+    if dup_model_ids:
+        errors.append(f"Duplicate model_id entries in models: {', '.join(dup_model_ids)}")
+
+    result_model_ids = [r.get("model_id", "") for r in results if isinstance(r, dict)]
+    if not result_model_ids:
+        errors.append("No results provided")
+    dup_result_ids = sorted({mid for mid in result_model_ids if result_model_ids.count(mid) > 1})
+    if dup_result_ids:
+        errors.append(f"Duplicate model_id entries in results: {', '.join(dup_result_ids)}")
+    for mid in result_model_ids:
+        if mid and mid not in model_ids:
+            errors.append(f"Result references unknown model_id: {mid}")
 
     # 1. Min borrowers
     if n_borrowers < min_borrowers:
         errors.append(f"Only {n_borrowers} borrowers (minimum {min_borrowers})")
 
     # 2. Max error rate per model — count valid models
-    valid_models = []
+    valid_models: set[str] = set()
     for r in results:
         mid = r.get("model_id", "")
         total = r.get("deals_won", 0) + r.get("deals_rejected", 0) + r.get("deals_errored", 0)
@@ -88,7 +107,8 @@ def validate_match(match_data: dict, config: dict | None = None) -> dict:
                 f"({errored/total:.0%}) exceeds {max_error_rate:.0%}"
             )
         else:
-            valid_models.append(mid)
+            if mid:
+                valid_models.add(mid)
 
     # 3. Labels present — check per_borrower ground truth
     for r in results:
@@ -101,7 +121,7 @@ def validate_match(match_data: dict, config: dict | None = None) -> dict:
 
     # 4. At least 2 valid models
     if len(valid_models) < 2:
-        errors.append(f"Only {len(valid_models)} valid models (need at least 2)")
+        errors.append(f"Only {len(valid_models)} valid unique models (need at least 2)")
 
     return {"valid": len(errors) == 0, "errors": errors}
 
@@ -306,15 +326,15 @@ def emit_match_record_from_season(
     rather than actual RAROC %. The leaderboard displays avg_net_pnl instead
     of avg_raroc to avoid scale confusion across match types.
     """
-    from ..scoring import compute_confusion_matrix
+    from ..scoring import compute_confusion_matrix, compute_loan_payoff
 
     models_info = [
         {"model_id": l.model, "display_name": l.name}
         for l in lenders
     ]
 
-    # Build borrower ground truth lookup
-    borrower_truth = {b.id: b.true_outcome for b in season_engine.all_borrowers}
+    eco = season_engine.config.economics
+    benchmark_rate_per_dollar = eco.risk_free_rate * (eco.sim_horizon_months / 12.0)
 
     # Build deal winner lookup: borrower_id -> winning lender_id
     deal_winners = {}
@@ -348,17 +368,26 @@ def emit_match_record_from_season(
             else:
                 decision_state = "lost"
 
-            # Compute utility from resolved loans (match by borrower_id)
-            utility = 0.0
-            if decision_state == "won":
-                for lo in state.resolved_loans:
-                    if lo.borrower_id == b.id:
-                        utility = lo.total_interest_paid - lo.principal_lost
-                        break
-
             rate_offered = None
             if d.decision == "APPROVE" and d.term_sheet:
                 rate_offered = d.term_sheet.interest_rate
+
+            # Align utility semantics with elo_benchmark._compute_per_applicant_payoffs():
+            # won = realized net profit, lost/declined = risk-free benchmark return.
+            notional = b.dossier.loan_request_amount
+            utility = notional * benchmark_rate_per_dollar
+            if decision_state == "won" and d.term_sheet:
+                payoff = compute_loan_payoff(
+                    principal=d.term_sheet.loan_amount,
+                    interest_rate=d.term_sheet.interest_rate,
+                    term_months=d.term_sheet.term_months,
+                    true_outcome=b.true_outcome,
+                    months_before_default=b.months_before_default,
+                    economics=eco,
+                )
+                utility = payoff["net_profit"]
+            elif decision_state == "lost" and d.term_sheet:
+                utility = d.term_sheet.loan_amount * benchmark_rate_per_dollar
 
             per_borrower[bid] = {
                 "decision_state": decision_state,
@@ -440,7 +469,10 @@ def emit_match_record_from_elo(
             "model_id": model_id,
             "raroc_score": r.get("raroc_score", r.get("score", 0.0)),
             "deals_won": r.get("deals_won", 0),
-            "deals_rejected": r.get("n_borrowers", n_borrowers) - r.get("deals_won", 0) - r.get("frauds_funded", 0),
+            "deals_rejected": max(
+                0,
+                r.get("n_borrowers", n_borrowers) - r.get("approvals", r.get("deals_won", 0)),
+            ),
             "deals_errored": 0,
             "frauds_funded": r.get("frauds_funded", 0),
             "defaults": r.get("defaults", 0),
@@ -512,10 +544,17 @@ def compute_leaderboard(matches: list[dict] | None = None, config: dict | None =
     k = config.get("k", DEFAULT_K)
     initial_elo = config.get("initial_elo", INITIAL_ELO)
 
+    # Re-validate using current rules, not cached validation flags in match files.
+    valid_matches = []
+    for match in matches:
+        validation = validate_match(match, config)
+        if validation["valid"]:
+            valid_matches.append(match)
+
     # Collect all model IDs seen — use model short name for display
     # (persona names like "Heritage Trust Bank" vary across match types)
     all_models = {}  # model_id -> display_name
-    for match in matches:
+    for match in valid_matches:
         for m in match.get("models", []):
             mid = m["model_id"]
             if mid not in all_models:
@@ -543,10 +582,7 @@ def compute_leaderboard(matches: list[dict] | None = None, config: dict | None =
     match_ids = []
 
     # Replay each match
-    for match in matches:
-        if not match.get("validation", {}).get("valid", True):
-            continue
-
+    for match in valid_matches:
         match_ids.append(match["match_id"])
         elo_results = match_to_elo_results(match)
 
