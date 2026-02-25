@@ -1,0 +1,689 @@
+# AgentTorch Lending Market Simulation Config
+# Ports Loanville2's commercial lending economics to population-scale.
+#
+# Time step = 1 month. Default horizon = 24 months (one full loan lifecycle).
+# Borrower cohorts enter at step 0; loans originate, service, and resolve.
+
+simulation_metadata:
+  num_agents: 10000         # total borrower agents
+  num_lenders: 10           # lender agents
+  num_sectors: 15           # sector count (matches Loanville2 SECTORS)
+  num_episodes: 1           # episodes (reset between)
+  num_steps_per_episode: 24 # months of simulation
+  num_substeps_per_step: 6  # application, underwriting, adjudication, repayment, defaults, market_update
+  device: cpu               # cpu or cuda
+  calibration: true         # enable learnable parameter tracking
+  loan_term_months: 24      # standard loan term
+
+state:
+  environment:
+    # --- Economics (from Loanville2 EconomicsConfig "balanced") ---
+    funding_rate:
+      name: 'Cost of Funds (annual)'
+      learnable: false
+      shape: [1]
+      dtype: float
+      value: 0.04
+      initialization_function: null
+    risk_free_rate:
+      name: 'Risk-Free Rate (annual)'
+      learnable: false
+      shape: [1]
+      dtype: float
+      value: 0.05
+      initialization_function: null
+    recovery_rate_bad:
+      name: 'Recovery Rate (Bad Loans)'
+      learnable: true
+      shape: [1]
+      dtype: float
+      value: 0.25
+      initialization_function: null
+    recovery_rate_fraud:
+      name: 'Recovery Rate (Fraud Loans)'
+      learnable: true
+      shape: [1]
+      dtype: float
+      value: 0.02
+      initialization_function: null
+    origination_fee_rate:
+      name: 'Origination Fee Rate'
+      learnable: false
+      shape: [1]
+      dtype: float
+      value: 0.01
+      initialization_function: null
+    workout_cost_rate:
+      name: 'Workout/Collections Cost Rate'
+      learnable: false
+      shape: [1]
+      dtype: float
+      value: 0.03
+      initialization_function: null
+    fraud_penalty_rate:
+      name: 'Fraud Penalty Rate'
+      learnable: false
+      shape: [1]
+      dtype: float
+      value: 0.25
+      initialization_function: null
+    servicing_cost_rate:
+      name: 'Annual Servicing Cost Rate'
+      learnable: false
+      shape: [1]
+      dtype: float
+      value: 0.003
+      initialization_function: null
+    # --- Macro state ---
+    current_month:
+      name: 'Simulation Month Counter'
+      learnable: false
+      shape: [1]
+      dtype: int
+      value: 0
+      initialization_function: null
+    market_cycle_phase:
+      name: 'Market Cycle Phase (0=expansion, 1=contraction)'
+      learnable: true
+      shape: [1]
+      dtype: float
+      value: 0.0
+      initialization_function: null
+    total_originations:
+      name: 'Total Loans Originated This Step'
+      learnable: false
+      shape: [1]
+      dtype: float
+      value: 0.0
+      initialization_function: null
+    total_defaults_this_step:
+      name: 'Total Defaults This Step'
+      learnable: false
+      shape: [1]
+      dtype: float
+      value: 0.0
+      initialization_function: null
+
+  agents:
+    borrowers:
+      number: ${simulation_metadata.num_agents}
+      properties:
+        # --- Static financials (set at initialization) ---
+        sector:
+          name: 'Sector Index (0-14)'
+          learnable: false
+          shape:
+            - ${state.agents.borrowers.number}
+            - 1
+          dtype: int
+          value: 0
+          initialization_function: null
+        annual_revenue:
+          name: 'Annual Revenue'
+          learnable: false
+          shape:
+            - ${state.agents.borrowers.number}
+            - 1
+          dtype: float
+          value: 1500000.0
+          initialization_function: null
+        net_income:
+          name: 'Annual Net Income'
+          learnable: false
+          shape:
+            - ${state.agents.borrowers.number}
+            - 1
+          dtype: float
+          value: 300000.0
+          initialization_function: null
+        net_margin:
+          name: 'Net Margin (0-1)'
+          learnable: false
+          shape:
+            - ${state.agents.borrowers.number}
+            - 1
+          dtype: float
+          value: 0.20
+          initialization_function: null
+        loan_request:
+          name: 'Requested Loan Amount'
+          learnable: false
+          shape:
+            - ${state.agents.borrowers.number}
+            - 1
+          dtype: float
+          value: 350000.0
+          initialization_function: null
+        years_in_business:
+          name: 'Years in Business'
+          learnable: false
+          shape:
+            - ${state.agents.borrowers.number}
+            - 1
+          dtype: float
+          value: 5.0
+          initialization_function: null
+        # --- Risk parameters (calibratable ground truth) ---
+        default_prob:
+          name: 'Base Default Probability'
+          learnable: true
+          shape:
+            - ${state.agents.borrowers.number}
+            - 1
+          dtype: float
+          value: 0.15
+          initialization_function: null
+        months_to_default:
+          name: 'Expected Months Before Default'
+          learnable: true
+          shape:
+            - ${state.agents.borrowers.number}
+            - 1
+          dtype: float
+          value: 12.0
+          initialization_function: null
+        fraud_prob:
+          name: 'Fraud Probability'
+          learnable: true
+          shape:
+            - ${state.agents.borrowers.number}
+            - 1
+          dtype: float
+          value: 0.05
+          initialization_function: null
+        # --- Dynamic loan state (updated each step) ---
+        outstanding_debt:
+          name: 'Current Outstanding Loan Balance'
+          learnable: false
+          shape:
+            - ${state.agents.borrowers.number}
+            - 1
+          dtype: float
+          value: 0.0
+          initialization_function: null
+        monthly_payment:
+          name: 'Monthly Amortization Payment'
+          learnable: false
+          shape:
+            - ${state.agents.borrowers.number}
+            - 1
+          dtype: float
+          value: 0.0
+          initialization_function: null
+        months_remaining:
+          name: 'Months Remaining on Loan'
+          learnable: false
+          shape:
+            - ${state.agents.borrowers.number}
+            - 1
+          dtype: float
+          value: 0.0
+          initialization_function: null
+        loan_status:
+          name: 'Loan Status (0=none, 1=performing, 2=defaulted, 3=repaid)'
+          learnable: false
+          shape:
+            - ${state.agents.borrowers.number}
+            - 1
+          dtype: float
+          value: 0.0
+          initialization_function: null
+        assigned_lender:
+          name: 'Assigned Lender Index (-1=none)'
+          learnable: false
+          shape:
+            - ${state.agents.borrowers.number}
+            - 1
+          dtype: float
+          value: -1.0
+          initialization_function: null
+        interest_rate:
+          name: 'Interest Rate on Booked Loan (annual %)'
+          learnable: false
+          shape:
+            - ${state.agents.borrowers.number}
+            - 1
+          dtype: float
+          value: 0.0
+          initialization_function: null
+        loan_origination_month:
+          name: 'Month Loan Was Originated'
+          learnable: false
+          shape:
+            - ${state.agents.borrowers.number}
+            - 1
+          dtype: float
+          value: -1.0
+          initialization_function: null
+
+    lenders:
+      number: ${simulation_metadata.num_lenders}
+      properties:
+        total_capital:
+          name: 'Total Available Capital'
+          learnable: false
+          shape:
+            - ${state.agents.lenders.number}
+            - 1
+          dtype: float
+          value: 3500000.0
+          initialization_function: null
+        available_capital:
+          name: 'Remaining Deployable Capital'
+          learnable: false
+          shape:
+            - ${state.agents.lenders.number}
+            - 1
+          dtype: float
+          value: 3500000.0
+          initialization_function: null
+        target_yield:
+          name: 'Target Annual Yield (%)'
+          learnable: false
+          shape:
+            - ${state.agents.lenders.number}
+            - 1
+          dtype: float
+          value: 11.0
+          initialization_function: null
+        risk_tolerance:
+          name: 'Risk Tolerance Multiplier'
+          learnable: true
+          shape:
+            - ${state.agents.lenders.number}
+            - 1
+          dtype: float
+          value: 0.5
+          initialization_function: null
+        max_single_loan:
+          name: 'Maximum Single Loan Amount'
+          learnable: false
+          shape:
+            - ${state.agents.lenders.number}
+            - 1
+          dtype: float
+          value: 700000.0
+          initialization_function: null
+        sector_exposure:
+          name: 'Current Exposure Per Sector'
+          learnable: false
+          shape:
+            - ${state.agents.lenders.number}
+            - ${simulation_metadata.num_sectors}
+          dtype: float
+          value: 0.0
+          initialization_function: null
+        sector_limit:
+          name: 'Max Fraction Per Sector'
+          learnable: false
+          shape:
+            - ${state.agents.lenders.number}
+            - 1
+          dtype: float
+          value: 0.25
+          initialization_function: null
+        total_interest_earned:
+          name: 'Cumulative Interest Earned'
+          learnable: false
+          shape:
+            - ${state.agents.lenders.number}
+            - 1
+          dtype: float
+          value: 0.0
+          initialization_function: null
+        total_principal_lost:
+          name: 'Cumulative Principal Lost'
+          learnable: false
+          shape:
+            - ${state.agents.lenders.number}
+            - 1
+          dtype: float
+          value: 0.0
+          initialization_function: null
+        total_fees_earned:
+          name: 'Cumulative Origination Fees'
+          learnable: false
+          shape:
+            - ${state.agents.lenders.number}
+            - 1
+          dtype: float
+          value: 0.0
+          initialization_function: null
+        total_recovery:
+          name: 'Cumulative Recovery Amount'
+          learnable: false
+          shape:
+            - ${state.agents.lenders.number}
+            - 1
+          dtype: float
+          value: 0.0
+          initialization_function: null
+        total_workout_cost:
+          name: 'Cumulative Workout/Collections Cost'
+          learnable: false
+          shape:
+            - ${state.agents.lenders.number}
+            - 1
+          dtype: float
+          value: 0.0
+          initialization_function: null
+        total_funding_cost:
+          name: 'Cumulative Funding Cost'
+          learnable: false
+          shape:
+            - ${state.agents.lenders.number}
+            - 1
+          dtype: float
+          value: 0.0
+          initialization_function: null
+        loans_booked:
+          name: 'Total Loans Booked'
+          learnable: false
+          shape:
+            - ${state.agents.lenders.number}
+            - 1
+          dtype: float
+          value: 0.0
+          initialization_function: null
+        defaults_count:
+          name: 'Total Defaults'
+          learnable: false
+          shape:
+            - ${state.agents.lenders.number}
+            - 1
+          dtype: float
+          value: 0.0
+          initialization_function: null
+        fraud_count:
+          name: 'Total Fraud Defaults'
+          learnable: false
+          shape:
+            - ${state.agents.lenders.number}
+            - 1
+          dtype: float
+          value: 0.0
+          initialization_function: null
+
+  objects: null
+  network: null
+
+# --- Substeps (6 per time step = 1 month) ---
+substeps:
+  '0':
+    name: 'Loan Application'
+    description: 'Borrowers without active loans generate demand based on financials and market conditions'
+    active_agents:
+      - borrowers
+    observation:
+      borrowers: null
+    policy:
+      borrowers:
+        generate_demand:
+          generator: GenerateDemand
+          arguments:
+            rate_sensitivity:
+              learnable: true
+              value: 1.0
+              shape: [1]
+              dtype: float
+              name: rate_sensitivity
+              initialization_function: null
+          input_variables:
+            net_income: agents/borrowers/net_income
+            loan_request: agents/borrowers/loan_request
+            loan_status: agents/borrowers/loan_status
+            market_cycle_phase: environment/market_cycle_phase
+          output_variables:
+            - applying
+    transition:
+      mark_applicants:
+        generator: MarkApplicants
+        arguments: null
+        input_variables:
+          loan_status: agents/borrowers/loan_status
+        output_variables:
+          - loan_status
+
+  '1':
+    name: 'Underwriting'
+    description: 'Lenders evaluate applicants using differentiable credit model'
+    active_agents:
+      - borrowers
+      - lenders
+    observation:
+      borrowers: null
+      lenders: null
+    policy:
+      borrowers: null
+      lenders:
+        credit_evaluate:
+          generator: CreditEvaluate
+          arguments:
+            margin_threshold:
+              learnable: true
+              value: 0.10
+              shape: [1]
+              dtype: float
+              name: margin_threshold
+              initialization_function: null
+            leverage_cap:
+              learnable: true
+              value: 1.5
+              shape: [1]
+              dtype: float
+              name: leverage_cap
+              initialization_function: null
+            dscr_floor:
+              learnable: true
+              value: 1.25
+              shape: [1]
+              dtype: float
+              name: dscr_floor
+              initialization_function: null
+          input_variables:
+            net_income: agents/borrowers/net_income
+            net_margin: agents/borrowers/net_margin
+            loan_request: agents/borrowers/loan_request
+            loan_status: agents/borrowers/loan_status
+            risk_tolerance: agents/lenders/risk_tolerance
+            target_yield: agents/lenders/target_yield
+            funding_rate: environment/funding_rate
+          output_variables:
+            - approval_prob
+            - offered_rate
+    transition:
+      store_evaluations:
+        generator: StoreEvaluations
+        arguments: null
+        input_variables:
+          loan_status: agents/borrowers/loan_status
+        output_variables:
+          - loan_status
+
+  '2':
+    name: 'Adjudication'
+    description: 'Competitive auction: borrowers select lender with lowest rate, capital constraints enforced'
+    active_agents:
+      - borrowers
+      - lenders
+    observation:
+      borrowers: null
+      lenders: null
+    policy:
+      borrowers: null
+      lenders: null
+    transition:
+      competitive_auction:
+        generator: CompetitiveAuction
+        arguments:
+          temperature:
+            learnable: false
+            value: 0.1
+            shape: [1]
+            dtype: float
+            name: softmin_temperature
+            initialization_function: null
+        input_variables:
+          loan_status: agents/borrowers/loan_status
+          outstanding_debt: agents/borrowers/outstanding_debt
+          monthly_payment: agents/borrowers/monthly_payment
+          months_remaining: agents/borrowers/months_remaining
+          assigned_lender: agents/borrowers/assigned_lender
+          interest_rate: agents/borrowers/interest_rate
+          loan_origination_month: agents/borrowers/loan_origination_month
+          available_capital: agents/lenders/available_capital
+          sector_exposure: agents/lenders/sector_exposure
+          loans_booked: agents/lenders/loans_booked
+          total_fees_earned: agents/lenders/total_fees_earned
+        output_variables:
+          - loan_status
+          - outstanding_debt
+          - monthly_payment
+          - months_remaining
+          - assigned_lender
+          - interest_rate
+          - loan_origination_month
+          - available_capital
+          - sector_exposure
+          - loans_booked
+          - total_fees_earned
+
+  '3':
+    name: 'Repayment'
+    description: 'Monthly amortization: performing loans make interest + principal payments'
+    active_agents:
+      - borrowers
+      - lenders
+    observation:
+      borrowers: null
+      lenders: null
+    policy:
+      borrowers: null
+      lenders: null
+    transition:
+      monthly_amortization:
+        generator: MonthlyAmortization
+        arguments: null
+        input_variables:
+          outstanding_debt: agents/borrowers/outstanding_debt
+          monthly_payment: agents/borrowers/monthly_payment
+          months_remaining: agents/borrowers/months_remaining
+          interest_rate: agents/borrowers/interest_rate
+          loan_status: agents/borrowers/loan_status
+          assigned_lender: agents/borrowers/assigned_lender
+          total_interest_earned: agents/lenders/total_interest_earned
+          total_funding_cost: agents/lenders/total_funding_cost
+          funding_rate: environment/funding_rate
+        output_variables:
+          - outstanding_debt
+          - months_remaining
+          - loan_status
+          - total_interest_earned
+          - total_funding_cost
+
+  '4':
+    name: 'Defaults'
+    description: 'Differentiable default process: time-dependent hazard + fraud detection'
+    active_agents:
+      - borrowers
+      - lenders
+    observation:
+      borrowers: null
+      lenders: null
+    policy:
+      borrowers: null
+      lenders: null
+    transition:
+      default_process:
+        generator: DefaultProcess
+        arguments:
+          hazard_steepness:
+            learnable: true
+            value: 5.0
+            shape: [1]
+            dtype: float
+            name: hazard_steepness
+            initialization_function: null
+          fraud_steepness:
+            learnable: true
+            value: 10.0
+            shape: [1]
+            dtype: float
+            name: fraud_steepness
+            initialization_function: null
+        input_variables:
+          outstanding_debt: agents/borrowers/outstanding_debt
+          months_remaining: agents/borrowers/months_remaining
+          loan_status: agents/borrowers/loan_status
+          assigned_lender: agents/borrowers/assigned_lender
+          default_prob: agents/borrowers/default_prob
+          months_to_default: agents/borrowers/months_to_default
+          fraud_prob: agents/borrowers/fraud_prob
+          loan_origination_month: agents/borrowers/loan_origination_month
+          total_principal_lost: agents/lenders/total_principal_lost
+          total_recovery: agents/lenders/total_recovery
+          total_workout_cost: agents/lenders/total_workout_cost
+          defaults_count: agents/lenders/defaults_count
+          fraud_count: agents/lenders/fraud_count
+          recovery_rate_bad: environment/recovery_rate_bad
+          recovery_rate_fraud: environment/recovery_rate_fraud
+          workout_cost_rate: environment/workout_cost_rate
+          current_month: environment/current_month
+          total_defaults_this_step: environment/total_defaults_this_step
+        output_variables:
+          - outstanding_debt
+          - loan_status
+          - total_principal_lost
+          - total_recovery
+          - total_workout_cost
+          - defaults_count
+          - fraud_count
+          - total_defaults_this_step
+
+  '5':
+    name: 'Market Update'
+    description: 'Macro dynamics: credit cycle feedback, month counter advancement'
+    active_agents:
+      - borrowers
+      - lenders
+    observation:
+      borrowers: null
+      lenders: null
+    policy:
+      borrowers: null
+      lenders: null
+    transition:
+      market_dynamics:
+        generator: MarketDynamics
+        arguments:
+          cycle_alpha:
+            learnable: true
+            value: 0.1
+            shape: [1]
+            dtype: float
+            name: cycle_alpha
+            initialization_function: null
+          cycle_beta:
+            learnable: true
+            value: 0.05
+            shape: [1]
+            dtype: float
+            name: cycle_beta
+            initialization_function: null
+          target_default_rate:
+            learnable: false
+            value: 0.05
+            shape: [1]
+            dtype: float
+            name: target_default_rate
+            initialization_function: null
+        input_variables:
+          current_month: environment/current_month
+          market_cycle_phase: environment/market_cycle_phase
+          total_defaults_this_step: environment/total_defaults_this_step
+          loan_status: agents/borrowers/loan_status
+          risk_tolerance: agents/lenders/risk_tolerance
+        output_variables:
+          - current_month
+          - market_cycle_phase
+          - risk_tolerance

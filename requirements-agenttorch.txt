@@ -1,0 +1,7 @@
+# AgentTorch integration dependencies
+# Install alongside base requirements.txt
+agent-torch>=0.5
+torch>=2.0
+omegaconf>=2.3
+pandas>=2.0
+dask>=2024.1
