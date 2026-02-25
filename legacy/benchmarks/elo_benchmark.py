@@ -47,7 +47,15 @@ load_dotenv()
 
 from loanville.data import get_borrowers, MIX_PRESETS
 from loanville.engine import SimulationEngine
-from loanville.llm import MODEL_PRICING, clear_usage, get_cost_summary, get_token_usage
+# Cost tracking — try loanville.llm first, fall back to stubs if deprecated
+try:
+    from loanville.llm import MODEL_PRICING, clear_usage, get_cost_summary, get_token_usage
+except ImportError:
+    # llm.py deprecated in favour of LOS path; provide no-op stubs
+    MODEL_PRICING: dict[str, tuple[float, float]] = {}
+    def clear_usage() -> None: pass  # noqa: E704
+    def get_cost_summary() -> dict[str, float]: return {}  # noqa: E704
+    def get_token_usage() -> dict[str, dict[str, int]]: return {}  # noqa: E704
 from loanville.models import Borrower, LenderConfig
 from loanville.scoring import (
     RISK_FREE_RATE, SIM_HORIZON_MONTHS,
@@ -338,7 +346,10 @@ def run_match(
     ]
 
     clear_usage()
-    engine = SimulationEngine(borrowers, lenders, api_key, mock=False)
+    engine = SimulationEngine(
+        borrowers, lenders, mock=False,
+        underwrite_only=True,
+    )
 
     # Suppress the engine's verbose phase-by-phase output
     with contextlib.redirect_stdout(io.StringIO()):
