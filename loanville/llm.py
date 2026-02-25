@@ -9,6 +9,7 @@ the borrower's 12-month bank statement data.
 
 import asyncio
 import json
+import math
 import re
 from just_bash import Bash as JustBash
 from openai import AsyncOpenAI
@@ -626,12 +627,12 @@ def _extract_decision_from_text(text: str, loan_amount: float) -> dict | None:
         }
 
 
-def _parse_decision(lender_id: str, borrower_id: str, raw: dict | None) -> LenderDecision:
-    """Parse a raw JSON dict into a LenderDecision, with fallback for bad data."""
+def _parse_decision(lender: LenderConfig, borrower: Borrower, raw: dict | None) -> LenderDecision:
+    """Parse and normalize a raw JSON dict into a bounded LenderDecision."""
     if raw is None:
         return LenderDecision(
-            lender_id=lender_id,
-            borrower_id=borrower_id,
+            lender_id=lender.id,
+            borrower_id=borrower.id,
             decision="REJECT",
             reasoning="[SYSTEM: Failed to parse LLM response as valid JSON]",
         )
@@ -642,23 +643,55 @@ def _parse_decision(lender_id: str, borrower_id: str, raw: dict | None) -> Lende
 
     reasoning = str(raw.get("reasoning", "No reasoning provided"))
 
-    term_sheet = None
+    term_sheet: TermSheet | None = None
     if decision == "APPROVE":
         ts = raw.get("term_sheet", {})
         if isinstance(ts, dict) and ts.get("loan_amount") is not None:
             try:
-                term_sheet = TermSheet(
-                    loan_amount=float(ts["loan_amount"]),
-                    interest_rate=float(ts.get("interest_rate", 10.0)),
-                    term_months=int(ts.get("term_months", 24)),
+                raw_amount = float(ts["loan_amount"])
+                raw_rate = float(ts.get("interest_rate", lender.target_yield_pct))
+                raw_term = int(ts.get("term_months", 24))
+
+                if not math.isfinite(raw_amount) or not math.isfinite(raw_rate):
+                    raise ValueError("non-finite terms")
+
+                max_amount = min(
+                    float(lender.max_single_loan),
+                    float(borrower.dossier.loan_request_amount),
                 )
+                norm_amount = max(0.0, min(raw_amount, max_amount))
+                norm_rate = max(0.1, min(raw_rate, 60.0))
+                norm_term = max(1, min(raw_term, 120))
+
+                if norm_amount <= 0:
+                    decision = "REJECT"
+                    reasoning += " [SYSTEM: Non-positive loan amount after policy clamp]"
+                else:
+                    term_sheet = TermSheet(
+                        loan_amount=norm_amount,
+                        interest_rate=norm_rate,
+                        term_months=norm_term,
+                    )
+                    normalized = (
+                        not math.isclose(norm_amount, raw_amount)
+                        or not math.isclose(norm_rate, raw_rate)
+                        or norm_term != raw_term
+                    )
+                    if normalized:
+                        reasoning += " [SYSTEM: Term sheet normalized to policy bounds]"
             except (ValueError, TypeError):
                 decision = "REJECT"
                 reasoning += " [SYSTEM: Invalid term sheet values]"
+        else:
+            decision = "REJECT"
+            reasoning += " [SYSTEM: Missing term sheet for APPROVE decision]"
+
+    if decision != "APPROVE":
+        term_sheet = None
 
     return LenderDecision(
-        lender_id=lender_id,
-        borrower_id=borrower_id,
+        lender_id=lender.id,
+        borrower_id=borrower.id,
         decision=decision,
         reasoning=reasoning,
         term_sheet=term_sheet,
@@ -800,7 +833,7 @@ async def evaluate_borrower(
                         content, borrower.dossier.loan_request_amount,
                     )
 
-                decision = _parse_decision(lender.id, borrower.id, raw)
+                decision = _parse_decision(lender, borrower, raw)
 
                 # Log the full trace
                 _call_traces.append({

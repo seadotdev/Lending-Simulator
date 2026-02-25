@@ -313,14 +313,14 @@ def expected_score(rating_a: float, rating_b: float) -> float:
     return 1.0 / (1.0 + 10.0 ** ((rating_b - rating_a) / 400.0))
 
 
-def _get_borrower_ids(match_results: list[dict]) -> set[str]:
-    """Extract all borrower IDs from match results (excluding metadata keys)."""
+def _get_borrower_ids(match_results: list[dict]) -> list[str]:
+    """Extract borrower IDs in deterministic order (excluding metadata keys)."""
     ids: set[str] = set()
     for r in match_results:
         for key in r.get("per_applicant_payoffs", {}):
             if not key.startswith("_"):
                 ids.add(key)
-    return ids
+    return sorted(ids)
 
 
 def _apply_elo_update(
