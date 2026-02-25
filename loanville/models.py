@@ -238,6 +238,7 @@ class ActiveLoan:
     months_elapsed: int = 0
     total_interest_collected: float = 0.0
     total_principal_repaid: float = 0.0
+    total_fees_collected: float = 0.0
     remaining_balance: float = 0.0  # initialized to principal
     status: str = "performing"  # performing | defaulted | repaid | prepaid
 

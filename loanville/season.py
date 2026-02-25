@@ -218,12 +218,21 @@ class SeasonEngine:
                 loan.months_elapsed += result.months_actually_advanced
                 loan.total_interest_collected += result.interest
                 loan.total_principal_repaid += result.principal_repaid
+                loan.total_fees_collected += result.fees
                 loan.remaining_balance = result.remaining_balance
 
                 if result.defaulted:
                     loan.status = "defaulted"
+                    state.cumulative_interest += result.interest
                     state.cumulative_losses += result.principal_lost
-                    state.deployed_capital -= (loan.remaining_balance + result.principal_lost)
+                    principal_resolved = (
+                        result.principal_repaid
+                        + result.recovery_amount
+                        + result.principal_lost
+                    )
+                    state.deployed_capital = max(
+                        0.0, state.deployed_capital - principal_resolved
+                    )
                     state.cumulative_fees += result.fees
                     self._recompute_available(state)
                     events.append(
@@ -244,13 +253,15 @@ class SeasonEngine:
                         defaulted=True,
                         was_fraud=(loan.true_outcome == "fraud"),
                         months_paid=loan.months_elapsed,
-                        total_fees_paid=result.fees,
+                        total_fees_paid=round(loan.total_fees_collected, 2),
                         recovery_amount=result.recovery_amount,
                         workout_cost=result.workout_cost,
                     ))
                 elif result.matured or result.prepaid:
                     loan.status = "repaid" if result.matured else "prepaid"
-                    state.deployed_capital -= result.principal_repaid
+                    state.deployed_capital = max(
+                        0.0, state.deployed_capital - result.principal_repaid
+                    )
                     state.cumulative_interest += result.interest
                     state.cumulative_fees += result.fees
                     self._recompute_available(state)
@@ -272,7 +283,7 @@ class SeasonEngine:
                         defaulted=False,
                         was_fraud=False,
                         months_paid=loan.months_elapsed,
-                        total_fees_paid=result.fees,
+                        total_fees_paid=round(loan.total_fees_collected, 2),
                         recovery_amount=0.0,
                         workout_cost=0.0,
                         prepaid=result.prepaid,
@@ -280,7 +291,10 @@ class SeasonEngine:
                 else:
                     # Still performing — collect interest + principal payments
                     state.cumulative_interest += result.interest
-                    state.deployed_capital -= result.principal_repaid
+                    state.cumulative_fees += result.fees
+                    state.deployed_capital = max(
+                        0.0, state.deployed_capital - result.principal_repaid
+                    )
                     self._recompute_available(state)
                     if result.interest > 0 or result.principal_repaid > 0:
                         events.append(
@@ -298,6 +312,12 @@ class SeasonEngine:
 
     def _recompute_sector_exposure(self, state: SeasonLenderState) -> None:
         exposure: dict[str, float] = {}
+        lender = next((l for l in self.base_lenders if l.id == state.lender_id), None)
+        if lender:
+            for existing in lender.existing_portfolio:
+                exposure[existing.sector] = (
+                    exposure.get(existing.sector, 0.0) + existing.remaining_balance
+                )
         for loan in state.active_loans:
             if loan.status == "performing":
                 exposure[loan.sector] = exposure.get(loan.sector, 0.0) + loan.remaining_balance
@@ -371,8 +391,8 @@ class SeasonEngine:
             state = self.lender_states[lender.id]
             briefing = briefings.get(lender.id, "")
 
-            # Build existing_portfolio from active loans
-            existing = []
+            # Build existing_portfolio from static base book + active season loans
+            existing = copy.deepcopy(lender.existing_portfolio)
             for loan in state.active_loans:
                 if loan.status == "performing":
                     existing.append(ExistingLoan(
@@ -413,8 +433,15 @@ class SeasonEngine:
             lid = (run.policy.params or {}).get("_lender_id", "")
             bid = run.case.case_id
             if lid and bid:
-                step_count = len(run.trace.steps) if run.trace and run.trace.steps else 0
-                counts[(lid, bid)] = step_count
+                if run.trace and run.trace.steps:
+                    tool_calls = sum(
+                        1
+                        for step in run.trace.steps
+                        if getattr(step, "type", "") == "tool_call"
+                    )
+                else:
+                    tool_calls = 0
+                counts[(lid, bid)] = tool_calls
         return counts
 
     # ------------------------------------------------------------------
@@ -436,13 +463,7 @@ class SeasonEngine:
     def _ingest_results(self, week: int, engine: SimulationEngine) -> WeekResult:
         """Convert booked loans to ActiveLoans, update state."""
         loans_booked = 0
-
-        # Track which lenders won/lost/rejected
-        lender_approvals: dict[str, set[str]] = {l.id: set() for l in self.base_lenders}
-        for lid, decisions in engine.all_decisions.items():
-            for d in decisions:
-                if d.decision == "APPROVE":
-                    lender_approvals[lid].add(d.borrower_id)
+        tool_counts = self._extract_tool_counts(engine)
 
         for loan in engine.booked_loans:
             active = ActiveLoan(
@@ -463,7 +484,6 @@ class SeasonEngine:
             state.active_loans.append(active)
             state.deployed_capital += loan.principal
             state.deals_won += 1
-            state.cumulative_fees += max(0.0, loan.principal * self.config.economics.origination_fee_rate)
             self._recompute_available(state)
             loans_booked += 1
 
@@ -474,6 +494,7 @@ class SeasonEngine:
             decisions = engine.all_decisions.get(lender.id, [])
             for d in decisions:
                 state.total_evaluations += 1
+                state.total_tool_calls += tool_counts.get((lender.id, d.borrower_id), 0)
                 if d.decision != "APPROVE":
                     state.deals_rejected += 1
                 elif d.borrower_id in booked_bids:
@@ -484,6 +505,15 @@ class SeasonEngine:
                     )
                     if winner and winner.lender_id != lender.id:
                         state.deals_lost += 1
+
+        if self.config.speed_scoring:
+            for loan in engine.booked_loans:
+                deal = engine.deal_results.get(loan.borrower_id, {})
+                if deal.get("speed_bonus_decisive"):
+                    self.lender_states[loan.lender_id].speed_wins += 1
+
+        for state in self.lender_states.values():
+            self._recompute_sector_exposure(state)
 
         return WeekResult(
             week=week,
@@ -570,22 +600,35 @@ class SeasonEngine:
                 loan.months_elapsed += result.months_actually_advanced
                 loan.total_interest_collected += result.interest
                 loan.total_principal_repaid += result.principal_repaid
+                loan.total_fees_collected += result.fees
                 loan.remaining_balance = result.remaining_balance
 
                 if result.defaulted:
                     loan.status = "defaulted"
                     state.cumulative_losses += result.principal_lost
+                    principal_resolved = (
+                        result.principal_repaid
+                        + result.recovery_amount
+                        + result.principal_lost
+                    )
+                    state.deployed_capital = max(
+                        0.0, state.deployed_capital - principal_resolved
+                    )
                     was_fraud = loan.true_outcome == "fraud"
                     label = "FRAUD DEFAULT" if was_fraud else "DEFAULT"
                     print(f"  {loan.loan_id} ({loan.borrower_name}): {label} "
                           f"— ${result.principal_lost:,.0f} lost")
                 else:
                     loan.status = "repaid" if result.matured else "prepaid"
+                    state.deployed_capital = max(
+                        0.0, state.deployed_capital - result.principal_repaid
+                    )
                     print(f"  {loan.loan_id} ({loan.borrower_name}): REPAID "
                           f"— ${loan.total_interest_collected:,.0f} total interest")
 
                 state.cumulative_interest += result.interest
                 state.cumulative_fees += result.fees
+                self._recompute_available(state)
 
                 state.resolved_loans.append(LoanOutcome(
                     loan_id=loan.loan_id,
@@ -601,7 +644,7 @@ class SeasonEngine:
                     defaulted=result.defaulted,
                     was_fraud=(loan.true_outcome == "fraud"),
                     months_paid=loan.months_elapsed,
-                    total_fees_paid=result.fees,
+                    total_fees_paid=round(loan.total_fees_collected, 2),
                     recovery_amount=result.recovery_amount,
                     workout_cost=result.workout_cost,
                     prepaid=result.prepaid,
@@ -610,6 +653,7 @@ class SeasonEngine:
             state.active_loans = [
                 l for l in state.active_loans if l.status == "performing"
             ]
+            self._recompute_sector_exposure(state)
 
     # ------------------------------------------------------------------
     # Season report

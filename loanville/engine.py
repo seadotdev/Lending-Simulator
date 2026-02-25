@@ -414,26 +414,35 @@ class SimulationEngine:
                 print(f"\n  {bname}: NO OFFERS - all lenders rejected")
                 continue
 
-            # Sort by borrower preference: lowest rate, then highest amount
-            # With speed scoring, compute offer_score = rate - speed_bonus
-            if speed_scoring and tool_call_counts:
-                def _offer_sort_key(a):
-                    tc = tool_call_counts.get((a.lender_id, bid), 7)
-                    if tc <= 3:
-                        speed_bonus = 0.15
-                    elif tc <= 6:
-                        speed_bonus = 0.05
-                    else:
-                        speed_bonus = 0.0
-                    # Lower is better: rate minus speed bonus
-                    return (a.term_sheet.interest_rate - speed_bonus, -a.term_sheet.loan_amount)
-                approvals.sort(key=_offer_sort_key)
-            else:
-                approvals.sort(key=lambda a: (a.term_sheet.interest_rate, -a.term_sheet.loan_amount))
+            def _base_offer_sort_key(offer: LenderDecision) -> tuple[float, float]:
+                return (offer.term_sheet.interest_rate, -offer.term_sheet.loan_amount)
 
-            if len(approvals) > 1:
-                print(f"\n  {bname}: COMPETITIVE - {len(approvals)} offers")
-                for a in approvals:
+            def _speed_bonus(offer: LenderDecision) -> float:
+                if not (speed_scoring and tool_call_counts):
+                    return 0.0
+                tc = tool_call_counts.get((offer.lender_id, bid), 7)
+                if tc <= 3:
+                    return 0.15
+                if tc <= 6:
+                    return 0.05
+                return 0.0
+
+            def _speed_offer_sort_key(offer: LenderDecision) -> tuple[float, float]:
+                return (
+                    offer.term_sheet.interest_rate - _speed_bonus(offer),
+                    -offer.term_sheet.loan_amount,
+                )
+
+            ranked_approvals = (
+                sorted(approvals, key=_speed_offer_sort_key)
+                if speed_scoring and tool_call_counts
+                else sorted(approvals, key=_base_offer_sort_key)
+            )
+            baseline_approvals = sorted(approvals, key=_base_offer_sort_key)
+
+            if len(ranked_approvals) > 1:
+                print(f"\n  {bname}: COMPETITIVE - {len(ranked_approvals)} offers")
+                for a in ranked_approvals:
                     lname = lender_map[a.lender_id].name
                     ts = a.term_sheet
                     cap = remaining_capital[a.lender_id]
@@ -444,70 +453,108 @@ class SimulationEngine:
             # Pick the best offer from a lender that has enough capital.
             # Optional realism: a borrower may abandon an offer if underwriting friction is high
             # (e.g., too many doc requests / slow processing).
-            winner = None
-            abandoned_offers: list[str] = []
-            had_capacity_offer = False
             eco = self.economics
             friction_enabled = (
                 eco.abandonment_base_rate > 0
                 or eco.abandonment_per_doc_request > 0
                 or eco.abandonment_per_second_latency > 0
             )
-            for a in approvals:
-                if a.term_sheet.loan_amount <= remaining_capital[a.lender_id]:
-                    had_capacity_offer = True
+            speed_bonus_decisive = False
+            speed_baseline_winner = None
 
-                    if friction_enabled:
-                        run = run_index.get((a.lender_id, bid))
-                        doc_requests = 0
-                        latency_s = 0.0
-                        if run:
-                            doc_requests = sum(1 for s in run.trace.steps if s.type == "doc_request")
-                            latency_s = (run.trace.latency_ms or 0) / 1000.0
+            def _pick_winner(
+                candidates: list[LenderDecision],
+                *,
+                emit_logs: bool,
+            ) -> tuple[LenderDecision | None, bool, list[str]]:
+                abandoned: list[str] = []
+                has_capacity_offer = False
+                for candidate in candidates:
+                    if candidate.term_sheet.loan_amount <= remaining_capital[candidate.lender_id]:
+                        has_capacity_offer = True
 
-                        p = (
-                            eco.abandonment_base_rate
-                            + doc_requests * eco.abandonment_per_doc_request
-                            + latency_s * eco.abandonment_per_second_latency
-                        )
-                        p = max(0.0, min(eco.abandonment_cap, p))
-                        if p > 0.0:
-                            u = _stable_u01("abandon", bid, a.lender_id)
-                            if u < p:
-                                abandoned_offers.append(a.lender_id)
-                                lname = lender_map[a.lender_id].name
-                                print(f"    --> {lname} offer abandoned "
-                                      f"(p={p*100:.1f}%, doc_requests={doc_requests}, latency={latency_s:.1f}s)")
-                                continue
+                        if friction_enabled:
+                            run = run_index.get((candidate.lender_id, bid))
+                            doc_requests = 0
+                            latency_s = 0.0
+                            if run:
+                                doc_requests = sum(1 for s in run.trace.steps if s.type == "doc_request")
+                                latency_s = (run.trace.latency_ms or 0) / 1000.0
 
-                    winner = a
-                    break
+                            p = (
+                                eco.abandonment_base_rate
+                                + doc_requests * eco.abandonment_per_doc_request
+                                + latency_s * eco.abandonment_per_second_latency
+                            )
+                            p = max(0.0, min(eco.abandonment_cap, p))
+                            if p > 0.0:
+                                u = _stable_u01("abandon", bid, candidate.lender_id)
+                                if u < p:
+                                    abandoned.append(candidate.lender_id)
+                                    if emit_logs:
+                                        lname = lender_map[candidate.lender_id].name
+                                        print(
+                                            f"    --> {lname} offer abandoned "
+                                            f"(p={p*100:.1f}%, doc_requests={doc_requests}, latency={latency_s:.1f}s)"
+                                        )
+                                    continue
+
+                        return candidate, has_capacity_offer, abandoned
+                return None, has_capacity_offer, abandoned
+
+            winner, had_capacity_offer, abandoned_offers = _pick_winner(
+                ranked_approvals, emit_logs=True
+            )
+
+            if speed_scoring and tool_call_counts and len(ranked_approvals) > 1:
+                baseline_winner, _, _ = _pick_winner(
+                    baseline_approvals, emit_logs=False
+                )
+                if baseline_winner:
+                    speed_baseline_winner = baseline_winner.lender_id
+                if (
+                    winner
+                    and baseline_winner
+                    and winner.lender_id != baseline_winner.lender_id
+                ):
+                    speed_bonus_decisive = True
 
             if winner is None:
                 # No lender has enough capital — deal falls through
                 if had_capacity_offer and abandoned_offers:
-                    self.deal_results[bid] = {"outcome": "abandoned", "winner": None, "abandoned_offers": abandoned_offers}
-                    if len(approvals) == 1:
-                        lname = lender_map[approvals[0].lender_id].name
+                    self.deal_results[bid] = {
+                        "outcome": "abandoned",
+                        "winner": None,
+                        "abandoned_offers": abandoned_offers,
+                        "competitive": len(ranked_approvals) > 1,
+                        "speed_bonus_decisive": False,
+                    }
+                    if len(ranked_approvals) == 1:
+                        lname = lender_map[ranked_approvals[0].lender_id].name
                         print(f"\n  {bname}: SINGLE OFFER from {lname} — "
                               f"ABANDONED (underwriting friction)")
                     else:
                         print(f"    --> NO DEAL — borrower abandoned all viable offers")
                 else:
-                    self.deal_results[bid] = {"outcome": "no_capital", "winner": None}
-                    if len(approvals) == 1:
-                        lname = lender_map[approvals[0].lender_id].name
+                    self.deal_results[bid] = {
+                        "outcome": "no_capital",
+                        "winner": None,
+                        "competitive": len(ranked_approvals) > 1,
+                        "speed_bonus_decisive": False,
+                    }
+                    if len(ranked_approvals) == 1:
+                        lname = lender_map[ranked_approvals[0].lender_id].name
                         print(f"\n  {bname}: SINGLE OFFER from {lname} — "
                               f"DECLINED (insufficient capital)")
                     else:
                         print(f"    --> NO DEAL — all interested lenders at capital limit")
                 continue
 
-            if len(approvals) == 1:
+            if len(ranked_approvals) == 1:
                 print(f"\n  {bname}: SINGLE OFFER from {lender_map[winner.lender_id].name}")
             else:
                 # Mark winner in the list
-                for a in approvals:
+                for a in ranked_approvals:
                     if a is winner:
                         lname = lender_map[a.lender_id].name
                         print(f"    --> {lname} selected")
@@ -536,6 +583,9 @@ class SimulationEngine:
                 "outcome": "booked",
                 "winner": winner.lender_id,
                 "loan_id": loan.id,
+                "competitive": len(ranked_approvals) > 1,
+                "speed_bonus_decisive": speed_bonus_decisive,
+                "speed_baseline_winner": speed_baseline_winner,
             }
 
             # Notify results
@@ -543,7 +593,7 @@ class SimulationEngine:
             print(f"    --> Deal won by {winner_name}: {loan.id}")
 
             # Notify losers
-            for a in approvals:
+            for a in ranked_approvals:
                 if a is not winner:
                     loser_name = lender_map[a.lender_id].name
                     print(f"    --> {loser_name}: Deal lost to competitor")
