@@ -65,6 +65,18 @@ INITIAL_ELO = 1500
 # Epsilon for utility comparison ties (Profit Elo)
 UTILITY_EPSILON = 500.0  # $500 — within this range counts as a tie
 
+# Per-match Elo movement cap — prevents catastrophic swings from correlated
+# per-applicant signals (inspired by Skirmish's natural 1-signal-per-match bound)
+ELO_MATCH_CAP = 40.0  # max ±40 points per model per match
+
+# Composite Elo weights for single-number leaderboard ranking
+# (triple Elo retained as analytical drill-down)
+COMPOSITE_WEIGHTS = {
+    "profit": 0.50,
+    "credit": 0.30,
+    "dealshare": 0.20,
+}
+
 
 # ---------------------------------------------------------------------------
 # Lender factory — identical config for all three slots
@@ -336,10 +348,31 @@ def _apply_elo_update(
     ratings[mj] += pair_k * (actual_j - exp_j)
 
 
+def _clamp_elo_deltas(
+    old_ratings: dict[str, float],
+    new_ratings: dict[str, float],
+    cap: float = ELO_MATCH_CAP,
+) -> dict[str, float]:
+    """Clamp per-model Elo movement to ±cap for a single match.
+
+    Prevents catastrophic swings when correlated per-applicant signals all
+    push in the same direction (e.g. a universally bad model losing on every
+    borrower).  Inspired by Skirmish's natural 1-signal-per-match bound.
+    """
+    clamped = dict(new_ratings)
+    for mid in old_ratings:
+        if mid in clamped:
+            delta = clamped[mid] - old_ratings[mid]
+            if abs(delta) > cap:
+                clamped[mid] = old_ratings[mid] + (cap if delta > 0 else -cap)
+    return clamped
+
+
 def update_dealshare_elo(
     ratings: dict[str, float],
     match_results: list[dict],
     k: float = DEFAULT_K,
+    match_cap: float = ELO_MATCH_CAP,
 ) -> dict[str, float]:
     """DealShare Elo: rewards winning deals (market participation).
 
@@ -355,6 +388,7 @@ def update_dealshare_elo(
     if not all_bids:
         return dict(ratings)
 
+    old_ratings = dict(ratings)
     new_ratings = dict(ratings)
     n = len(match_results)
     pair_k = k / ((n - 1) * len(all_bids))
@@ -380,7 +414,7 @@ def update_dealshare_elo(
 
                 _apply_elo_update(new_ratings, mi, mj, actual_i, actual_j, pair_k)
 
-    return new_ratings
+    return _clamp_elo_deltas(old_ratings, new_ratings, match_cap)
 
 
 def update_profit_elo(
@@ -388,6 +422,7 @@ def update_profit_elo(
     match_results: list[dict],
     k: float = DEFAULT_K,
     epsilon: float = UTILITY_EPSILON,
+    match_cap: float = ELO_MATCH_CAP,
 ) -> dict[str, float]:
     """Profit Elo: rewards economic utility per borrower.
 
@@ -406,6 +441,7 @@ def update_profit_elo(
     if not all_bids:
         return dict(ratings)
 
+    old_ratings = dict(ratings)
     new_ratings = dict(ratings)
     n = len(match_results)
     pair_k = k / ((n - 1) * len(all_bids))
@@ -429,13 +465,14 @@ def update_profit_elo(
 
                 _apply_elo_update(new_ratings, mi, mj, actual_i, actual_j, pair_k)
 
-    return new_ratings
+    return _clamp_elo_deltas(old_ratings, new_ratings, match_cap)
 
 
 def update_credit_elo(
     ratings: dict[str, float],
     match_results: list[dict],
     k: float = DEFAULT_K,
+    match_cap: float = ELO_MATCH_CAP,
 ) -> dict[str, float]:
     """Credit Elo: rewards correct approve/reject decisions vs ground truth.
 
@@ -457,6 +494,7 @@ def update_credit_elo(
     if not all_bids:
         return dict(ratings)
 
+    old_ratings = dict(ratings)
     new_ratings = dict(ratings)
     n = len(match_results)
     pair_k = k / ((n - 1) * len(all_bids))
@@ -496,7 +534,37 @@ def update_credit_elo(
 
                 _apply_elo_update(new_ratings, mi, mj, actual_i, actual_j, pair_k)
 
-    return new_ratings
+    return _clamp_elo_deltas(old_ratings, new_ratings, match_cap)
+
+
+def compute_composite_elo(
+    profit_ratings: dict[str, float],
+    credit_ratings: dict[str, float],
+    dealshare_ratings: dict[str, float],
+    weights: dict[str, float] | None = None,
+) -> dict[str, float]:
+    """Compute a single composite Elo for leaderboard display.
+
+    Combines the three Elo dimensions into one legible number, inspired by
+    Skirmish's single-rating leaderboard.  The triple Elo is retained as
+    analytical drill-down.
+
+    Default weights: 50% Profit, 30% Credit, 20% DealShare.
+    """
+    w = weights or COMPOSITE_WEIGHTS
+    wp = w.get("profit", 0.50)
+    wc = w.get("credit", 0.30)
+    wd = w.get("dealshare", 0.20)
+
+    all_models = set(profit_ratings) | set(credit_ratings) | set(dealshare_ratings)
+    composite = {}
+    for mid in all_models:
+        composite[mid] = (
+            wp * profit_ratings.get(mid, INITIAL_ELO)
+            + wc * credit_ratings.get(mid, INITIAL_ELO)
+            + wd * dealshare_ratings.get(mid, INITIAL_ELO)
+        )
+    return composite
 
 
 # Legacy compatibility
@@ -753,13 +821,16 @@ def run_tournament(
 def _build_output(dealshare_ratings, profit_ratings, credit_ratings,
                   match_log, models, mix, total_cost,
                   oracle_score=None, heuristic_score=None, rate_stats=None):
+    composite = compute_composite_elo(profit_ratings, credit_ratings, dealshare_ratings)
     out = {
         "timestamp": datetime.now().isoformat(),
         "mix": mix,
         "n_models": len(models),
         "n_matches": len(match_log),
         "total_cost": round(total_cost, 4),
-        # Three rating systems
+        # Composite Elo — single-number ranking for leaderboard display
+        "composite_ratings": {k: round(v, 1) for k, v in composite.items()},
+        # Three rating systems (analytical drill-down)
         "dealshare_ratings": {k: round(v, 1) for k, v in dealshare_ratings.items()},
         "profit_ratings": {k: round(v, 1) for k, v in profit_ratings.items()},
         "credit_ratings": {k: round(v, 1) for k, v in credit_ratings.items()},
@@ -834,20 +905,22 @@ def print_standings(dealshare_ratings, profit_ratings, credit_ratings,
         for w in winners:
             win_counts[w["model"]] += 1.0 / len(winners)
 
-    # Sort by Profit Elo (the recommended ranking)
-    ranked = sorted(profit_ratings.items(), key=lambda x: x[1], reverse=True)
+    # Compute composite Elo and sort by it (single-number leaderboard)
+    composite = compute_composite_elo(profit_ratings, credit_ratings, dealshare_ratings)
+    ranked = sorted(composite.items(), key=lambda x: x[1], reverse=True)
 
-    print(f"\n{'='*110}")
+    print(f"\n{'='*120}")
     print(f"  ELO STANDINGS — {len(match_log)} matches played")
-    print(f"  Sorted by Profit Elo (recommended ranking)")
-    print(f"{'='*110}")
-    print(f"  {'#':>3s}  {'Model':<24s} {'Profit':>7s} {'Credit':>7s} {'DealSh':>7s}  "
+    print(f"  Sorted by Composite Elo (50% Profit + 30% Credit + 20% DealShare)")
+    print(f"{'='*120}")
+    print(f"  {'#':>3s}  {'Model':<24s} {'Comp':>7s} {'Profit':>7s} {'Credit':>7s} {'DealSh':>7s}  "
           f"{'Matches':>7s}  {'Win%':>5s}  {'AvgRAROC':>9s}  "
           f"{'Good✓':>6s} {'Bad✓':>6s}")
-    print(f"  {'─'*100}")
+    print(f"  {'─'*110}")
 
-    for rank, (model_id, profit_elo) in enumerate(ranked, 1):
+    for rank, (model_id, comp_elo) in enumerate(ranked, 1):
         name = display_map.get(model_id, model_id.split("/")[-1])
+        pr_elo = profit_ratings.get(model_id, INITIAL_ELO)
         ds_elo = dealshare_ratings.get(model_id, INITIAL_ELO)
         cr_elo = credit_ratings.get(model_id, INITIAL_ELO)
         matches = match_counts.get(model_id, 0)
@@ -865,7 +938,7 @@ def print_standings(dealshare_ratings, profit_ratings, credit_ratings,
         bad_correct = cm["bad"]["rejected"]  # rejecting bad = correct
         bad_pct = f"{bad_correct}/{bad_total}" if bad_total > 0 else "—"
 
-        print(f"  {rank:>3d}  {name:<24s} {profit_elo:>7.0f} {cr_elo:>7.0f} {ds_elo:>7.0f}  "
+        print(f"  {rank:>3d}  {name:<24s} {comp_elo:>7.0f} {pr_elo:>7.0f} {cr_elo:>7.0f} {ds_elo:>7.0f}  "
               f"{matches:>7d}  {win_pct:>4.1f}%  {avg_score:>+8.2f}%  "
               f"{good_pct:>6s} {bad_pct:>6s}")
 
@@ -878,8 +951,8 @@ def print_standings(dealshare_ratings, profit_ratings, credit_ratings,
         print(f"  {'':>3s}  {'Heuristic (DSCR rules)':24s} {'':>7s} {'':>7s} {'':>7s}  "
               f"{'':>7s}  {'':>5s}  {heuristic_score:>+8.2f}%  {'':>6s} {'':>6s}")
 
-    print(f"{'='*110}")
-    print(f"  Legend: Profit=Profit Elo, Credit=Credit Elo, DealSh=DealShare Elo")
+    print(f"{'='*120}")
+    print(f"  Legend: Comp=Composite Elo (50P/30C/20D), Profit/Credit/DealSh=component Elos")
     print(f"  Good✓=good borrowers correctly approved, Bad✓=bad/fraud correctly rejected")
 
     # Rate analysis section

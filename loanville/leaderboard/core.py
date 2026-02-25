@@ -21,9 +21,12 @@ from elo_benchmark import (
     DEFAULT_K,
     INITIAL_ELO,
     UTILITY_EPSILON,
+    ELO_MATCH_CAP,
+    COMPOSITE_WEIGHTS,
     update_dealshare_elo,
     update_profit_elo,
     update_credit_elo,
+    compute_composite_elo,
 )
 
 LEADERBOARD_DIR = Path(__file__).resolve().parent.parent.parent / "leaderboard"
@@ -605,6 +608,9 @@ def compute_leaderboard(matches: list[dict] | None = None, config: dict | None =
                 "dealshare_elo": round(dealshare_ratings.get(mid, initial_elo), 1),
             })
 
+    # Compute composite Elo for single-number leaderboard ranking
+    composite = compute_composite_elo(profit_ratings, credit_ratings, dealshare_ratings)
+
     # Build standings
     standings = []
     for mid in all_models:
@@ -615,6 +621,7 @@ def compute_leaderboard(matches: list[dict] | None = None, config: dict | None =
         standings.append({
             "model_id": mid,
             "display_name": all_models[mid],
+            "composite_elo": round(composite.get(mid, initial_elo), 1),
             "profit_elo": round(profit_ratings.get(mid, initial_elo), 1),
             "credit_elo": round(credit_ratings.get(mid, initial_elo), 1),
             "dealshare_elo": round(dealshare_ratings.get(mid, initial_elo), 1),
@@ -629,8 +636,8 @@ def compute_leaderboard(matches: list[dict] | None = None, config: dict | None =
             },
         })
 
-    # Sort by Profit Elo descending
-    standings.sort(key=lambda s: s["profit_elo"], reverse=True)
+    # Sort by Composite Elo descending (single-number ranking)
+    standings.sort(key=lambda s: s["composite_elo"], reverse=True)
 
     return {
         "computed_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
@@ -639,6 +646,8 @@ def compute_leaderboard(matches: list[dict] | None = None, config: dict | None =
             "k": k,
             "initial_elo": initial_elo,
             "utility_epsilon": config.get("utility_epsilon", UTILITY_EPSILON),
+            "elo_match_cap": ELO_MATCH_CAP,
+            "composite_weights": COMPOSITE_WEIGHTS,
         },
         "standings": standings,
         "match_ids": match_ids,
