@@ -118,6 +118,21 @@ class SeasonEngine:
             )
             self.toolkits[lender.id] = LenderToolkit(lender.id)
 
+    def _effective_capital(self, state: SeasonLenderState) -> float:
+        """Capital base adjusted for cumulative P&L — interest and fees grow it,
+        losses shrink it."""
+        return max(0.0,
+                   state.total_capital
+                   + state.cumulative_interest
+                   + state.cumulative_fees
+                   - state.cumulative_losses)
+
+    def _recompute_available(self, state: SeasonLenderState) -> None:
+        """Recompute available capital from effective capital minus deployed."""
+        state.available_capital = max(0.0,
+                                      self._effective_capital(state)
+                                      - state.deployed_capital)
+
     # ------------------------------------------------------------------
     # Main season loop
     # ------------------------------------------------------------------
@@ -165,8 +180,9 @@ class SeasonEngine:
             week_result.events = events
             self.week_results.append(week_result)
 
-            # 9. Snapshot utilization for scoring
+            # 9. Snapshot utilization + weekly analytics
             self._snapshot_utilization()
+            self._record_week_snapshots(week)
 
         # Final resolution — fast-forward remaining active loans
         self._final_resolution()
@@ -207,9 +223,9 @@ class SeasonEngine:
                 if result.defaulted:
                     loan.status = "defaulted"
                     state.cumulative_losses += result.principal_lost
-                    state.available_capital += result.recovery_amount
                     state.deployed_capital -= (loan.remaining_balance + result.principal_lost)
                     state.cumulative_fees += result.fees
+                    self._recompute_available(state)
                     events.append(
                         f"DEFAULT: {loan.borrower_name} ({loan.sector}) — "
                         f"${result.principal_lost:,.0f} lost, "
@@ -234,10 +250,10 @@ class SeasonEngine:
                     ))
                 elif result.matured or result.prepaid:
                     loan.status = "repaid" if result.matured else "prepaid"
-                    state.available_capital += result.principal_repaid
                     state.deployed_capital -= result.principal_repaid
                     state.cumulative_interest += result.interest
                     state.cumulative_fees += result.fees
+                    self._recompute_available(state)
                     label = "REPAID" if result.matured else "PREPAID"
                     events.append(
                         f"{label}: {loan.borrower_name} ({loan.sector}) — "
@@ -264,8 +280,8 @@ class SeasonEngine:
                 else:
                     # Still performing — collect interest + principal payments
                     state.cumulative_interest += result.interest
-                    state.available_capital += result.principal_repaid
                     state.deployed_capital -= result.principal_repaid
+                    self._recompute_available(state)
                     if result.interest > 0 or result.principal_repaid > 0:
                         events.append(
                             f"PAYMENT: {loan.borrower_name} — "
@@ -296,9 +312,11 @@ class SeasonEngine:
         briefings: dict[str, str] = {}
 
         for lid, state in self.lender_states.items():
+            eff_cap = self._effective_capital(state)
             lines = [
                 f"\n--- PORTFOLIO BRIEFING: Week {week} ---",
-                f"Available Capital: ${state.available_capital:,.0f} / ${state.total_capital:,.0f}",
+                f"Effective Capital: ${eff_cap:,.0f} (base ${state.total_capital:,.0f} + P&L)",
+                f"Available Capital: ${state.available_capital:,.0f}",
                 f"Deployed Capital: ${state.deployed_capital:,.0f}",
                 f"Active Loans: {len(state.active_loans)}",
             ]
@@ -385,7 +403,7 @@ class SeasonEngine:
     # ------------------------------------------------------------------
 
     def _get_remaining_capital(self) -> dict[str, float]:
-        return {lid: state.available_capital
+        return {lid: max(0.0, self._effective_capital(state) - state.deployed_capital)
                 for lid, state in self.lender_states.items()}
 
     def _extract_tool_counts(self, engine: SimulationEngine) -> dict[tuple[str, str], int]:
@@ -444,9 +462,9 @@ class SeasonEngine:
             state = self.lender_states[loan.lender_id]
             state.active_loans.append(active)
             state.deployed_capital += loan.principal
-            state.available_capital -= loan.principal
             state.deals_won += 1
             state.cumulative_fees += max(0.0, loan.principal * self.config.economics.origination_fee_rate)
+            self._recompute_available(state)
             loans_booked += 1
 
         # Count rejections and losses for each lender
@@ -498,6 +516,25 @@ class SeasonEngine:
                     if state.total_capital > 0 and exposure / state.total_capital > limit:
                         state.weeks_with_concentration_violations += 1
                         break
+
+    def _record_week_snapshots(self, week: int) -> None:
+        """Save structured per-week snapshot for analytics."""
+        for state in self.lender_states.values():
+            defaults = sum(1 for o in state.resolved_loans if o.defaulted)
+            frauds = sum(1 for o in state.resolved_loans if o.was_fraud)
+            state.weekly_snapshots.append({
+                "week": week,
+                "effective_capital": round(self._effective_capital(state), 2),
+                "available_capital": round(state.available_capital, 2),
+                "deployed_capital": round(state.deployed_capital, 2),
+                "active_loans": len(state.active_loans),
+                "defaults_to_date": defaults,
+                "frauds_to_date": frauds,
+                "net_pnl": round(
+                    state.cumulative_interest + state.cumulative_fees
+                    - state.cumulative_losses, 2
+                ),
+            })
 
     # ------------------------------------------------------------------
     # Final resolution

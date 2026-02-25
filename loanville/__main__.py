@@ -337,6 +337,11 @@ def main() -> None:
                         help="Months of loan aging per season week (default: 2)")
     args = parser.parse_args()
 
+    if args.season and args.compare:
+        parser.error("--season and --compare cannot be used together.")
+    if args.season and args.rotate:
+        parser.error("--season and --rotate cannot be used together.")
+
     if args.compare:
         print("=" * 70)
         print("  LOANVILLE — MODEL SIZE COMPARISON")

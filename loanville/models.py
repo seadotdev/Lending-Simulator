@@ -253,6 +253,19 @@ class SeasonConfig:
     custom_tools: bool = True
     economics: EconomicsConfig = field(default_factory=EconomicsConfig)
 
+    def __post_init__(self) -> None:
+        if self.weeks <= 0:
+            raise ValueError("weeks must be > 0")
+        if self.cohort_size <= 0:
+            raise ValueError("cohort_size must be > 0")
+        if self.months_per_week <= 0:
+            raise ValueError("months_per_week must be > 0")
+        valid_mixes = ("gentle", "realistic", "adversarial", "escalating")
+        if self.season_mix not in valid_mixes:
+            raise ValueError(
+                f"season_mix must be one of {valid_mixes}, got '{self.season_mix}'"
+            )
+
 
 @dataclass
 class SeasonLenderState:
@@ -281,6 +294,8 @@ class SeasonLenderState:
     speed_wins: int = 0
     # Custom tools
     custom_tools: list = field(default_factory=list)
+    # Weekly snapshots for analytics
+    weekly_snapshots: list[dict] = field(default_factory=list)
 
 
 @dataclass
