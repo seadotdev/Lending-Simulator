@@ -56,7 +56,7 @@ SECTORS = [
 # Statement generation helpers
 # ---------------------------------------------------------------------------
 
-def _split_amount(total: float, labels: list[str], rng: random.Random) -> list[tuple[str, float]]:
+def split_amount(total: float, labels: list[str], rng: random.Random) -> list[tuple[str, float]]:
     """Split a total amount among labeled items with random proportions."""
     n = len(labels)
     weights = [rng.random() + 0.1 for _ in range(n)]
@@ -73,7 +73,7 @@ def _split_amount(total: float, labels: list[str], rng: random.Random) -> list[t
     return parts
 
 
-def _generate_statements(
+def generate_statements(
     monthly_figures: list[tuple[float, float]],
     opening_balance: float,
     customers: list[str],
@@ -92,15 +92,15 @@ def _generate_statements(
         # Generate deposit transactions
         if fraud_type == "round_numbers":
             # Fraud: all deposits are suspiciously round
-            dep_parts = _make_round_deposits(dep_total, customers, rng)
+            dep_parts = make_round_deposits(dep_total, customers, rng)
         elif fraud_type == "circular":
-            dep_parts = _make_circular_deposits(dep_total, customers, rng, i)
+            dep_parts = make_circular_deposits(dep_total, customers, rng, i)
         elif fraud_type == "fabricated":
-            dep_parts = _make_fabricated_deposits(dep_total, customers, rng)
+            dep_parts = make_fabricated_deposits(dep_total, customers, rng)
         elif fraud_type == "structured":
-            dep_parts = _make_structured_deposits(dep_total, customers, rng)
+            dep_parts = make_structured_deposits(dep_total, customers, rng)
         else:
-            dep_parts = _split_amount(dep_total, customers, rng)
+            dep_parts = split_amount(dep_total, customers, rng)
 
         deposits = []
         for label, amt in dep_parts:
@@ -114,7 +114,7 @@ def _generate_statements(
         # Generate withdrawal transactions
         standard_expenses = ["Payroll", "Rent/Lease", "Utilities", "Insurance"]
         wd_labels = vendors + standard_expenses
-        wd_parts = _split_amount(wd_total, wd_labels, rng)
+        wd_parts = split_amount(wd_total, wd_labels, rng)
         withdrawals = []
         for label, amt in wd_parts:
             day = rng.randint(1, 28)
@@ -136,7 +136,7 @@ def _generate_statements(
     return statements
 
 
-def _make_round_deposits(total, customers, rng):
+def make_round_deposits(total, customers, rng):
     """Fraud: deposits are suspiciously round numbers."""
     round_amounts = [50000, 75000, 100000, 25000, 150000, 200000]
     parts = []
@@ -152,17 +152,17 @@ def _make_round_deposits(total, customers, rng):
     return parts
 
 
-def _make_circular_deposits(total, customers, rng, month_idx):
+def make_circular_deposits(total, customers, rng, month_idx):
     """Fraud: circular transfers with a related entity."""
     real_portion = total * 0.3
     circular_portion = total - real_portion
-    parts = _split_amount(real_portion, customers[:2], rng)
+    parts = split_amount(real_portion, customers[:2], rng)
     parts.append(("Transfer from BioGenesis Holdings LLC", round(circular_portion * 0.6, 2)))
     parts.append(("Transfer from BGH Capital Partners", round(circular_portion * 0.4, 2)))
     return parts
 
 
-def _make_fabricated_deposits(total, customers, rng):
+def make_fabricated_deposits(total, customers, rng):
     """Fraud: deposits are nearly identical every month (unnaturally consistent)."""
     n = len(customers)
     base = total / n
@@ -174,7 +174,7 @@ def _make_fabricated_deposits(total, customers, rng):
     return parts
 
 
-def _make_structured_deposits(total, customers, rng):
+def make_structured_deposits(total, customers, rng):
     """Fraud: deposits split into many small amounts just under $10,000.
 
     This mimics 'structuring' (aka 'smurfing') — breaking large sums into
@@ -198,7 +198,7 @@ def _make_structured_deposits(total, customers, rng):
     return parts
 
 
-def _build_quarterly_income(monthly: list[tuple[float, float]]) -> list[QuarterlyIncome]:
+def build_quarterly_income(monthly: list[tuple[float, float]]) -> list[QuarterlyIncome]:
     """Aggregate monthly (deposits, withdrawals) into 4 quarterly income statements."""
     quarters = []
     labels = ["Q1 2025", "Q2 2025", "Q3 2025", "Q4 2025"]
@@ -247,13 +247,13 @@ def _build_borrowers() -> list[Borrower]:
             annual_expenses=1783000,
             net_income=659000,
             employee_count=45,
-            bank_statements=_generate_statements(
+            bank_statements=generate_statements(
                 monthly, 180000,
                 ["Meridian Airways", "TransGlobal Shipping", "Pacific Routes Inc", "Nordic Air Cargo"],
                 ["FuelTech Supply", "AeroMaint Services", "Harbor Logistics"],
                 seed=1001,
             ),
-            quarterly_income=_build_quarterly_income(monthly),
+            quarterly_income=build_quarterly_income(monthly),
             narrative=(
                 "SkyFreight Solutions is an established cargo logistics company operating across "
                 "the western seaboard. Founded in 2017, the company has grown steadily by serving "
@@ -284,13 +284,13 @@ def _build_borrowers() -> list[Borrower]:
             annual_expenses=946000,
             net_income=407000,
             employee_count=22,
-            bank_statements=_generate_statements(
+            bank_statements=generate_statements(
                 monthly, 95000,
                 ["MedSupply Corp", "PharmaDist Inc", "ClinicalPath Labs"],
                 ["LabEquip Wholesale", "ChemSource Ltd"],
                 seed=1002,
             ),
-            quarterly_income=_build_quarterly_income(monthly),
+            quarterly_income=build_quarterly_income(monthly),
             narrative=(
                 "NovaBio Labs develops and manufactures synthetic biological compounds for "
                 "pharmaceutical intermediaries. The company has tripled revenue since founding "
@@ -320,13 +320,13 @@ def _build_borrowers() -> list[Borrower]:
             annual_expenses=2350000,
             net_income=903000,
             employee_count=58,
-            bank_statements=_generate_statements(
+            bank_statements=generate_statements(
                 monthly, 220000,
                 ["SunState Utilities", "GreenGrid Power", "EcoHome Builders", "Municipal Energy Co-op"],
                 ["SolarPanel Direct", "Inverter Solutions Inc", "CopperWire Supply"],
                 seed=1003,
             ),
-            quarterly_income=_build_quarterly_income(monthly),
+            quarterly_income=build_quarterly_income(monthly),
             narrative=(
                 "Helios Solar Works installs commercial and municipal solar arrays. Revenue is "
                 "seasonal with a strong Q2-Q3 peak driven by construction weather windows. Despite "
@@ -356,13 +356,13 @@ def _build_borrowers() -> list[Borrower]:
             annual_expenses=541500,
             net_income=231500,
             employee_count=15,
-            bank_statements=_generate_statements(
+            bank_statements=generate_statements(
                 monthly, 48000,
                 ["FreshMart Grocers", "Farm-to-Table Distributors", "City School District"],
                 ["Seed & Soil Supply", "HydroTech Systems"],
                 seed=1004,
             ),
-            quarterly_income=_build_quarterly_income(monthly),
+            quarterly_income=build_quarterly_income(monthly),
             narrative=(
                 "UrbanGrow Collective operates vertical hydroponic farms in converted warehouse "
                 "spaces, supplying fresh produce to local grocery chains and a school district "
@@ -392,13 +392,13 @@ def _build_borrowers() -> list[Borrower]:
             annual_expenses=1191000,
             net_income=544000,
             employee_count=28,
-            bank_statements=_generate_statements(
+            bank_statements=generate_statements(
                 monthly, 130000,
                 ["AdVenture Agency", "StreamVault Media", "GameOn Interactive", "BrandCraft Corp"],
                 ["Adobe Licensing", "CloudHost Services", "Freelancer Payments"],
                 seed=1005,
             ),
-            quarterly_income=_build_quarterly_income(monthly),
+            quarterly_income=build_quarterly_income(monthly),
             narrative=(
                 "PixelForge Studios is a full-service digital media production company specializing "
                 "in commercial video, animation, and interactive content. Revenue is project-based "
@@ -428,13 +428,13 @@ def _build_borrowers() -> list[Borrower]:
             annual_expenses=2017000,
             net_income=719000,
             employee_count=65,
-            bank_statements=_generate_statements(
+            bank_statements=generate_statements(
                 monthly, 195000,
                 ["Pratt Aerospace", "Caterpillar Parts Div", "General Dynamics Sub-Assembly", "Northrop Tooling"],
                 ["MetalStock Supply", "CNC Tooling Inc", "Industrial Power Co"],
                 seed=1013,
             ),
-            quarterly_income=_build_quarterly_income(monthly),
+            quarterly_income=build_quarterly_income(monthly),
             narrative=(
                 "IronClad Manufacturing is a precision machining shop producing specialty "
                 "components for aerospace and heavy equipment OEMs. Founded in 2013, the "
@@ -464,13 +464,13 @@ def _build_borrowers() -> list[Borrower]:
             annual_expenses=852000,
             net_income=384000,
             employee_count=32,
-            bank_statements=_generate_statements(
+            bank_statements=generate_statements(
                 monthly, 75000,
                 ["CityBuild Contractors", "HomeServ Warranty", "Lakeside Property Mgmt", "State DOT"],
                 ["Ferguson Supply", "Fleet Fuel Card", "Workers Comp Insurance"],
                 seed=1014,
             ),
-            quarterly_income=_build_quarterly_income(monthly),
+            quarterly_income=build_quarterly_income(monthly),
             narrative=(
                 "BlueLine Plumbing Services provides commercial and residential plumbing "
                 "installation and repair. The company has operated continuously for 15 years "
@@ -500,13 +500,13 @@ def _build_borrowers() -> list[Borrower]:
             annual_expenses=1525000,
             net_income=861000,
             employee_count=40,
-            bank_statements=_generate_statements(
+            bank_statements=generate_statements(
                 monthly, 140000,
                 ["Regions Financial Group", "Sysco Food Services", "Hilton Hotels Corp", "AutoNation Inc", "Waste Management"],
                 ["AWS Hosting", "Salesforce License", "Engineering Payroll"],
                 seed=1015,
             ),
-            quarterly_income=_build_quarterly_income(monthly),
+            quarterly_income=build_quarterly_income(monthly),
             narrative=(
                 "Apex Data Solutions provides cloud-based analytics and reporting tools to "
                 "mid-market enterprises. 90% of revenue is recurring SaaS subscriptions with "
@@ -536,13 +536,13 @@ def _build_borrowers() -> list[Borrower]:
             annual_expenses=1152000,
             net_income=421000,
             employee_count=25,
-            bank_statements=_generate_statements(
+            bank_statements=generate_statements(
                 monthly, 85000,
                 ["Whole Foods Regional", "Chesapeake Restaurants", "FreshCatch Markets", "Harbor Hotels Group"],
                 ["Fleet Fisheries", "Cold Storage Logistics", "DOT Compliance"],
                 seed=1016,
             ),
-            quarterly_income=_build_quarterly_income(monthly),
+            quarterly_income=build_quarterly_income(monthly),
             narrative=(
                 "Coastal Seafood Distributors supplies fresh and frozen seafood to restaurants, "
                 "hotels, and specialty grocers along the eastern seaboard. Revenue is seasonal "
@@ -572,13 +572,13 @@ def _build_borrowers() -> list[Borrower]:
             annual_expenses=1198000,
             net_income=527000,
             employee_count=30,
-            bank_statements=_generate_statements(
+            bank_statements=generate_statements(
                 monthly, 120000,
                 ["State Court Admin Office", "Baker McKenzie LLP", "LegalShield Corp", "County Clerk Consortium"],
                 ["Azure Cloud Services", "Developer Payroll", "Compliance Audit Co"],
                 seed=1017,
             ),
-            quarterly_income=_build_quarterly_income(monthly),
+            quarterly_income=build_quarterly_income(monthly),
             narrative=(
                 "Keystone Legal Tech provides case management and e-filing software to state "
                 "court systems and law firms. Revenue is 80% recurring through multi-year "
@@ -608,14 +608,14 @@ def _build_borrowers() -> list[Borrower]:
             annual_expenses=1376000,
             net_income=494000,
             employee_count=24,
-            bank_statements=_generate_statements(
+            bank_statements=generate_statements(
                 monthly, 115000,
                 ["Marriott Hotel Group", "City Convention Bureau", "Regional Bank Marketing",
                  "University Press Office"],
                 ["Paper & Ink Supply Co", "Press Maintenance Corp", "Print Staff Payroll"],
                 seed=1029,
             ),
-            quarterly_income=_build_quarterly_income(monthly),
+            quarterly_income=build_quarterly_income(monthly),
             narrative=(
                 "Metro Print & Design provides large-format printing, marketing collateral, "
                 "and packaging solutions for hospitality, banking, and education clients. "
@@ -645,14 +645,14 @@ def _build_borrowers() -> list[Borrower]:
             annual_expenses=1661000,
             net_income=662000,
             employee_count=38,
-            bank_statements=_generate_statements(
+            bank_statements=generate_statements(
                 monthly, 140000,
                 ["BlueCross BlueShield", "Aetna PT Network", "Workers Comp Board",
                  "Medicare Regional", "Self-Pay Patients"],
                 ["Therapist Payroll", "Clinic Lease - Eastside", "Medical Equipment Lease"],
                 seed=1030,
             ),
-            quarterly_income=_build_quarterly_income(monthly),
+            quarterly_income=build_quarterly_income(monthly),
             narrative=(
                 "Cascade Physical Therapy operates three outpatient PT clinics with a "
                 "referral network of 40+ orthopedic surgeons. Patient volumes grow 10% "
@@ -682,14 +682,14 @@ def _build_borrowers() -> list[Borrower]:
             annual_expenses=1089000,
             net_income=456000,
             employee_count=20,
-            bank_statements=_generate_statements(
+            bank_statements=generate_statements(
                 monthly, 88000,
                 ["Restoration Hardware Trade", "Boutique Hotel Supply Co",
                  "Architectural Interiors LLC", "Custom Home Builders Assoc"],
                 ["Hardwood Lumber Direct", "Finishing Supply Co", "Workshop Lease"],
                 seed=1031,
             ),
-            quarterly_income=_build_quarterly_income(monthly),
+            quarterly_income=build_quarterly_income(monthly),
             narrative=(
                 "Heritage Woodworking crafts custom commercial furniture for boutique "
                 "hotels, high-end restaurants, and architectural firms. The company has a "
@@ -719,14 +719,14 @@ def _build_borrowers() -> list[Borrower]:
             annual_expenses=912000,
             net_income=423000,
             employee_count=32,
-            bank_statements=_generate_statements(
+            bank_statements=generate_statements(
                 monthly, 72000,
                 ["Parent Direct Pay", "School District Partnership", "SAT Prep Program",
                  "Corporate Education Benefits"],
                 ["Tutor Payroll", "Center Lease - North", "Center Lease - South"],
                 seed=1032,
             ),
-            quarterly_income=_build_quarterly_income(monthly),
+            quarterly_income=build_quarterly_income(monthly),
             narrative=(
                 "Brightpath Tutoring Centers operates two locations offering K-12 tutoring, "
                 "SAT/ACT prep, and corporate-sponsored employee education programs. Revenue "
@@ -756,14 +756,14 @@ def _build_borrowers() -> list[Borrower]:
             annual_expenses=2134000,
             net_income=731000,
             employee_count=30,
-            bank_statements=_generate_statements(
+            bank_statements=generate_statements(
                 monthly, 165000,
                 ["AutoZone Regional", "NAPA Distribution Center", "Fleet Service Depot",
                  "Independent Garage Network", "State DOT Fleet Maintenance"],
                 ["OEM Parts Wholesale", "Warehouse Operations", "Delivery Fleet Fuel"],
                 seed=1033,
             ),
-            quarterly_income=_build_quarterly_income(monthly),
+            quarterly_income=build_quarterly_income(monthly),
             narrative=(
                 "Granite State Auto Parts distributes OEM and aftermarket auto parts to "
                 "retail chains, independent garages, and government fleet operations across "
@@ -794,14 +794,14 @@ def _build_borrowers() -> list[Borrower]:
             annual_expenses=1466000,
             net_income=575000,
             employee_count=35,
-            bank_statements=_generate_statements(
+            bank_statements=generate_statements(
                 monthly, 108000,
                 ["Property Management Alliance", "Hospital Facilities Dept",
                  "School District Maintenance", "Commercial Realty Group"],
                 ["HVAC Parts Wholesale", "Technician Payroll", "Fleet & Insurance"],
                 seed=1034,
             ),
-            quarterly_income=_build_quarterly_income(monthly),
+            quarterly_income=build_quarterly_income(monthly),
             narrative=(
                 "Silverline HVAC Services provides commercial heating, ventilation, and air "
                 "conditioning installation and maintenance. The company holds maintenance "
@@ -832,14 +832,14 @@ def _build_borrowers() -> list[Borrower]:
             annual_expenses=1337000,
             net_income=598000,
             employee_count=26,
-            bank_statements=_generate_statements(
+            bank_statements=generate_statements(
                 monthly, 120000,
                 ["Regional Credit Union", "Law Firm Consortium", "Medical Practice Group",
                  "County Government IT", "Manufacturing Co-op"],
                 ["Cloud Infrastructure Costs", "Engineer Payroll", "Office & Licensing"],
                 seed=1035,
             ),
-            quarterly_income=_build_quarterly_income(monthly),
+            quarterly_income=build_quarterly_income(monthly),
             narrative=(
                 "Clearwater IT Services provides managed IT support, cybersecurity, and "
                 "cloud migration for small and mid-size businesses. Revenue is 85% recurring "
@@ -870,14 +870,14 @@ def _build_borrowers() -> list[Borrower]:
             annual_expenses=1250000,
             net_income=505000,
             employee_count=45,
-            bank_statements=_generate_statements(
+            bank_statements=generate_statements(
                 monthly, 98000,
                 ["Simon Property Group", "Brookfield Asset Mgmt", "CBRE Facilities",
                  "Prologis Warehouse Division", "Lincoln Property Co"],
                 ["Crew Payroll", "Equipment & Supplies", "Vehicle Fleet Lease"],
                 seed=1036,
             ),
-            quarterly_income=_build_quarterly_income(monthly),
+            quarterly_income=build_quarterly_income(monthly),
             narrative=(
                 "Redstone Property Maintenance provides janitorial, grounds keeping, and "
                 "facility maintenance to commercial real estate firms managing office parks, "
@@ -911,14 +911,14 @@ def _build_borrowers() -> list[Borrower]:
             annual_expenses=1819000,
             net_income=510000,
             employee_count=38,
-            bank_statements=_generate_statements(
+            bank_statements=generate_statements(
                 monthly, 160000,
                 # Note: Titan Defense is ~85% of deposits
                 ["Titan Defense Corp", "Titan Defense Corp - Div. B", "Skyline Freight Co"],
                 ["Fleet Maintenance Ltd", "Aviation Fuel Direct", "Hangar Lease Co"],
                 seed=1006,
             ),
-            quarterly_income=_build_quarterly_income(monthly),
+            quarterly_income=build_quarterly_income(monthly),
             narrative=(
                 "AeroTrack Dynamics provides specialized cargo handling and logistics for defense "
                 "contractors. The company has a strong track record with its anchor client and "
@@ -949,13 +949,13 @@ def _build_borrowers() -> list[Borrower]:
             annual_expenses=1486000,
             net_income=348000,
             employee_count=42,
-            bank_statements=_generate_statements(
+            bank_statements=generate_statements(
                 monthly, 110000,
                 ["Regional Health Network", "PharmaBridge Distributors", "WellCare Clinics"],
                 ["Raw Chemical Suppliers Inc", "Regulatory Compliance Co", "Lab Staff Agency"],
                 seed=1007,
             ),
-            quarterly_income=_build_quarterly_income(monthly),
+            quarterly_income=build_quarterly_income(monthly),
             narrative=(
                 "SynthaCure Pharma manufactures generic pharmaceutical compounds for regional "
                 "health networks. Revenue has been stable around $150K/month with a loyal customer "
@@ -986,14 +986,14 @@ def _build_borrowers() -> list[Borrower]:
             annual_expenses=1343000,
             net_income=127000,
             employee_count=19,
-            bank_statements=_generate_statements(
+            bank_statements=generate_statements(
                 monthly, 72000,
                 # Note: Most revenue is grants, not commercial
                 ["Federal Research Grant - DARPA", "NSF Innovation Award", "Quantum Horizons Fund"],
                 ["Cryogenics Equipment Co", "University Lab Lease", "Research Staff Payroll"],
                 seed=1008,
             ),
-            quarterly_income=_build_quarterly_income(monthly),
+            quarterly_income=build_quarterly_income(monthly),
             narrative=(
                 "QuantumLeap Systems is a cutting-edge quantum computing research company "
                 "developing novel qubit architectures. The company has received recognition from "
@@ -1024,13 +1024,13 @@ def _build_borrowers() -> list[Borrower]:
             annual_expenses=1597000,
             net_income=98000,
             employee_count=35,
-            bank_statements=_generate_statements(
+            bank_statements=generate_statements(
                 monthly, 135000,
                 ["PowerGrid Solutions", "EcoVolt Residential", "Green Municipal Alliance"],
                 ["Battery Supply Co", "Electrician Contractors", "Warehouse Rent"],
                 seed=1009,
             ),
-            quarterly_income=_build_quarterly_income(monthly),
+            quarterly_income=build_quarterly_income(monthly),
             narrative=(
                 "TerraVolt Energy installs and services battery storage systems for residential "
                 "and commercial clients. The company has been in business for 9 years and has an "
@@ -1064,14 +1064,14 @@ def _build_borrowers() -> list[Borrower]:
             annual_expenses=2225000,
             net_income=1300000,
             employee_count=52,
-            bank_statements=_generate_statements(
+            bank_statements=generate_statements(
                 monthly, 200000,
                 ["GlobalFreight Partners", "AirCargo International", "TransOcean Shipping", "Swift Delivery Network"],
                 ["Fuel Depot Services", "Aircraft Lease Corp", "Ground Crew Staffing"],
                 seed=1010,
                 fraud_type="round_numbers",
             ),
-            quarterly_income=_build_quarterly_income(monthly),
+            quarterly_income=build_quarterly_income(monthly),
             narrative=(
                 "CloudNet Logistics is a rapidly growing air freight and last-mile delivery "
                 "company. The company reports exceptional margins of 37% and has experienced "
@@ -1101,14 +1101,14 @@ def _build_borrowers() -> list[Borrower]:
             annual_expenses=2467000,
             net_income=299000,
             employee_count=30,
-            bank_statements=_generate_statements(
+            bank_statements=generate_statements(
                 monthly, 150000,
                 ["Genova Pharmaceuticals", "LifeScience Direct"],
                 ["BioGenesis Holdings LLC", "BGH Capital Partners", "Lab Lease Corp"],
                 seed=1011,
                 fraud_type="circular",
             ),
-            quarterly_income=_build_quarterly_income(monthly),
+            quarterly_income=build_quarterly_income(monthly),
             narrative=(
                 "BioGenesis Research is a biotechnology company specializing in novel compound "
                 "synthesis for pharmaceutical applications. The company operates under the "
@@ -1138,14 +1138,14 @@ def _build_borrowers() -> list[Borrower]:
             annual_expenses=1298100,
             net_income=445300,
             employee_count=24,
-            bank_statements=_generate_statements(
+            bank_statements=generate_statements(
                 monthly, 165000,
                 ["TechForward Inc", "DataCore Systems", "QuantumSafe Security", "NeuralNet Partners"],
                 ["Server Farm Lease", "Component Supply Chain", "R&D Consulting"],
                 seed=1012,
                 fraud_type="fabricated",
             ),
-            quarterly_income=_build_quarterly_income(monthly),
+            quarterly_income=build_quarterly_income(monthly),
             narrative=(
                 "QubitTech Solutions provides quantum-resistant encryption services to enterprise "
                 "clients. The company reports remarkably stable revenue and consistent margins "
@@ -1175,7 +1175,7 @@ def _build_borrowers() -> list[Borrower]:
             annual_expenses=1154000,
             net_income=431000,
             employee_count=28,
-            bank_statements=_generate_statements(
+            bank_statements=generate_statements(
                 monthly, 110000,
                 ["Metro Builders", "Apex Construction", "Summit Paving Co",
                  "Ridgeline Contractors", "Ironwork Specialists"],
@@ -1183,7 +1183,7 @@ def _build_borrowers() -> list[Borrower]:
                 seed=1018,
                 fraud_type="structured",
             ),
-            quarterly_income=_build_quarterly_income(monthly),
+            quarterly_income=build_quarterly_income(monthly),
             narrative=(
                 "Orion Fleet Services provides heavy equipment rental and fleet management "
                 "to mid-size construction firms. The company has grown steadily over 6 years "
@@ -1221,13 +1221,13 @@ def _build_borrowers() -> list[Borrower]:
             annual_expenses=2316000,
             net_income=153000,
             employee_count=34,
-            bank_statements=_generate_statements(
+            bank_statements=generate_statements(
                 monthly, 85000,
                 ["Atlas Construction", "Summit Builders Group", "Metro Paving Corp", "Ridgeview Developers"],
                 ["Heavy Equipment Lease Co", "Diesel & Fleet Maintenance", "Yard Lease Payment"],
                 seed=1019,
             ),
-            quarterly_income=_build_quarterly_income(monthly),
+            quarterly_income=build_quarterly_income(monthly),
             narrative=(
                 "Ridgeline Equipment Rentals provides excavators, loaders, and heavy "
                 "machinery on short- and medium-term rental contracts to regional "
@@ -1264,13 +1264,13 @@ def _build_borrowers() -> list[Borrower]:
             annual_expenses=2757000,
             net_income=226000,
             employee_count=52,
-            bank_statements=_generate_statements(
+            bank_statements=generate_statements(
                 monthly, 120000,
                 ["BlueCross Regional", "Aetna Claims Processing", "Medicare Reimbursement", "United Health Group"],
                 ["Medical Staff Payroll", "Clinic Lease - Westside", "Clinic Lease - Downtown"],
                 seed=1020,
             ),
-            quarterly_income=_build_quarterly_income(monthly),
+            quarterly_income=build_quarterly_income(monthly),
             narrative=(
                 "Crestview Medical Group operates three urgent care clinics in the "
                 "metropolitan area. Patient volumes have grown consistently and the group "
@@ -1306,13 +1306,13 @@ def _build_borrowers() -> list[Borrower]:
             annual_expenses=1744000,
             net_income=204000,
             employee_count=26,
-            bank_statements=_generate_statements(
+            bank_statements=generate_statements(
                 monthly, 72000,
                 ["Craft Distributors NW", "Whole Foods Tap Program", "Regional Pub Alliance", "Festival Vendors Inc"],
                 ["Grain & Hops Supply Co", "Bottling Line Lease", "Cold Storage Freight"],
                 seed=1021,
             ),
-            quarterly_income=_build_quarterly_income(monthly),
+            quarterly_income=build_quarterly_income(monthly),
             narrative=(
                 "Northwind Brewing Co is a craft brewery producing IPAs and seasonal ales "
                 "distributed across three states. Taproom revenue supplements wholesale. "
@@ -1349,14 +1349,14 @@ def _build_borrowers() -> list[Borrower]:
             annual_expenses=2144000,
             net_income=178000,
             employee_count=18,
-            bank_statements=_generate_statements(
+            bank_statements=generate_statements(
                 monthly, 62000,
                 ["Meridian Health System", "TechStart Inc", "County Admin Office",
                  "Greenfield Manufacturing", "Beacon Logistics"],
                 ["Contractor Payroll ADP", "Staffing Insurance Pool", "Office Lease"],
                 seed=1022,
             ),
-            quarterly_income=_build_quarterly_income(monthly),
+            quarterly_income=build_quarterly_income(monthly),
             narrative=(
                 "Velocity Staffing Partners places temporary and contract workers in "
                 "healthcare, light industrial, and administrative roles. The company has "
@@ -1392,13 +1392,13 @@ def _build_borrowers() -> list[Borrower]:
             annual_expenses=2479000,
             net_income=185000,
             employee_count=48,
-            bank_statements=_generate_statements(
+            bank_statements=generate_statements(
                 monthly, 105000,
                 ["Lockheed Martin Sub-Tier", "Honeywell Aerospace Div", "John Deere Parts", "Siemens Energy"],
                 ["First National Term Loan", "Equipment Financing Corp", "Raw Steel Supply"],
                 seed=1023,
             ),
-            quarterly_income=_build_quarterly_income(monthly),
+            quarterly_income=build_quarterly_income(monthly),
             narrative=(
                 "Atlas Precision Components manufactures high-tolerance machined parts for "
                 "aerospace, defense, and industrial OEMs. The company holds AS9100D and "
@@ -1434,14 +1434,14 @@ def _build_borrowers() -> list[Borrower]:
             annual_expenses=3309000,
             net_income=177000,
             employee_count=22,
-            bank_statements=_generate_statements(
+            bank_statements=generate_statements(
                 monthly, 95000,
                 ["Costco Wholesale Region 7", "Restaurant Depot West", "Asian Mart Chain",
                  "Pacific Foods Wholesale", "H Mart Distribution"],
                 ["Shenzhen Export Trading Co", "Import Duty & Customs", "Warehouse Lease"],
                 seed=1024,
             ),
-            quarterly_income=_build_quarterly_income(monthly),
+            quarterly_income=build_quarterly_income(monthly),
             narrative=(
                 "Pacific Rim Importers sources specialty food products, kitchenware, and "
                 "consumer goods from East Asian manufacturers for distribution to grocery "
@@ -1487,14 +1487,14 @@ def _build_borrowers() -> list[Borrower]:
             annual_expenses=1690000,
             net_income=467000,
             employee_count=42,
-            bank_statements=_generate_statements(
+            bank_statements=generate_statements(
                 monthly, 110000,
                 ["Grandview Weddings", "Metro Convention Center", "Lakeside Country Club",
                  "Elite Event Planners", "State Fair Commission"],
                 ["US Foods Wholesale", "Kitchen Staff Payroll", "Facility Lease", "Event Insurance Co"],
                 seed=1025,
             ),
-            quarterly_income=_build_quarterly_income(monthly),
+            quarterly_income=build_quarterly_income(monthly),
             narrative=(
                 "Summit Event Catering is a full-service catering company providing food and "
                 "beverage services for weddings, corporate events, and large-scale gatherings. "
@@ -1537,7 +1537,7 @@ def _build_borrowers() -> list[Borrower]:
             annual_expenses=1889000,
             net_income=502000,
             employee_count=35,
-            bank_statements=_generate_statements(
+            bank_statements=generate_statements(
                 monthly, 95000,
                 ["Nationwide Insurance Corp", "Regional Health Authority", "Pacific Gas & Electric",
                  "First Republic Bank", "County of San Mateo"],
@@ -1545,7 +1545,7 @@ def _build_borrowers() -> list[Borrower]:
                  "Travel & Expenses"],
                 seed=1026,
             ),
-            quarterly_income=_build_quarterly_income(monthly),
+            quarterly_income=build_quarterly_income(monthly),
             narrative=(
                 "Pinnacle Consulting Group provides management consulting and operational "
                 "improvement services to mid-market enterprises and government agencies. The "
@@ -1586,14 +1586,14 @@ def _build_borrowers() -> list[Borrower]:
             annual_expenses=1506000,
             net_income=406000,
             employee_count=28,
-            bank_statements=_generate_statements(
+            bank_statements=generate_statements(
                 monthly, 130000,
                 ["Toll Brothers Development", "City of Portland Parks", "Marriott Properties",
                  "Stanford University Facilities", "Vulcan Real Estate"],
                 ["Nursery & Materials Supply", "Crew Payroll", "Office & Insurance", "Equipment Lease"],
                 seed=1027,
             ),
-            quarterly_income=_build_quarterly_income(monthly),
+            quarterly_income=build_quarterly_income(monthly),
             narrative=(
                 "Evergreen Landscape Architecture designs and installs commercial landscaping "
                 "for property developers, municipalities, and hospitality groups. The company "
@@ -1636,7 +1636,7 @@ def _build_borrowers() -> list[Borrower]:
             annual_expenses=2498000,
             net_income=438000,
             employee_count=38,
-            bank_statements=_generate_statements(
+            bank_statements=generate_statements(
                 monthly, 145000,
                 ["Atlantic Boatworks", "Cape Fear Marina Group", "Navy Federal Contracts",
                  "SeaTow Commercial", "Chesapeake Bay Fisheries"],
@@ -1644,7 +1644,7 @@ def _build_borrowers() -> list[Borrower]:
                  "Marine Staff Payroll"],
                 seed=1028,
             ),
-            quarterly_income=_build_quarterly_income(monthly),
+            quarterly_income=build_quarterly_income(monthly),
             narrative=(
                 "Tidewater Marine Supply distributes marine parts, equipment, and safety gear "
                 "to commercial fishing operations, marinas, and naval maintenance contractors. "

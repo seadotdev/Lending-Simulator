@@ -51,6 +51,9 @@ from .models import (
     LenderDecision,
     LenderScore,
     LoanOutcome,
+    SeasonConfig,
+    SeasonLenderState,
+    SeasonScore,
 )
 from .run_schema import UnderwritingRun
 
@@ -1057,4 +1060,226 @@ def print_final_report(
         else:
             print(f"  WINNER: {winner.lender_name} ({winner.model})")
             print(f"  RAROC Score: {winner.final_adjusted_score:+.2f}%")
+        print(f"{'*' * 70}")
+
+
+# ---------------------------------------------------------------------------
+# Season scoring
+# ---------------------------------------------------------------------------
+
+def _score_credit_quality(state: SeasonLenderState, economics: EconomicsConfig) -> float:
+    """Score credit quality 0-100 based on resolved loan outcomes."""
+    resolved = state.resolved_loans
+    if not resolved:
+        return 50.0  # neutral if no loans
+
+    total_interest = sum(o.total_interest_paid for o in resolved)
+    total_fees = sum(o.total_fees_paid for o in resolved)
+    total_losses = sum(o.principal_lost for o in resolved)
+    total_workout = sum(o.workout_cost for o in resolved)
+    total_principal = sum(o.principal for o in resolved)
+
+    if total_principal == 0:
+        return 50.0
+
+    # Net P&L as fraction of deployed principal
+    net_pnl = total_interest + total_fees - total_losses - total_workout
+    pnl_ratio = net_pnl / total_principal
+
+    # Score: 50 at breakeven, +/- up to 50 based on pnl_ratio
+    # A 10% return maps to ~80, a -10% loss maps to ~20
+    score = 50.0 + pnl_ratio * 300.0  # scale factor
+
+    # Fraud penalty: each fraud funded costs 5 points
+    frauds = sum(1 for o in resolved if o.was_fraud)
+    score -= frauds * 5.0
+
+    # Default rate penalty
+    defaults = sum(1 for o in resolved if o.defaulted)
+    default_rate = defaults / len(resolved) if resolved else 0
+    if default_rate > economics.max_default_rate:
+        excess = default_rate - economics.max_default_rate
+        score -= excess * 100.0
+
+    return max(0.0, min(100.0, score))
+
+
+def _score_portfolio_management(state: SeasonLenderState, season_length: int) -> float:
+    """Score portfolio management 0-100.
+    - Capital utilization (0-40): sweet spot 60-85%
+    - Concentration discipline (0-30): fraction of weeks without violations
+    - Adaptive behavior (0-30): rejection rate change after defaults
+    """
+    score = 0.0
+
+    # Capital utilization (0-40)
+    if state.weekly_utilization:
+        avg_util = sum(state.weekly_utilization) / len(state.weekly_utilization)
+        # Sweet spot: 60-85%
+        if 0.60 <= avg_util <= 0.85:
+            util_score = 40.0
+        elif avg_util < 0.60:
+            util_score = 40.0 * (avg_util / 0.60)
+        else:
+            # Over 85%: linearly decrease
+            util_score = 40.0 * max(0.0, 1.0 - (avg_util - 0.85) / 0.15)
+        score += util_score
+
+    # Concentration discipline (0-30)
+    weeks_clean = season_length - state.weeks_with_concentration_violations
+    if season_length > 0:
+        score += 30.0 * (weeks_clean / season_length)
+
+    # Adaptive behavior (0-30)
+    # Simple heuristic: if lender has defaults, check if rejection rate
+    # increased afterward (adaptation_score tracks this externally)
+    # For now, give credit based on not having too many defaults relative to wins
+    if state.deals_won > 0:
+        default_ratio = sum(1 for o in state.resolved_loans if o.defaulted) / state.deals_won
+        if default_ratio <= 0.15:
+            score += 30.0
+        elif default_ratio <= 0.30:
+            score += 30.0 * (1.0 - (default_ratio - 0.15) / 0.15)
+        # Above 30% default ratio: 0 adaptation score
+
+    return max(0.0, min(100.0, score))
+
+
+def _score_efficiency(state: SeasonLenderState) -> float:
+    """Score efficiency 0-100.
+    - Tool call efficiency (0-40): evaluations / tool_calls ratio
+    - Custom tool adoption (0-30): bonus for tools used after creation
+    - Speed-to-offer win rate (0-30): % of competitive deals won via speed bonus
+    """
+    score = 0.0
+
+    # Tool call efficiency (0-40)
+    if state.total_evaluations > 0 and state.total_tool_calls > 0:
+        avg_calls = state.total_tool_calls / state.total_evaluations
+        if avg_calls <= 3:
+            score += 40.0
+        elif avg_calls <= 6:
+            score += 40.0 * (1.0 - (avg_calls - 3) / 6)
+        else:
+            score += max(0.0, 40.0 * (1.0 - (avg_calls - 3) / 12))
+    elif state.total_evaluations > 0:
+        # No tool calls tracked — give neutral score
+        score += 20.0
+
+    # Custom tool adoption (0-30)
+    if state.custom_tools:
+        tools_used = sum(1 for t in state.custom_tools if hasattr(t, 'times_used') and t.times_used > 0)
+        total_tools = len(state.custom_tools)
+        if total_tools > 0:
+            score += 30.0 * (tools_used / total_tools)
+
+    # Speed-to-offer win rate (0-30)
+    if state.deals_won > 0:
+        speed_rate = state.speed_wins / state.deals_won
+        score += 30.0 * min(1.0, speed_rate)
+
+    return max(0.0, min(100.0, score))
+
+
+def score_season(
+    lender_states: dict[str, SeasonLenderState],
+    config: SeasonConfig,
+) -> list[SeasonScore]:
+    """Compute season scores: Credit Quality 70% + Portfolio Mgmt 20% + Efficiency 10%."""
+    scores: list[SeasonScore] = []
+
+    for state in lender_states.values():
+        credit = _score_credit_quality(state, config.economics)
+        portfolio = _score_portfolio_management(state, config.weeks)
+        efficiency = _score_efficiency(state)
+        final = credit * 0.70 + portfolio * 0.20 + efficiency * 0.10
+
+        net_pnl = (state.cumulative_interest + state.cumulative_fees
+                   - state.cumulative_losses)
+
+        avg_util = (
+            sum(state.weekly_utilization) / len(state.weekly_utilization)
+            if state.weekly_utilization else 0.0
+        )
+
+        conc_discipline = (
+            (config.weeks - state.weeks_with_concentration_violations) / config.weeks
+            if config.weeks > 0 else 1.0
+        )
+
+        tool_efficiency = (
+            state.total_tool_calls / state.total_evaluations
+            if state.total_evaluations > 0 and state.total_tool_calls > 0
+            else 0.0
+        )
+
+        custom_adoption = 0.0
+        if state.custom_tools:
+            used = sum(1 for t in state.custom_tools if hasattr(t, 'times_used') and t.times_used > 0)
+            custom_adoption = used / len(state.custom_tools) if state.custom_tools else 0.0
+
+        speed_rate = state.speed_wins / state.deals_won if state.deals_won > 0 else 0.0
+
+        defaults_count = sum(1 for o in state.resolved_loans if o.defaulted)
+        frauds_funded = sum(1 for o in state.resolved_loans if o.was_fraud)
+
+        scores.append(SeasonScore(
+            lender_id=state.lender_id,
+            lender_name=state.lender_name,
+            model=state.model,
+            credit_quality_score=round(credit, 2),
+            net_pnl=round(net_pnl, 2),
+            frauds_funded=frauds_funded,
+            defaults_count=defaults_count,
+            portfolio_mgmt_score=round(portfolio, 2),
+            avg_utilization=round(avg_util, 4),
+            concentration_discipline=round(conc_discipline, 4),
+            adaptation_score=round(state.adaptation_score, 2),
+            efficiency_score=round(efficiency, 2),
+            tool_call_efficiency=round(tool_efficiency, 2),
+            custom_tool_adoption=round(custom_adoption, 4),
+            speed_win_rate=round(speed_rate, 4),
+            final_score=round(final, 2),
+            total_deployed=round(state.deployed_capital, 2),
+            total_interest=round(state.cumulative_interest, 2),
+            total_losses=round(state.cumulative_losses, 2),
+            deals_won=state.deals_won,
+            deals_rejected=state.deals_rejected,
+        ))
+
+    return sorted(scores, key=lambda s: -s.final_score)
+
+
+def print_season_report(scores: list[SeasonScore]) -> None:
+    """Print a formatted season scoring report."""
+    print(f"\n{'=' * 70}")
+    print("  SEASON SCORING")
+    print(f"{'=' * 70}")
+
+    for s in scores:
+        print(f"\n  {s.lender_name} ({s.model})")
+        print(f"  {'─' * 50}")
+        print(f"    Credit Quality (70%):     {s.credit_quality_score:.1f}/100")
+        print(f"      Net P&L: ${s.net_pnl:,.0f} | Defaults: {s.defaults_count} | "
+              f"Frauds: {s.frauds_funded}")
+        print(f"    Portfolio Mgmt (20%):     {s.portfolio_mgmt_score:.1f}/100")
+        print(f"      Avg Util: {s.avg_utilization:.1%} | "
+              f"Concentration: {s.concentration_discipline:.1%}")
+        print(f"    Efficiency (10%):         {s.efficiency_score:.1f}/100")
+        print(f"      Tool Calls/Eval: {s.tool_call_efficiency:.1f} | "
+              f"Custom Tools: {s.custom_tool_adoption:.0%} | "
+              f"Speed Wins: {s.speed_win_rate:.0%}")
+        print(f"    {'─' * 46}")
+        print(f"    FINAL SCORE: {s.final_score:.2f}/100")
+        print(f"    Deals: {s.deals_won} won, {s.deals_rejected} rejected | "
+              f"Interest: ${s.total_interest:,.0f} | Losses: ${s.total_losses:,.0f}")
+
+    if scores:
+        print(f"\n{'*' * 70}")
+        winner = scores[0]
+        if len(scores) > 1 and winner.final_score == scores[1].final_score:
+            print(f"  TIE!")
+        else:
+            print(f"  SEASON WINNER: {winner.lender_name} ({winner.model})")
+            print(f"  Final Score: {winner.final_score:.2f}/100")
         print(f"{'*' * 70}")
