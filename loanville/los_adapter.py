@@ -23,6 +23,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import math
 import time
 import uuid
 from typing import Optional
@@ -457,18 +458,51 @@ def run_to_decision(run: UnderwritingRun) -> LenderDecision:
     APR conversion: Run uses decimal (0.095), TermSheet uses percentage (9.5).
     """
     decision_str = "APPROVE" if run.decision.action == "approve" else "REJECT"
-
+    reasoning = run.decision.rationale.summary or ""
     term_sheet = None
-    if run.decision.action == "approve" and run.decision.terms.amount > 0:
-        # APR: decimal → percentage
-        apr_decimal = run.decision.terms.apr
-        interest_rate_pct = apr_decimal * 100 if apr_decimal <= 1.0 else apr_decimal
 
-        term_sheet = TermSheet(
-            loan_amount=run.decision.terms.amount,
-            interest_rate=interest_rate_pct,
-            term_months=run.decision.terms.tenor_months or 24,
-        )
+    if run.decision.action == "approve":
+        params = run.policy.params or {}
+        requested_amount = float(getattr(run.case, "requested_amount", 0.0) or 0.0)
+        requested_tenor = int(getattr(run.case, "requested_tenor_months", 24) or 24)
+        max_single_loan = float(params.get("max_single_loan", requested_amount) or requested_amount)
+        target_yield_pct = float(params.get("target_yield_pct", 10.0) or 10.0)
+
+        # APR: decimal -> percentage
+        apr_raw = run.decision.terms.apr
+        rate_pct_raw = apr_raw * 100 if apr_raw <= 1.0 else apr_raw
+        amount_raw = float(run.decision.terms.amount or 0.0)
+        term_raw = int(run.decision.terms.tenor_months or requested_tenor or 24)
+
+        if math.isfinite(amount_raw) and math.isfinite(rate_pct_raw):
+            max_amount = min(max_single_loan, requested_amount) if requested_amount > 0 else max_single_loan
+            norm_amount = max(0.0, min(amount_raw, max_amount))
+            raw_or_target_rate = float(rate_pct_raw) if float(rate_pct_raw) > 0 else target_yield_pct
+            norm_rate = max(0.1, min(raw_or_target_rate, 60.0))
+            norm_term = max(1, min(term_raw, 120))
+
+            if norm_amount > 0:
+                term_sheet = TermSheet(
+                    loan_amount=norm_amount,
+                    interest_rate=norm_rate,
+                    term_months=norm_term,
+                )
+                normalized = (
+                    not math.isclose(norm_amount, amount_raw)
+                    or not math.isclose(norm_rate, float(rate_pct_raw))
+                    or norm_term != term_raw
+                )
+                if normalized:
+                    reasoning = (reasoning + " [SYSTEM: Term sheet normalized to policy bounds]").strip()
+            else:
+                decision_str = "REJECT"
+                reasoning = (reasoning + " [SYSTEM: Non-positive loan amount after policy clamp]").strip()
+        else:
+            decision_str = "REJECT"
+            reasoning = (reasoning + " [SYSTEM: Invalid term sheet values]").strip()
+
+    if term_sheet is None:
+        decision_str = "REJECT"
 
     # Extract lender_id from policy
     policy_id = run.policy.policy_id
@@ -480,7 +514,7 @@ def run_to_decision(run: UnderwritingRun) -> LenderDecision:
         lender_id=lender_id,
         borrower_id=run.case.case_id,
         decision=decision_str,
-        reasoning=run.decision.rationale.summary or "",
+        reasoning=reasoning,
         term_sheet=term_sheet,
     )
 
