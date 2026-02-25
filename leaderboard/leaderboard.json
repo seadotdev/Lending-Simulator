@@ -1,0 +1,219 @@
+{
+  "computed_at": "2026-02-25T14:30:00Z",
+  "n_matches": 20,
+  "config": {
+    "k": 32,
+    "initial_elo": 1500
+  },
+  "match_ids": [
+    "2026-02-25T10-00-00_a1b2c3",
+    "2026-02-25T10-15-00_d4e5f6",
+    "2026-02-25T10-30-00_789abc",
+    "2026-02-25T10-45-00_def012",
+    "2026-02-25T11-00-00_345678",
+    "2026-02-25T11-15-00_9abcde",
+    "2026-02-25T11-30-00_f01234",
+    "2026-02-25T11-45-00_567890",
+    "2026-02-25T12-00-00_abcdef",
+    "2026-02-25T12-15-00_012345",
+    "2026-02-25T12-30-00_6789ab",
+    "2026-02-25T12-45-00_cdef01",
+    "2026-02-25T13-00-00_234567",
+    "2026-02-25T13-15-00_89abcd",
+    "2026-02-25T13-30-00_ef0123",
+    "2026-02-25T13-45-00_456789",
+    "2026-02-25T14-00-00_abcde0",
+    "2026-02-25T14-05-00_f12345",
+    "2026-02-25T14-10-00_678901",
+    "2026-02-25T14-15-00_23abcd"
+  ],
+  "standings": [
+    {
+      "model_id": "openai/gpt-4.1-nano",
+      "display_name": "GPT-4.1 Nano",
+      "profit_elo": 1565,
+      "credit_elo": 1492,
+      "dealshare_elo": 1602,
+      "matches_played": 14,
+      "avg_raroc": -2.8,
+      "confusion_agg": {
+        "good": {"approved": 78, "rejected": 12},
+        "bad": {"approved": 18, "rejected": 30},
+        "fraud": {"approved": 4, "rejected": 14}
+      },
+      "rate_analysis": {
+        "avg_rate_good": 0.089,
+        "avg_rate_bad": 0.112,
+        "n_good_offers": 78,
+        "n_bad_offers": 18
+      }
+    },
+    {
+      "model_id": "qwen/qwen3-30b-a3b",
+      "display_name": "Qwen3-30B",
+      "profit_elo": 1548,
+      "credit_elo": 1561,
+      "dealshare_elo": 1445,
+      "matches_played": 12,
+      "avg_raroc": 1.2,
+      "confusion_agg": {
+        "good": {"approved": 52, "rejected": 28},
+        "bad": {"approved": 8, "rejected": 38},
+        "fraud": {"approved": 2, "rejected": 16}
+      },
+      "rate_analysis": {
+        "avg_rate_good": 0.095,
+        "avg_rate_bad": 0.138,
+        "n_good_offers": 52,
+        "n_bad_offers": 8
+      }
+    },
+    {
+      "model_id": "google/gemini-2.5-flash",
+      "display_name": "Gemini 2.5 Flash",
+      "profit_elo": 1517,
+      "credit_elo": 1534,
+      "dealshare_elo": 1478,
+      "matches_played": 14,
+      "avg_raroc": -5.1,
+      "confusion_agg": {
+        "good": {"approved": 62, "rejected": 24},
+        "bad": {"approved": 14, "rejected": 34},
+        "fraud": {"approved": 3, "rejected": 19}
+      },
+      "rate_analysis": {
+        "avg_rate_good": 0.092,
+        "avg_rate_bad": 0.125,
+        "n_good_offers": 62,
+        "n_bad_offers": 14
+      }
+    },
+    {
+      "model_id": "openai/gpt-4o-mini",
+      "display_name": "GPT-4o Mini",
+      "profit_elo": 1479,
+      "credit_elo": 1468,
+      "dealshare_elo": 1503,
+      "matches_played": 14,
+      "avg_raroc": -12.4,
+      "confusion_agg": {
+        "good": {"approved": 70, "rejected": 14},
+        "bad": {"approved": 22, "rejected": 24},
+        "fraud": {"approved": 6, "rejected": 12}
+      },
+      "rate_analysis": {
+        "avg_rate_good": 0.085,
+        "avg_rate_bad": 0.098,
+        "n_good_offers": 70,
+        "n_bad_offers": 22
+      }
+    },
+    {
+      "model_id": "mistralai/mistral-nemo",
+      "display_name": "Mistral Nemo",
+      "profit_elo": 1467,
+      "credit_elo": 1525,
+      "dealshare_elo": 1388,
+      "matches_played": 12,
+      "avg_raroc": -0.5,
+      "confusion_agg": {
+        "good": {"approved": 22, "rejected": 50},
+        "bad": {"approved": 2, "rejected": 42},
+        "fraud": {"approved": 0, "rejected": 16}
+      },
+      "rate_analysis": {
+        "avg_rate_good": 0.102,
+        "avg_rate_bad": 0.155,
+        "n_good_offers": 22,
+        "n_bad_offers": 2
+      }
+    },
+    {
+      "model_id": "meta-llama/llama-3-8b-instruct",
+      "display_name": "Llama 3 8B",
+      "profit_elo": 1424,
+      "credit_elo": 1420,
+      "dealshare_elo": 1584,
+      "matches_played": 14,
+      "avg_raroc": -22.6,
+      "confusion_agg": {
+        "good": {"approved": 72, "rejected": 8},
+        "bad": {"approved": 26, "rejected": 18},
+        "fraud": {"approved": 8, "rejected": 10}
+      },
+      "rate_analysis": {
+        "avg_rate_good": 0.078,
+        "avg_rate_bad": 0.082,
+        "n_good_offers": 72,
+        "n_bad_offers": 26
+      }
+    }
+  ],
+  "elo_history": {
+    "openai/gpt-4.1-nano": [
+      {"match_id": "2026-02-25T10-00-00_a1b2c3", "profit_elo": 1488, "credit_elo": 1495, "dealshare_elo": 1532},
+      {"match_id": "2026-02-25T10-30-00_789abc", "profit_elo": 1502, "credit_elo": 1490, "dealshare_elo": 1548},
+      {"match_id": "2026-02-25T11-00-00_345678", "profit_elo": 1478, "credit_elo": 1485, "dealshare_elo": 1562},
+      {"match_id": "2026-02-25T11-30-00_f01234", "profit_elo": 1510, "credit_elo": 1488, "dealshare_elo": 1570},
+      {"match_id": "2026-02-25T12-00-00_abcdef", "profit_elo": 1525, "credit_elo": 1492, "dealshare_elo": 1578},
+      {"match_id": "2026-02-25T12-30-00_6789ab", "profit_elo": 1498, "credit_elo": 1488, "dealshare_elo": 1585},
+      {"match_id": "2026-02-25T13-00-00_234567", "profit_elo": 1530, "credit_elo": 1490, "dealshare_elo": 1590},
+      {"match_id": "2026-02-25T13-30-00_ef0123", "profit_elo": 1512, "credit_elo": 1486, "dealshare_elo": 1595},
+      {"match_id": "2026-02-25T14-00-00_abcde0", "profit_elo": 1545, "credit_elo": 1490, "dealshare_elo": 1598},
+      {"match_id": "2026-02-25T14-15-00_23abcd", "profit_elo": 1565, "credit_elo": 1492, "dealshare_elo": 1602}
+    ],
+    "qwen/qwen3-30b-a3b": [
+      {"match_id": "2026-02-25T10-00-00_a1b2c3", "profit_elo": 1518, "credit_elo": 1520, "dealshare_elo": 1468},
+      {"match_id": "2026-02-25T10-45-00_def012", "profit_elo": 1535, "credit_elo": 1535, "dealshare_elo": 1458},
+      {"match_id": "2026-02-25T11-15-00_9abcde", "profit_elo": 1520, "credit_elo": 1540, "dealshare_elo": 1452},
+      {"match_id": "2026-02-25T11-45-00_567890", "profit_elo": 1540, "credit_elo": 1548, "dealshare_elo": 1448},
+      {"match_id": "2026-02-25T12-15-00_012345", "profit_elo": 1525, "credit_elo": 1552, "dealshare_elo": 1445},
+      {"match_id": "2026-02-25T12-45-00_cdef01", "profit_elo": 1538, "credit_elo": 1555, "dealshare_elo": 1442},
+      {"match_id": "2026-02-25T13-15-00_89abcd", "profit_elo": 1545, "credit_elo": 1558, "dealshare_elo": 1445},
+      {"match_id": "2026-02-25T14-10-00_678901", "profit_elo": 1548, "credit_elo": 1561, "dealshare_elo": 1445}
+    ],
+    "google/gemini-2.5-flash": [
+      {"match_id": "2026-02-25T10-15-00_d4e5f6", "profit_elo": 1495, "credit_elo": 1510, "dealshare_elo": 1488},
+      {"match_id": "2026-02-25T10-45-00_def012", "profit_elo": 1508, "credit_elo": 1518, "dealshare_elo": 1485},
+      {"match_id": "2026-02-25T11-15-00_9abcde", "profit_elo": 1490, "credit_elo": 1522, "dealshare_elo": 1480},
+      {"match_id": "2026-02-25T11-45-00_567890", "profit_elo": 1505, "credit_elo": 1528, "dealshare_elo": 1478},
+      {"match_id": "2026-02-25T12-15-00_012345", "profit_elo": 1498, "credit_elo": 1530, "dealshare_elo": 1475},
+      {"match_id": "2026-02-25T12-45-00_cdef01", "profit_elo": 1510, "credit_elo": 1532, "dealshare_elo": 1478},
+      {"match_id": "2026-02-25T13-15-00_89abcd", "profit_elo": 1505, "credit_elo": 1530, "dealshare_elo": 1476},
+      {"match_id": "2026-02-25T13-45-00_456789", "profit_elo": 1515, "credit_elo": 1534, "dealshare_elo": 1478},
+      {"match_id": "2026-02-25T14-10-00_678901", "profit_elo": 1517, "credit_elo": 1534, "dealshare_elo": 1478}
+    ],
+    "openai/gpt-4o-mini": [
+      {"match_id": "2026-02-25T10-00-00_a1b2c3", "profit_elo": 1492, "credit_elo": 1485, "dealshare_elo": 1505},
+      {"match_id": "2026-02-25T10-45-00_def012", "profit_elo": 1498, "credit_elo": 1480, "dealshare_elo": 1510},
+      {"match_id": "2026-02-25T11-30-00_f01234", "profit_elo": 1485, "credit_elo": 1475, "dealshare_elo": 1508},
+      {"match_id": "2026-02-25T12-00-00_abcdef", "profit_elo": 1478, "credit_elo": 1472, "dealshare_elo": 1505},
+      {"match_id": "2026-02-25T12-30-00_6789ab", "profit_elo": 1490, "credit_elo": 1470, "dealshare_elo": 1508},
+      {"match_id": "2026-02-25T12-45-00_cdef01", "profit_elo": 1475, "credit_elo": 1465, "dealshare_elo": 1505},
+      {"match_id": "2026-02-25T13-30-00_ef0123", "profit_elo": 1468, "credit_elo": 1462, "dealshare_elo": 1502},
+      {"match_id": "2026-02-25T14-00-00_abcde0", "profit_elo": 1482, "credit_elo": 1468, "dealshare_elo": 1505},
+      {"match_id": "2026-02-25T14-15-00_23abcd", "profit_elo": 1479, "credit_elo": 1468, "dealshare_elo": 1503}
+    ],
+    "mistralai/mistral-nemo": [
+      {"match_id": "2026-02-25T10-15-00_d4e5f6", "profit_elo": 1480, "credit_elo": 1508, "dealshare_elo": 1440},
+      {"match_id": "2026-02-25T10-30-00_789abc", "profit_elo": 1492, "credit_elo": 1515, "dealshare_elo": 1425},
+      {"match_id": "2026-02-25T11-15-00_9abcde", "profit_elo": 1498, "credit_elo": 1518, "dealshare_elo": 1415},
+      {"match_id": "2026-02-25T11-45-00_567890", "profit_elo": 1485, "credit_elo": 1520, "dealshare_elo": 1405},
+      {"match_id": "2026-02-25T12-30-00_6789ab", "profit_elo": 1478, "credit_elo": 1522, "dealshare_elo": 1398},
+      {"match_id": "2026-02-25T13-00-00_234567", "profit_elo": 1472, "credit_elo": 1524, "dealshare_elo": 1392},
+      {"match_id": "2026-02-25T13-45-00_456789", "profit_elo": 1468, "credit_elo": 1525, "dealshare_elo": 1390},
+      {"match_id": "2026-02-25T14-15-00_23abcd", "profit_elo": 1467, "credit_elo": 1525, "dealshare_elo": 1388}
+    ],
+    "meta-llama/llama-3-8b-instruct": [
+      {"match_id": "2026-02-25T10-00-00_a1b2c3", "profit_elo": 1470, "credit_elo": 1462, "dealshare_elo": 1540},
+      {"match_id": "2026-02-25T10-30-00_789abc", "profit_elo": 1452, "credit_elo": 1450, "dealshare_elo": 1555},
+      {"match_id": "2026-02-25T11-00-00_345678", "profit_elo": 1445, "credit_elo": 1442, "dealshare_elo": 1562},
+      {"match_id": "2026-02-25T11-30-00_f01234", "profit_elo": 1430, "credit_elo": 1435, "dealshare_elo": 1570},
+      {"match_id": "2026-02-25T12-00-00_abcdef", "profit_elo": 1438, "credit_elo": 1430, "dealshare_elo": 1575},
+      {"match_id": "2026-02-25T12-45-00_cdef01", "profit_elo": 1428, "credit_elo": 1425, "dealshare_elo": 1578},
+      {"match_id": "2026-02-25T13-00-00_234567", "profit_elo": 1420, "credit_elo": 1418, "dealshare_elo": 1580},
+      {"match_id": "2026-02-25T13-30-00_ef0123", "profit_elo": 1425, "credit_elo": 1420, "dealshare_elo": 1582},
+      {"match_id": "2026-02-25T14-05-00_f12345", "profit_elo": 1424, "credit_elo": 1420, "dealshare_elo": 1584}
+    ]
+  }
+}

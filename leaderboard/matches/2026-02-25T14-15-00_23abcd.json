@@ -1,0 +1,104 @@
+{
+  "match_id": "2026-02-25T14-15-00_23abcd",
+  "timestamp_utc": "2026-02-25T14:15:00Z",
+  "mix": "analyst",
+  "n_borrowers": 14,
+  "results": [
+    {
+      "model_id": "openai/gpt-4.1-nano",
+      "display_name": "GPT-4.1 Nano",
+      "raroc_score": 2.4,
+      "deals_won": 8,
+      "deals_rejected": 2,
+      "deployed": 2850000,
+      "net_pnl": 142500,
+      "frauds_funded": 0,
+      "defaults": 1,
+      "confusion_matrix": {
+        "good": {"approved": 8, "rejected": 1},
+        "bad": {"approved": 2, "rejected": 2},
+        "fraud": {"approved": 0, "rejected": 1}
+      },
+      "per_borrower": {
+        "BRW-001": {"ground_truth": "good", "decision_state": "won", "rate_offered": 0.085},
+        "BRW-002": {"ground_truth": "good", "decision_state": "won", "rate_offered": 0.092},
+        "BRW-003": {"ground_truth": "good", "decision_state": "lost", "rate_offered": 0.098},
+        "BRW-004": {"ground_truth": "bad", "decision_state": "won", "rate_offered": 0.115},
+        "BRW-005": {"ground_truth": "good", "decision_state": "won", "rate_offered": 0.088},
+        "BRW-006": {"ground_truth": "fraud", "decision_state": "declined", "rate_offered": null},
+        "BRW-007": {"ground_truth": "good", "decision_state": "won", "rate_offered": 0.079},
+        "BRW-008": {"ground_truth": "bad", "decision_state": "declined", "rate_offered": null},
+        "BRW-009": {"ground_truth": "good", "decision_state": "won", "rate_offered": 0.091},
+        "BRW-010": {"ground_truth": "bad", "decision_state": "lost", "rate_offered": 0.128},
+        "BRW-011": {"ground_truth": "good", "decision_state": "won", "rate_offered": 0.084},
+        "BRW-012": {"ground_truth": "good", "decision_state": "won", "rate_offered": 0.095},
+        "BRW-013": {"ground_truth": "bad", "decision_state": "declined", "rate_offered": null},
+        "BRW-014": {"ground_truth": "good", "decision_state": "lost", "rate_offered": 0.102}
+      }
+    },
+    {
+      "model_id": "mistralai/mistral-nemo",
+      "display_name": "Mistral Nemo",
+      "raroc_score": -1.2,
+      "deals_won": 2,
+      "deals_rejected": 10,
+      "deployed": 650000,
+      "net_pnl": 48200,
+      "frauds_funded": 0,
+      "defaults": 0,
+      "confusion_matrix": {
+        "good": {"approved": 2, "rejected": 7},
+        "bad": {"approved": 0, "rejected": 4},
+        "fraud": {"approved": 0, "rejected": 1}
+      },
+      "per_borrower": {
+        "BRW-001": {"ground_truth": "good", "decision_state": "declined", "rate_offered": null},
+        "BRW-002": {"ground_truth": "good", "decision_state": "declined", "rate_offered": null},
+        "BRW-003": {"ground_truth": "good", "decision_state": "won", "rate_offered": 0.092},
+        "BRW-004": {"ground_truth": "bad", "decision_state": "declined", "rate_offered": null},
+        "BRW-005": {"ground_truth": "good", "decision_state": "declined", "rate_offered": null},
+        "BRW-006": {"ground_truth": "fraud", "decision_state": "declined", "rate_offered": null},
+        "BRW-007": {"ground_truth": "good", "decision_state": "declined", "rate_offered": null},
+        "BRW-008": {"ground_truth": "bad", "decision_state": "declined", "rate_offered": null},
+        "BRW-009": {"ground_truth": "good", "decision_state": "declined", "rate_offered": null},
+        "BRW-010": {"ground_truth": "bad", "decision_state": "declined", "rate_offered": null},
+        "BRW-011": {"ground_truth": "good", "decision_state": "declined", "rate_offered": null},
+        "BRW-012": {"ground_truth": "good", "decision_state": "declined", "rate_offered": null},
+        "BRW-013": {"ground_truth": "bad", "decision_state": "declined", "rate_offered": null},
+        "BRW-014": {"ground_truth": "good", "decision_state": "won", "rate_offered": 0.098}
+      }
+    },
+    {
+      "model_id": "meta-llama/llama-3-8b-instruct",
+      "display_name": "Llama 3 8B",
+      "raroc_score": -18.5,
+      "deals_won": 6,
+      "deals_rejected": 1,
+      "deployed": 2400000,
+      "net_pnl": -285000,
+      "frauds_funded": 1,
+      "defaults": 3,
+      "confusion_matrix": {
+        "good": {"approved": 7, "rejected": 2},
+        "bad": {"approved": 3, "rejected": 1},
+        "fraud": {"approved": 1, "rejected": 0}
+      },
+      "per_borrower": {
+        "BRW-001": {"ground_truth": "good", "decision_state": "lost", "rate_offered": 0.072},
+        "BRW-002": {"ground_truth": "good", "decision_state": "lost", "rate_offered": 0.078},
+        "BRW-003": {"ground_truth": "good", "decision_state": "lost", "rate_offered": 0.081},
+        "BRW-004": {"ground_truth": "bad", "decision_state": "lost", "rate_offered": 0.095},
+        "BRW-005": {"ground_truth": "good", "decision_state": "lost", "rate_offered": 0.076},
+        "BRW-006": {"ground_truth": "fraud", "decision_state": "won", "rate_offered": 0.088},
+        "BRW-007": {"ground_truth": "good", "decision_state": "lost", "rate_offered": 0.074},
+        "BRW-008": {"ground_truth": "bad", "decision_state": "won", "rate_offered": 0.105},
+        "BRW-009": {"ground_truth": "good", "decision_state": "lost", "rate_offered": 0.082},
+        "BRW-010": {"ground_truth": "bad", "decision_state": "won", "rate_offered": 0.112},
+        "BRW-011": {"ground_truth": "good", "decision_state": "won", "rate_offered": 0.075},
+        "BRW-012": {"ground_truth": "good", "decision_state": "won", "rate_offered": 0.082},
+        "BRW-013": {"ground_truth": "bad", "decision_state": "won", "rate_offered": 0.098},
+        "BRW-014": {"ground_truth": "good", "decision_state": "won", "rate_offered": 0.070}
+      }
+    }
+  ]
+}

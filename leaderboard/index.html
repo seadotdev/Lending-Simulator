@@ -3,75 +3,996 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Loanville Leaderboard</title>
+<title>Loanville — AI Lending Arena</title>
 <style>
-  :root {
-    --bg: #0d1117;
-    --surface: #161b22;
-    --border: #30363d;
-    --text: #c9d1d9;
-    --text-muted: #8b949e;
-    --accent: #58a6ff;
-    --green: #3fb950;
-    --red: #f85149;
-    --gold: #d29922;
-    --purple: #bc8cff;
-  }
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
-    background: var(--bg); color: var(--text);
-    line-height: 1.5; padding: 20px;
-    max-width: 1200px; margin: 0 auto;
-  }
-  a { color: var(--accent); text-decoration: none; cursor: pointer; }
-  a:hover { text-decoration: underline; }
-  h1 { font-size: 1.8em; margin-bottom: 4px; }
-  h2 { font-size: 1.3em; margin: 20px 0 10px; color: var(--text); }
-  .subtitle { color: var(--text-muted); margin-bottom: 20px; }
-  table { width: 100%; border-collapse: collapse; margin: 10px 0; }
-  th, td { padding: 8px 12px; text-align: left; border-bottom: 1px solid var(--border); }
-  th { color: var(--text-muted); font-weight: 600; font-size: 0.85em; text-transform: uppercase; }
-  tr:hover { background: rgba(88,166,255,0.04); }
-  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 16px; margin: 12px 0; }
-  .nav { display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
-  .nav a { padding: 6px 14px; border-radius: 20px; border: 1px solid var(--border); font-size: 0.9em; }
-  .nav a.active { background: var(--accent); color: #fff; border-color: var(--accent); }
-  .num-pos { color: var(--green); }
-  .num-neg { color: var(--red); }
-  .num-gold { color: var(--gold); }
-  .badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 0.8em; font-weight: 600; }
-  .badge-good { background: rgba(63,185,80,0.15); color: var(--green); }
-  .badge-bad { background: rgba(248,81,73,0.15); color: var(--red); }
-  .badge-fraud { background: rgba(210,153,34,0.15); color: var(--gold); }
-  .badge-won { background: rgba(63,185,80,0.15); color: var(--green); }
-  .badge-lost { background: rgba(139,148,158,0.15); color: var(--text-muted); }
-  .badge-declined { background: rgba(248,81,73,0.1); color: var(--text-muted); }
-  .elo-chart { height: 200px; position: relative; overflow: hidden; }
-  .grid-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 12px; }
-  .back { margin-bottom: 16px; font-size: 0.9em; }
-  .correct { background: rgba(63,185,80,0.1); }
-  .incorrect { background: rgba(248,81,73,0.1); }
-  .winner-cell { color: var(--gold); font-weight: 600; }
-  .filter-bar { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; align-items: center; }
-  .filter-bar select, .filter-bar input { background: var(--surface); color: var(--text); border: 1px solid var(--border); border-radius: 4px; padding: 4px 8px; font-size: 0.9em; }
-  .sparkline { display: inline-block; vertical-align: middle; }
-  .hidden { display: none; }
-  .cm-table td { text-align: center; min-width: 60px; }
-  .cm-table th { text-align: center; }
-  #loading { text-align: center; padding: 60px; color: var(--text-muted); }
+/* ======================================================================
+   LOANVILLE — Truman Show Dome Town UX
+   A 3D half-globe with a stylised miniature town
+   ====================================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=DM+Mono:wght@400;500&display=swap');
+
+:root {
+  /* Town palette — warm, pastel, Truman Show */
+  --sky-top: #7ec8e3;
+  --sky-mid: #b8dff0;
+  --sky-bottom: #f0e6d3;
+  --grass: #7cb342;
+  --grass-dark: #558b2f;
+  --road: #90a4ae;
+  --road-line: #fdd835;
+  --dome-glass: rgba(200, 230, 255, 0.12);
+  --dome-edge: rgba(120, 180, 220, 0.35);
+  --dome-shine: rgba(255, 255, 255, 0.18);
+
+  /* Dashboard palette */
+  --bg: #f5f0e8;
+  --bg-alt: #ede7db;
+  --surface: #ffffff;
+  --surface-hover: #fafaf5;
+  --border: #ddd5c8;
+  --border-light: #ece5d8;
+  --text: #2d2a24;
+  --text-secondary: #6b6560;
+  --text-muted: #9e9688;
+  --accent: #2563eb;
+  --accent-light: #dbeafe;
+  --green: #16a34a;
+  --green-bg: #dcfce7;
+  --red: #dc2626;
+  --red-bg: #fee2e2;
+  --gold: #ca8a04;
+  --gold-bg: #fef9c3;
+  --purple: #7c3aed;
+  --purple-bg: #ede9fe;
+  --orange: #ea580c;
+  --orange-bg: #fff7ed;
+  --teal: #0d9488;
+
+  /* Building palette */
+  --bldg-1: #e57373;
+  --bldg-2: #64b5f6;
+  --bldg-3: #81c784;
+  --bldg-4: #ffb74d;
+  --bldg-5: #ba68c8;
+  --bldg-6: #4dd0e1;
+
+  --font: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --mono: 'DM Mono', 'SF Mono', Consolas, monospace;
+
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.06);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.08);
+  --shadow-lg: 0 8px 30px rgba(0,0,0,0.12);
+  --shadow-xl: 0 20px 60px rgba(0,0,0,0.15);
+  --radius: 12px;
+  --radius-sm: 8px;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.6;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ======================================================================
+   DOME + TOWN HERO
+   ====================================================================== */
+
+.dome-wrapper {
+  position: relative;
+  width: 100%;
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 32px 20px 0;
+}
+
+.dome-container {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 2.2 / 1;
+  max-height: 480px;
+  overflow: hidden;
+  border-radius: 50% 50% 4px 4px / 80% 80% 0 0;
+  cursor: default;
+}
+
+/* Sky gradient */
+.dome-sky {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    var(--sky-top) 0%,
+    var(--sky-mid) 45%,
+    var(--sky-bottom) 100%
+  );
+}
+
+/* Animated clouds */
+.cloud {
+  position: absolute;
+  background: rgba(255, 255, 255, 0.85);
+  border-radius: 50px;
+  animation: drift linear infinite;
+}
+.cloud::before, .cloud::after {
+  content: '';
+  position: absolute;
+  background: rgba(255, 255, 255, 0.85);
+  border-radius: 50%;
+}
+.cloud-1 { width: 90px; height: 28px; top: 12%; left: -100px; animation-duration: 45s; }
+.cloud-1::before { width: 40px; height: 40px; top: -18px; left: 18px; }
+.cloud-1::after { width: 30px; height: 30px; top: -12px; left: 50px; }
+.cloud-2 { width: 70px; height: 22px; top: 22%; left: -80px; animation-duration: 60s; animation-delay: -20s; opacity: 0.7; }
+.cloud-2::before { width: 32px; height: 32px; top: -14px; left: 14px; }
+.cloud-2::after { width: 24px; height: 24px; top: -10px; left: 38px; }
+.cloud-3 { width: 110px; height: 32px; top: 8%; left: -120px; animation-duration: 55s; animation-delay: -10s; opacity: 0.6; }
+.cloud-3::before { width: 48px; height: 48px; top: -22px; left: 22px; }
+.cloud-3::after { width: 36px; height: 36px; top: -16px; left: 60px; }
+.cloud-4 { width: 60px; height: 20px; top: 18%; left: -60px; animation-duration: 50s; animation-delay: -35s; opacity: 0.5; }
+.cloud-4::before { width: 28px; height: 28px; top: -12px; left: 12px; }
+.cloud-4::after { width: 20px; height: 20px; top: -8px; left: 32px; }
+
+@keyframes drift {
+  from { transform: translateX(0); }
+  to { transform: translateX(calc(1100px + 200px)); }
+}
+
+/* Sun */
+.sun {
+  position: absolute;
+  top: 6%;
+  right: 18%;
+  width: 50px;
+  height: 50px;
+  background: radial-gradient(circle, #fff7b2 0%, #ffd54f 40%, rgba(255,213,79,0) 70%);
+  border-radius: 50%;
+  animation: sun-pulse 4s ease-in-out infinite;
+}
+@keyframes sun-pulse {
+  0%, 100% { transform: scale(1); opacity: 0.9; }
+  50% { transform: scale(1.08); opacity: 1; }
+}
+
+/* Ground */
+.ground {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 38%;
+  background: linear-gradient(180deg, var(--grass) 0%, var(--grass-dark) 100%);
+}
+
+/* Road */
+.road {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 14%;
+  background: var(--road);
+  z-index: 2;
+}
+.road::before {
+  content: '';
+  position: absolute;
+  top: 48%;
+  left: 5%;
+  right: 5%;
+  height: 3px;
+  background: repeating-linear-gradient(
+    90deg,
+    var(--road-line) 0px,
+    var(--road-line) 20px,
+    transparent 20px,
+    transparent 35px
+  );
+  opacity: 0.7;
+}
+
+/* Lamp posts */
+.lamp-post {
+  position: absolute;
+  bottom: 14%;
+  width: 4px;
+  height: 42px;
+  background: #546e7a;
+  z-index: 3;
+}
+.lamp-post::before {
+  content: '';
+  position: absolute;
+  top: -4px;
+  left: -6px;
+  width: 16px;
+  height: 8px;
+  background: #78909c;
+  border-radius: 4px 4px 0 0;
+}
+.lamp-post::after {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: 1px;
+  width: 6px;
+  height: 6px;
+  background: #fff9c4;
+  border-radius: 50%;
+  box-shadow: 0 0 8px 3px rgba(255,249,196,0.6);
+  animation: lamp-flicker 3s ease-in-out infinite;
+}
+.lamp-1 { left: 12%; }
+.lamp-2 { left: 38%; }
+.lamp-3 { left: 62%; }
+.lamp-4 { left: 88%; }
+@keyframes lamp-flicker {
+  0%, 100% { opacity: 0.7; }
+  50% { opacity: 1; }
+}
+
+/* Trees */
+.tree {
+  position: absolute;
+  z-index: 3;
+}
+.tree-trunk {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 6px;
+  background: #795548;
+  border-radius: 2px;
+}
+.tree-canopy {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border-radius: 50%;
+  background: #43a047;
+}
+.tree-sm .tree-trunk { height: 12px; }
+.tree-sm .tree-canopy { width: 18px; height: 18px; margin-bottom: -4px; }
+.tree-md .tree-trunk { height: 16px; }
+.tree-md .tree-canopy { width: 24px; height: 24px; margin-bottom: -4px; }
+.tree-lg .tree-trunk { height: 20px; }
+.tree-lg .tree-canopy { width: 30px; height: 30px; margin-bottom: -5px; }
+
+/* ======================================================================
+   BUILDINGS
+   ====================================================================== */
+
+.buildings-row {
+  position: absolute;
+  bottom: 14%;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  gap: 2.5%;
+  padding: 0 8%;
+  z-index: 4;
+}
+
+.building {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  cursor: pointer;
+  transition: transform 0.3s ease, filter 0.3s ease;
+  flex: 1;
+  max-width: 120px;
+}
+.building:hover {
+  transform: translateY(-6px) scale(1.04);
+  filter: brightness(1.08);
+  z-index: 10;
+}
+
+.building-body {
+  position: relative;
+  width: 100%;
+  border-radius: 4px 4px 0 0;
+  overflow: hidden;
+  box-shadow: var(--shadow-md);
+  transition: box-shadow 0.3s ease;
+}
+.building:hover .building-body {
+  box-shadow: var(--shadow-lg);
+}
+
+/* 3D perspective faces */
+.building-front {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 6px 4px;
+}
+
+/* Windows */
+.building-windows {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 3px;
+  padding: 0 6px;
+  width: 100%;
+  flex: 1;
+  align-content: start;
+  padding-top: 8px;
+}
+.window {
+  aspect-ratio: 1 / 1.2;
+  background: rgba(255,255,255,0.3);
+  border-radius: 1px;
+  position: relative;
+}
+.window.lit {
+  background: #fff9c4;
+  box-shadow: 0 0 4px rgba(255,249,196,0.5);
+  animation: window-glow 4s ease-in-out infinite;
+}
+@keyframes window-glow {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+
+/* Building door */
+.building-door {
+  width: 40%;
+  height: 16px;
+  background: rgba(0,0,0,0.25);
+  border-radius: 3px 3px 0 0;
+  margin-top: 4px;
+}
+
+/* Building label */
+.building-label {
+  position: absolute;
+  bottom: -28px;
+  left: 50%;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text);
+  text-shadow: 0 1px 2px rgba(255,255,255,0.8);
+  opacity: 0;
+  transition: opacity 0.3s;
+  pointer-events: none;
+  background: rgba(255,255,255,0.85);
+  padding: 2px 6px;
+  border-radius: 4px;
+  z-index: 20;
+}
+.building:hover .building-label {
+  opacity: 1;
+}
+
+/* Building sign (Elo) */
+.building-sign {
+  position: absolute;
+  top: -18px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: white;
+  padding: 1px 6px;
+  border-radius: 3px;
+  font-size: 10px;
+  font-weight: 700;
+  box-shadow: var(--shadow-sm);
+  white-space: nowrap;
+  z-index: 5;
+}
+
+/* Winner crown */
+.building-crown {
+  position: absolute;
+  top: -32px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 18px;
+  animation: crown-bob 2s ease-in-out infinite;
+  z-index: 5;
+}
+@keyframes crown-bob {
+  0%, 100% { transform: translateX(-50%) translateY(0); }
+  50% { transform: translateX(-50%) translateY(-4px); }
+}
+
+/* Roof */
+.building-roof {
+  width: calc(100% + 8px);
+  height: 10px;
+  background: inherit;
+  filter: brightness(0.85);
+  margin-bottom: -1px;
+  border-radius: 2px 2px 0 0;
+  box-shadow: 0 -2px 4px rgba(0,0,0,0.1);
+}
+
+/* ======================================================================
+   DOME GLASS OVERLAY
+   ====================================================================== */
+
+.dome-glass {
+  position: absolute;
+  inset: 0;
+  border-radius: 50% 50% 4px 4px / 80% 80% 0 0;
+  background: radial-gradient(
+    ellipse 100% 100% at 50% 100%,
+    transparent 0%,
+    var(--dome-glass) 60%,
+    var(--dome-edge) 95%,
+    rgba(120, 180, 220, 0.5) 100%
+  );
+  pointer-events: none;
+  z-index: 15;
+}
+
+.dome-glass::before {
+  content: '';
+  position: absolute;
+  top: 5%;
+  left: 15%;
+  width: 30%;
+  height: 20%;
+  background: radial-gradient(ellipse, var(--dome-shine), transparent);
+  border-radius: 50%;
+  transform: rotate(-15deg);
+}
+
+/* Dome grid lines */
+.dome-grid {
+  position: absolute;
+  inset: 0;
+  border-radius: 50% 50% 4px 4px / 80% 80% 0 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 14;
+  opacity: 0.12;
+}
+.dome-grid-line {
+  position: absolute;
+  background: rgba(100, 160, 200, 0.5);
+}
+.dome-grid-h {
+  left: 0; right: 0; height: 1px;
+}
+.dome-grid-v {
+  top: 0; bottom: 0; width: 1px;
+}
+
+/* Town title */
+.town-title {
+  position: absolute;
+  top: 42%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  z-index: 16;
+  pointer-events: none;
+}
+.town-title h1 {
+  font-size: clamp(28px, 5vw, 56px);
+  font-weight: 700;
+  color: #fff;
+  text-shadow:
+    0 2px 12px rgba(0,0,0,0.15),
+    0 0 40px rgba(126,200,227,0.3);
+  letter-spacing: 0.04em;
+  line-height: 1.1;
+}
+.town-title .subtitle {
+  font-size: clamp(11px, 1.8vw, 16px);
+  color: rgba(255,255,255,0.85);
+  margin-top: 6px;
+  font-weight: 400;
+  text-shadow: 0 1px 8px rgba(0,0,0,0.15);
+}
+
+/* ======================================================================
+   NAVIGATION
+   ====================================================================== */
+
+.nav-bar {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.nav-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: 20px;
+  border: 1.5px solid var(--border);
+  background: var(--surface);
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-decoration: none;
+}
+.nav-pill:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-light);
+}
+.nav-pill.active {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+}
+.nav-pill svg {
+  width: 14px;
+  height: 14px;
+}
+
+.nav-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--text-secondary);
+  font-size: 13px;
+  cursor: pointer;
+  padding: 6px 12px;
+  border-radius: 8px;
+  transition: all 0.2s;
+  text-decoration: none;
+}
+.nav-back:hover {
+  color: var(--accent);
+  background: var(--accent-light);
+}
+
+/* ======================================================================
+   DASHBOARD CONTENT
+   ====================================================================== */
+
+.content {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 0 20px 60px;
+}
+
+.section-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text);
+  margin: 28px 0 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.section-title svg {
+  width: 18px;
+  height: 18px;
+  color: var(--text-muted);
+}
+
+/* Cards */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius);
+  padding: 20px;
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow 0.2s, transform 0.2s;
+}
+.card:hover {
+  box-shadow: var(--shadow-md);
+}
+.card-header {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 6px;
+}
+
+/* Stats grid */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+  margin: 12px 0;
+}
+.stat-card {
+  background: var(--surface);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-sm);
+  padding: 16px;
+  text-align: center;
+}
+.stat-value {
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+.stat-label {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 2px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.stat-trend {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  font-size: 11px;
+  font-weight: 600;
+  margin-top: 4px;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+/* ======================================================================
+   LEADERBOARD TABLE
+   ====================================================================== */
+
+.lb-table-wrap {
+  background: var(--surface);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+th {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 12px 14px;
+  text-align: left;
+  border-bottom: 2px solid var(--border-light);
+  background: var(--bg-alt);
+  white-space: nowrap;
+}
+td {
+  padding: 12px 14px;
+  font-size: 14px;
+  border-bottom: 1px solid var(--border-light);
+  vertical-align: middle;
+}
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: var(--surface-hover); }
+.tr-clickable { cursor: pointer; }
+
+/* Rank badges */
+.rank-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  font-size: 12px;
+  font-weight: 700;
+}
+.rank-1 { background: linear-gradient(135deg, #ffd54f, #ffb300); color: #5d4037; }
+.rank-2 { background: linear-gradient(135deg, #e0e0e0, #bdbdbd); color: #424242; }
+.rank-3 { background: linear-gradient(135deg, #ffab91, #e65100); color: #fff; }
+.rank-other { background: var(--bg-alt); color: var(--text-muted); }
+
+/* Model name cell */
+.model-name {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.model-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 700;
+  color: #fff;
+  flex-shrink: 0;
+}
+.model-name-text {
+  font-weight: 600;
+  color: var(--accent);
+  cursor: pointer;
+}
+.model-name-text:hover {
+  text-decoration: underline;
+}
+.model-id-text {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-family: var(--mono);
+}
+
+/* Elo cells */
+.elo-cell {
+  font-weight: 600;
+  font-family: var(--mono);
+  font-size: 14px;
+}
+.elo-up { color: var(--green); }
+.elo-down { color: var(--red); }
+.elo-neutral { color: var(--text-secondary); }
+
+/* Sparkline */
+.sparkline-cell { vertical-align: middle; }
+.sparkline { display: inline-block; vertical-align: middle; }
+
+/* Badges */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.badge-good { background: var(--green-bg); color: var(--green); }
+.badge-bad { background: var(--red-bg); color: var(--red); }
+.badge-fraud { background: var(--gold-bg); color: var(--gold); }
+.badge-won { background: var(--green-bg); color: var(--green); }
+.badge-lost { background: var(--bg-alt); color: var(--text-muted); }
+.badge-declined { background: var(--bg-alt); color: var(--text-muted); }
+.badge-winner { background: var(--gold-bg); color: var(--gold); }
+
+/* ======================================================================
+   CONFUSION MATRIX
+   ====================================================================== */
+
+.cm-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 12px;
+  margin: 12px 0;
+}
+.cm-card {
+  background: var(--surface);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-sm);
+  padding: 16px;
+}
+.cm-card h3 {
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 10px;
+}
+.cm-table { width: 100%; }
+.cm-table th, .cm-table td {
+  text-align: center;
+  padding: 8px;
+  font-size: 13px;
+}
+.cm-cell-good { background: rgba(22,163,74,0.08); }
+.cm-cell-bad { background: rgba(220,38,38,0.08); }
+
+/* ======================================================================
+   MATCH DETAIL
+   ====================================================================== */
+
+.match-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 12px;
+  margin: 12px 0;
+}
+
+.match-model-card {
+  background: var(--surface);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius);
+  padding: 18px;
+  position: relative;
+  transition: all 0.2s;
+}
+.match-model-card.winner-card {
+  border-color: var(--gold);
+  box-shadow: 0 0 0 1px var(--gold), var(--shadow-md);
+}
+.match-model-card .card-title {
+  font-size: 16px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.match-metric {
+  display: flex;
+  justify-content: space-between;
+  padding: 5px 0;
+  font-size: 13px;
+  border-bottom: 1px solid var(--border-light);
+}
+.match-metric:last-child { border-bottom: none; }
+.match-metric-label { color: var(--text-secondary); }
+.match-metric-value { font-weight: 600; font-family: var(--mono); }
+
+/* Borrower decision table */
+.decision-table-wrap {
+  overflow-x: auto;
+  border-radius: var(--radius);
+  border: 1px solid var(--border-light);
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+}
+.decision-table th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+.cell-correct { background: rgba(22,163,74,0.06); }
+.cell-incorrect { background: rgba(220,38,38,0.06); }
+.cell-winner { font-weight: 600; color: var(--gold); }
+
+/* ======================================================================
+   ELO CHART
+   ====================================================================== */
+
+.chart-wrap {
+  background: var(--surface);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius);
+  padding: 20px;
+  box-shadow: var(--shadow-sm);
+}
+
+/* ======================================================================
+   RESPONSIVE
+   ====================================================================== */
+
+@media (max-width: 768px) {
+  .dome-container { aspect-ratio: 1.8 / 1; }
+  .buildings-row { padding: 0 4%; gap: 1.5%; }
+  .building-sign { font-size: 8px; padding: 1px 4px; }
+  .stats-grid { grid-template-columns: repeat(2, 1fr); }
+  th, td { padding: 8px 10px; font-size: 12px; }
+  .town-title h1 { font-size: 28px; }
+}
+
+@media (max-width: 480px) {
+  .dome-container { aspect-ratio: 1.5 / 1; }
+  .building-windows { grid-template-columns: repeat(2, 1fr); }
+  .stats-grid { grid-template-columns: 1fr 1fr; }
+}
+
+/* ======================================================================
+   TRANSITIONS
+   ====================================================================== */
+
+.view-enter { animation: fadeInUp 0.35s ease; }
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Loading state */
+#loading {
+  text-align: center;
+  padding: 80px 20px;
+  color: var(--text-muted);
+  font-size: 16px;
+}
+.loading-dots::after {
+  content: '';
+  animation: dots 1.5s steps(4, end) infinite;
+}
+@keyframes dots {
+  0% { content: ''; }
+  25% { content: '.'; }
+  50% { content: '..'; }
+  75% { content: '...'; }
+}
+
+/* Hidden util */
+.hidden { display: none !important; }
+
 </style>
 </head>
 <body>
 
+<!-- ====================================================================
+     DOME + TOWN HERO (always visible)
+     ==================================================================== -->
+<div class="dome-wrapper">
+  <div class="dome-container" id="dome">
+    <div class="dome-sky"></div>
+    <div class="sun"></div>
+    <div class="cloud cloud-1"></div>
+    <div class="cloud cloud-2"></div>
+    <div class="cloud cloud-3"></div>
+    <div class="cloud cloud-4"></div>
+
+    <!-- Town title (shown when no data loaded) -->
+    <div class="town-title" id="town-title">
+      <h1>LOANVILLE</h1>
+      <div class="subtitle">AI Lending Arena</div>
+    </div>
+
+    <!-- Ground & road -->
+    <div class="ground"></div>
+    <div class="road"></div>
+
+    <!-- Trees -->
+    <div class="tree tree-md" style="bottom:14%;left:5%">
+      <div class="tree-canopy"></div>
+      <div class="tree-trunk"></div>
+    </div>
+    <div class="tree tree-sm" style="bottom:14%;left:8%">
+      <div class="tree-canopy" style="background:#66bb6a"></div>
+      <div class="tree-trunk"></div>
+    </div>
+    <div class="tree tree-lg" style="bottom:14%;left:93%">
+      <div class="tree-canopy"></div>
+      <div class="tree-trunk"></div>
+    </div>
+    <div class="tree tree-sm" style="bottom:14%;left:96%">
+      <div class="tree-canopy" style="background:#66bb6a"></div>
+      <div class="tree-trunk"></div>
+    </div>
+    <div class="tree tree-md" style="bottom:14%;left:48%">
+      <div class="tree-canopy" style="background:#2e7d32"></div>
+      <div class="tree-trunk"></div>
+    </div>
+
+    <!-- Lamp posts -->
+    <div class="lamp-post lamp-1"></div>
+    <div class="lamp-post lamp-2"></div>
+    <div class="lamp-post lamp-3"></div>
+    <div class="lamp-post lamp-4"></div>
+
+    <!-- Buildings (dynamically populated) -->
+    <div class="buildings-row" id="buildings-row"></div>
+
+    <!-- Dome grid lines -->
+    <div class="dome-grid" id="dome-grid"></div>
+
+    <!-- Dome glass overlay -->
+    <div class="dome-glass"></div>
+  </div>
+</div>
+
+<!-- ====================================================================
+     APP CONTENT
+     ==================================================================== -->
 <div id="app">
-  <div id="loading">Loading leaderboard data...</div>
+  <div id="loading">Loading Loanville<span class="loading-dots"></span></div>
 </div>
 
 <script>
-// ---------------------------------------------------------------------------
-// State
-// ---------------------------------------------------------------------------
+// ===========================================================================
+// STATE
+// ===========================================================================
 let leaderboard = null;
 let matchCache = {};
 let currentView = 'leaderboard';
@@ -80,20 +1001,38 @@ let currentMatch = null;
 
 const app = document.getElementById('app');
 
-// ---------------------------------------------------------------------------
-// Data loading
-// ---------------------------------------------------------------------------
+// Building color map
+const BLDG_COLORS = [
+  { bg: '#e57373', dark: '#c62828', light: '#ffcdd2' },
+  { bg: '#64b5f6', dark: '#1565c0', light: '#bbdefb' },
+  { bg: '#81c784', dark: '#2e7d32', light: '#c8e6c9' },
+  { bg: '#ffb74d', dark: '#e65100', light: '#ffe0b2' },
+  { bg: '#ba68c8', dark: '#6a1b9a', light: '#e1bee7' },
+  { bg: '#4dd0e1', dark: '#00838f', light: '#b2ebf2' },
+];
+
+// ===========================================================================
+// DATA LOADING
+// ===========================================================================
 async function loadLeaderboard() {
   try {
     const resp = await fetch('leaderboard.json');
     if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
     leaderboard = await resp.json();
+    renderBuildings();
     renderView();
   } catch (e) {
-    app.innerHTML = `<div class="card">
-      <h2>No leaderboard data found</h2>
-      <p>Run a simulation with <code>--leaderboard</code> to generate data:</p>
-      <pre style="margin-top:8px;color:var(--text-muted)">./run_sim.sh --leaderboard --mix realistic</pre>
+    app.innerHTML = `<div style="max-width:600px;margin:40px auto;padding:20px">
+      <div class="card" style="text-align:center">
+        <div style="font-size:40px;margin-bottom:12px">🏘️</div>
+        <h2 style="font-size:18px;margin-bottom:8px">No leaderboard data found</h2>
+        <p style="color:var(--text-secondary);font-size:14px">
+          Run a simulation with <code style="background:var(--bg-alt);padding:2px 6px;border-radius:4px;font-family:var(--mono)">--leaderboard</code> to populate Loanville:
+        </p>
+        <code style="display:block;margin-top:12px;padding:12px;background:var(--bg-alt);border-radius:8px;font-family:var(--mono);font-size:13px;color:var(--text-secondary)">
+          ./run_sim.sh --leaderboard --mix realistic
+        </code>
+      </div>
     </div>`;
   }
 }
@@ -106,19 +1045,94 @@ async function loadMatch(matchId) {
     const data = await resp.json();
     matchCache[matchId] = data;
     return data;
-  } catch (e) {
-    return null;
-  }
+  } catch (e) { return null; }
 }
 
-// ---------------------------------------------------------------------------
-// Navigation
-// ---------------------------------------------------------------------------
+// ===========================================================================
+// DOME GRID
+// ===========================================================================
+function initDomeGrid() {
+  const grid = document.getElementById('dome-grid');
+  // Horizontal arcs (spaced by percentage)
+  [20, 35, 50, 65, 80].forEach(pct => {
+    const l = document.createElement('div');
+    l.className = 'dome-grid-line dome-grid-h';
+    l.style.top = pct + '%';
+    grid.appendChild(l);
+  });
+  // Vertical lines (evenly spaced)
+  [15, 30, 45, 55, 70, 85].forEach(pct => {
+    const l = document.createElement('div');
+    l.className = 'dome-grid-line dome-grid-v';
+    l.style.left = pct + '%';
+    grid.appendChild(l);
+  });
+}
+
+// ===========================================================================
+// BUILDINGS
+// ===========================================================================
+function renderBuildings() {
+  const row = document.getElementById('buildings-row');
+  const title = document.getElementById('town-title');
+  row.innerHTML = '';
+
+  if (!leaderboard) return;
+  const standings = leaderboard.standings;
+  title.querySelector('.subtitle').textContent =
+    `${leaderboard.n_matches} matches played — ${standings.length} AI lenders competing`;
+
+  // Determine height based on profit_elo (scale to 60-140px)
+  const elos = standings.map(s => s.profit_elo);
+  const minElo = Math.min(...elos);
+  const maxElo = Math.max(...elos);
+  const eloRange = maxElo - minElo || 1;
+
+  standings.forEach((s, i) => {
+    const color = BLDG_COLORS[i % BLDG_COLORS.length];
+    const heightPct = (s.profit_elo - minElo) / eloRange;
+    const height = Math.round(60 + heightPct * 80);
+    const isWinner = i === 0;
+
+    // Generate random window lighting pattern
+    const nWindows = Math.max(6, Math.round(height / 12) * 3);
+    let windowsHTML = '';
+    for (let w = 0; w < nWindows; w++) {
+      const lit = Math.random() > 0.45 ? ' lit' : '';
+      windowsHTML += `<div class="window${lit}" style="animation-delay:${(Math.random()*4).toFixed(1)}s"></div>`;
+    }
+
+    const bldg = document.createElement('div');
+    bldg.className = 'building';
+    bldg.onclick = () => navigate('model', s.model_id);
+    bldg.innerHTML = `
+      ${isWinner ? '<div class="building-crown">👑</div>' : ''}
+      <div class="building-sign" style="color:${eloColor(s.profit_elo)}">${Math.round(s.profit_elo)}</div>
+      <div class="building-roof" style="background:${color.dark}"></div>
+      <div class="building-body" style="background:${color.bg};height:${height}px">
+        <div class="building-front">
+          <div class="building-windows">${windowsHTML}</div>
+          <div class="building-door"></div>
+        </div>
+      </div>
+      <div class="building-label">${s.display_name}</div>
+    `;
+    row.appendChild(bldg);
+  });
+}
+
+// ===========================================================================
+// NAVIGATION
+// ===========================================================================
 function navigate(view, param) {
   currentView = view;
   if (view === 'model') currentModel = param;
   if (view === 'match') currentMatch = param;
   renderView();
+  // Scroll to content
+  if (view !== 'leaderboard') {
+    app.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
 }
 
 function renderView() {
@@ -130,79 +1144,164 @@ function renderView() {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
+// ===========================================================================
+// HELPERS
+// ===========================================================================
 function elo(v) { return Math.round(v); }
 function pct(v) { return v != null ? v.toFixed(1) + '%' : '—'; }
-function dollar(v) { return v != null ? '$' + Math.round(v).toLocaleString() : '—'; }
-function eloClass(v) { return v >= 1500 ? 'num-pos' : v < 1500 ? 'num-neg' : ''; }
+function dollar(v) {
+  if (v == null) return '—';
+  const abs = Math.abs(v);
+  if (abs >= 1e6) return (v < 0 ? '-' : '') + '$' + (abs / 1e6).toFixed(1) + 'M';
+  if (abs >= 1e3) return (v < 0 ? '-' : '') + '$' + (abs / 1e3).toFixed(0) + 'K';
+  return '$' + Math.round(v).toLocaleString();
+}
+function eloColor(v) {
+  return v >= 1520 ? 'var(--green)' : v >= 1480 ? 'var(--text)' : 'var(--red)';
+}
+function eloClass(v) {
+  return v >= 1520 ? 'elo-up' : v >= 1480 ? 'elo-neutral' : 'elo-down';
+}
+function trendArrow(v) {
+  if (v > 0) return `<span style="color:var(--green)">▲</span>`;
+  if (v < 0) return `<span style="color:var(--red)">▼</span>`;
+  return `<span style="color:var(--text-muted)">—</span>`;
+}
 
-function sparklineSVG(history, key, w = 80, h = 20) {
+function sparklineSVG(history, key, w = 80, h = 24) {
   if (!history || history.length < 2) return '';
   const vals = history.map(h => h[key]);
-  const min = Math.min(...vals);
-  const max = Math.max(...vals);
+  const min = Math.min(...vals) - 5;
+  const max = Math.max(...vals) + 5;
   const range = max - min || 1;
   const points = vals.map((v, i) =>
-    `${(i / (vals.length - 1)) * w},${h - ((v - min) / range) * h}`
+    `${(i / (vals.length - 1)) * w},${h - ((v - min) / range) * (h - 4) - 2}`
   ).join(' ');
   const last = vals[vals.length - 1];
-  const color = last >= 1500 ? 'var(--green)' : 'var(--red)';
+  const first = vals[0];
+  const color = last >= first ? 'var(--green)' : 'var(--red)';
+  // Area fill
+  const areaPoints = points + ` ${w},${h} 0,${h}`;
   return `<svg class="sparkline" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
-    <polyline fill="none" stroke="${color}" stroke-width="1.5" points="${points}"/>
+    <polygon fill="${color}" fill-opacity="0.1" points="${areaPoints}"/>
+    <polyline fill="none" stroke="${color}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" points="${points}"/>
+    <circle cx="${w}" cy="${h - ((last - min) / range) * (h - 4) - 2}" r="2.5" fill="${color}"/>
   </svg>`;
 }
 
+function modelIcon(s, i) {
+  const color = BLDG_COLORS[i % BLDG_COLORS.length];
+  const initial = s.display_name.charAt(0);
+  return `<div class="model-icon" style="background:${color.bg}">${initial}</div>`;
+}
+
 function navHTML(active) {
-  return `<div class="nav">
-    <a class="${active === 'leaderboard' ? 'active' : ''}" onclick="navigate('leaderboard')">Leaderboard</a>
-    <a class="${active === 'history' ? 'active' : ''}" onclick="navigate('history')">Match History</a>
+  return `<div class="nav-bar">
+    <a class="nav-pill ${active === 'leaderboard' ? 'active' : ''}" onclick="navigate('leaderboard')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+      Leaderboard
+    </a>
+    <a class="nav-pill ${active === 'history' ? 'active' : ''}" onclick="navigate('history')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      Matches
+    </a>
   </div>`;
 }
 
-// ---------------------------------------------------------------------------
-// Leaderboard View
-// ---------------------------------------------------------------------------
+function findStandingIndex(modelId) {
+  return leaderboard.standings.findIndex(s => s.model_id === modelId);
+}
+
+// ===========================================================================
+// LEADERBOARD VIEW
+// ===========================================================================
 function renderLeaderboard() {
   const s = leaderboard.standings;
   const hist = leaderboard.elo_history || {};
 
-  let html = navHTML('leaderboard');
-  html += `<h1>Loanville Leaderboard</h1>`;
-  html += `<div class="subtitle">${leaderboard.n_matches} matches | K=${leaderboard.config.k} | updated ${leaderboard.computed_at}</div>`;
+  let html = '<div class="view-enter">';
+  html += navHTML('leaderboard');
+  html += '<div class="content">';
 
-  html += `<table>
-    <thead><tr>
-      <th>#</th><th>Model</th><th>Profit Elo</th><th>Credit Elo</th><th>DealShare Elo</th>
-      <th>Matches</th><th>Avg RAROC</th><th>Trend</th>
-    </tr></thead><tbody>`;
+  // Overview stats
+  html += `<div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-value" style="color:var(--accent)">${s.length}</div>
+      <div class="stat-label">AI Lenders</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value" style="color:var(--purple)">${leaderboard.n_matches}</div>
+      <div class="stat-label">Matches Played</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value" style="color:var(--green)">${elo(s[0].profit_elo)}</div>
+      <div class="stat-label">Top Profit Elo</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value" style="color:var(--gold)">K=${leaderboard.config.k}</div>
+      <div class="stat-label">Elo Sensitivity</div>
+    </div>
+  </div>`;
+
+  // Leaderboard table
+  html += `<div class="section-title">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9H4.5a2.5 2.5 0 010-5C7 4 6 9 6 9zm12 0h1.5a2.5 2.5 0 000-5C17 4 18 9 18 9zm-9 11l1.5-9h3l1.5 9"/><path d="M6 9h12v2a6 6 0 01-12 0V9z"/></svg>
+    Rankings
+  </div>`;
+  html += '<div class="lb-table-wrap"><table>';
+  html += `<thead><tr>
+    <th style="width:50px">#</th>
+    <th>Model</th>
+    <th>Profit Elo</th>
+    <th>Credit Elo</th>
+    <th>DealShare Elo</th>
+    <th>Matches</th>
+    <th>Avg RAROC</th>
+    <th>Trend</th>
+  </tr></thead><tbody>`;
 
   s.forEach((m, i) => {
     const h = hist[m.model_id] || [];
-    html += `<tr>
-      <td>${i + 1}</td>
-      <td><a onclick="navigate('model','${m.model_id}')">${m.display_name}</a></td>
-      <td class="${eloClass(m.profit_elo)}">${elo(m.profit_elo)}</td>
-      <td class="${eloClass(m.credit_elo)}">${elo(m.credit_elo)}</td>
-      <td class="${eloClass(m.dealshare_elo)}">${elo(m.dealshare_elo)}</td>
+    const rankClass = i === 0 ? 'rank-1' : i === 1 ? 'rank-2' : i === 2 ? 'rank-3' : 'rank-other';
+    html += `<tr class="tr-clickable" onclick="navigate('model','${m.model_id}')">
+      <td><span class="rank-badge ${rankClass}">${i + 1}</span></td>
+      <td>
+        <div class="model-name">
+          ${modelIcon(m, i)}
+          <div>
+            <div class="model-name-text">${m.display_name}</div>
+            <div class="model-id-text">${m.model_id}</div>
+          </div>
+        </div>
+      </td>
+      <td class="elo-cell ${eloClass(m.profit_elo)}">${elo(m.profit_elo)}</td>
+      <td class="elo-cell ${eloClass(m.credit_elo)}">${elo(m.credit_elo)}</td>
+      <td class="elo-cell ${eloClass(m.dealshare_elo)}">${elo(m.dealshare_elo)}</td>
       <td>${m.matches_played}</td>
-      <td>${m.avg_raroc >= 0 ? '+' : ''}${m.avg_raroc.toFixed(1)}%</td>
-      <td>${sparklineSVG(h, 'profit_elo')}</td>
+      <td>
+        <span class="badge ${m.avg_raroc >= 0 ? 'badge-good' : 'badge-bad'}">
+          ${m.avg_raroc >= 0 ? '+' : ''}${m.avg_raroc.toFixed(1)}%
+        </span>
+      </td>
+      <td class="sparkline-cell">${sparklineSVG(h, 'profit_elo')}</td>
     </tr>`;
   });
-
-  html += '</tbody></table>';
+  html += '</tbody></table></div>';
 
   // Confusion matrix summary
-  html += '<h2>Aggregate Confusion Matrix</h2>';
-  html += `<table class="cm-table"><thead><tr>
-    <th>Model</th><th>Good&rarr;Approve</th><th>Good&rarr;Reject</th>
-    <th>Bad&rarr;Approve</th><th>Bad&rarr;Reject</th>
-    <th>Fraud&rarr;Approve</th><th>Fraud&rarr;Reject</th>
+  html += `<div class="section-title">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+    Decision Accuracy
+  </div>`;
+  html += '<div class="lb-table-wrap"><table class="cm-table">';
+  html += `<thead><tr>
+    <th>Model</th>
+    <th>Good→Approve</th><th>Good→Reject</th>
+    <th>Bad→Approve</th><th>Bad→Reject</th>
+    <th>Fraud→Approve</th><th>Fraud→Reject</th>
   </tr></thead><tbody>`;
 
-  s.forEach(m => {
+  s.forEach((m, i) => {
     const cm = m.confusion_agg || {};
     const ga = (cm.good || {}).approved || 0;
     const gr = (cm.good || {}).rejected || 0;
@@ -210,64 +1309,94 @@ function renderLeaderboard() {
     const br = (cm.bad || {}).rejected || 0;
     const fa = (cm.fraud || {}).approved || 0;
     const fr = (cm.fraud || {}).rejected || 0;
-    html += `<tr>
-      <td><a onclick="navigate('model','${m.model_id}')">${m.display_name}</a></td>
-      <td class="num-pos">${ga}</td><td class="num-neg">${gr}</td>
-      <td class="num-neg">${ba}</td><td class="num-pos">${br}</td>
-      <td class="num-neg">${fa}</td><td class="num-pos">${fr}</td>
+    html += `<tr class="tr-clickable" onclick="navigate('model','${m.model_id}')">
+      <td>
+        <div class="model-name">
+          ${modelIcon(m, i)}
+          <span class="model-name-text">${m.display_name}</span>
+        </div>
+      </td>
+      <td class="cm-cell-good" style="text-align:center;font-weight:600;color:var(--green)">${ga}</td>
+      <td class="cm-cell-bad" style="text-align:center;font-weight:600;color:var(--red)">${gr}</td>
+      <td class="cm-cell-bad" style="text-align:center;font-weight:600;color:var(--red)">${ba}</td>
+      <td class="cm-cell-good" style="text-align:center;font-weight:600;color:var(--green)">${br}</td>
+      <td class="cm-cell-bad" style="text-align:center;font-weight:600;color:var(--red)">${fa}</td>
+      <td class="cm-cell-good" style="text-align:center;font-weight:600;color:var(--green)">${fr}</td>
     </tr>`;
   });
-  html += '</tbody></table>';
+  html += '</tbody></table></div>';
 
+  html += '</div></div>'; // close content + view-enter
   app.innerHTML = html;
 }
 
-// ---------------------------------------------------------------------------
-// Model Detail View
-// ---------------------------------------------------------------------------
+// ===========================================================================
+// MODEL DETAIL VIEW
+// ===========================================================================
 function renderModelDetail() {
   const mid = currentModel;
-  const s = leaderboard.standings.find(s => s.model_id === mid);
+  const idx = findStandingIndex(mid);
+  const s = leaderboard.standings[idx];
   if (!s) { app.innerHTML = '<p>Model not found</p>'; return; }
 
   const hist = (leaderboard.elo_history || {})[mid] || [];
+  const color = BLDG_COLORS[idx % BLDG_COLORS.length];
 
-  let html = navHTML('');
-  html += `<div class="back"><a onclick="navigate('leaderboard')">&larr; Back to leaderboard</a></div>`;
-  html += `<h1>${s.display_name}</h1>`;
-  html += `<div class="subtitle">${s.model_id} | ${s.matches_played} matches</div>`;
+  let html = '<div class="view-enter">';
+  html += navHTML('');
+  html += '<div class="content">';
+  html += `<a class="nav-back" onclick="navigate('leaderboard')">← Back to leaderboard</a>`;
 
-  // Elo summary cards
-  html += `<div class="grid-3">
-    <div class="card">
-      <div style="color:var(--text-muted);font-size:0.85em">Profit Elo</div>
-      <div style="font-size:2em;font-weight:700" class="${eloClass(s.profit_elo)}">${elo(s.profit_elo)}</div>
-      ${sparklineSVG(hist, 'profit_elo', 120, 30)}
+  // Model header
+  html += `<div style="display:flex;align-items:center;gap:14px;margin:16px 0 20px">
+    <div class="model-icon" style="width:48px;height:48px;font-size:20px;border-radius:12px;background:${color.bg}">${s.display_name.charAt(0)}</div>
+    <div>
+      <h2 style="font-size:22px;font-weight:700;line-height:1.2">${s.display_name}</h2>
+      <div style="font-size:13px;color:var(--text-muted);font-family:var(--mono)">${s.model_id}</div>
     </div>
-    <div class="card">
-      <div style="color:var(--text-muted);font-size:0.85em">Credit Elo</div>
-      <div style="font-size:2em;font-weight:700" class="${eloClass(s.credit_elo)}">${elo(s.credit_elo)}</div>
-      ${sparklineSVG(hist, 'credit_elo', 120, 30)}
-    </div>
-    <div class="card">
-      <div style="color:var(--text-muted);font-size:0.85em">DealShare Elo</div>
-      <div style="font-size:2em;font-weight:700" class="${eloClass(s.dealshare_elo)}">${elo(s.dealshare_elo)}</div>
-      ${sparklineSVG(hist, 'dealshare_elo', 120, 30)}
-    </div>
+    <span class="badge" style="margin-left:auto;font-size:13px">${s.matches_played} matches</span>
   </div>`;
 
-  // Elo history chart (simple SVG)
+  // Elo cards
+  html += '<div class="stats-grid" style="grid-template-columns:repeat(3,1fr)">';
+  const eloTypes = [
+    { key: 'profit_elo', label: 'Profit Elo', desc: 'Risk-adjusted returns', icon: '💰' },
+    { key: 'credit_elo', label: 'Credit Elo', desc: 'Decision accuracy', icon: '🎯' },
+    { key: 'dealshare_elo', label: 'DealShare Elo', desc: 'Market wins', icon: '🤝' }
+  ];
+  eloTypes.forEach(et => {
+    const val = s[et.key];
+    const h = hist.length >= 2 ? hist : null;
+    const delta = h ? (h[h.length - 1][et.key] - h[h.length - 2][et.key]).toFixed(0) : null;
+    html += `<div class="stat-card">
+      <div style="font-size:20px;margin-bottom:4px">${et.icon}</div>
+      <div class="stat-value ${eloClass(val)}">${elo(val)}</div>
+      <div class="stat-label">${et.label}</div>
+      ${delta ? `<div class="stat-trend" style="background:${delta >= 0 ? 'var(--green-bg)' : 'var(--red-bg)'};color:${delta >= 0 ? 'var(--green)' : 'var(--red)'}">
+        ${delta >= 0 ? '▲' : '▼'} ${Math.abs(delta)}
+      </div>` : ''}
+      <div style="margin-top:8px">${sparklineSVG(hist, et.key, 100, 28)}</div>
+    </div>`;
+  });
+  html += '</div>';
+
+  // Elo history chart
   if (hist.length > 1) {
-    html += '<h2>Elo History</h2>';
-    html += '<div class="card">' + renderEloChart(hist) + '</div>';
+    html += `<div class="section-title">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+      Elo Trajectory
+    </div>`;
+    html += '<div class="chart-wrap">' + renderEloChart(hist) + '</div>';
   }
 
   // Confusion matrix
-  html += '<h2>Confusion Matrix</h2>';
+  html += `<div class="section-title">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+    Confusion Matrix
+  </div>`;
   const cm = s.confusion_agg || {};
-  html += `<div class="card"><table class="cm-table">
-    <thead><tr><th></th><th>Approved</th><th>Rejected</th><th>Total</th><th>Accuracy</th></tr></thead>
-    <tbody>`;
+  html += '<div class="card"><table class="cm-table" style="text-align:center">';
+  html += `<thead><tr><th></th><th>Approved</th><th>Rejected</th><th>Total</th><th>Accuracy</th></tr></thead><tbody>`;
   for (const cat of ['good', 'bad', 'fraud']) {
     const a = (cm[cat] || {}).approved || 0;
     const r = (cm[cat] || {}).rejected || 0;
@@ -275,58 +1404,80 @@ function renderModelDetail() {
     const correct = cat === 'good' ? a : r;
     const acc = total > 0 ? (correct / total * 100).toFixed(0) + '%' : '—';
     html += `<tr>
-      <td><span class="badge badge-${cat}">${cat}</span></td>
-      <td class="${cat === 'good' ? 'num-pos' : 'num-neg'}">${a}</td>
-      <td class="${cat !== 'good' ? 'num-pos' : 'num-neg'}">${r}</td>
+      <td><span class="badge badge-${cat}">${cat.charAt(0).toUpperCase() + cat.slice(1)}</span></td>
+      <td class="${cat === 'good' ? 'cm-cell-good' : 'cm-cell-bad'}" style="font-weight:600">${a}</td>
+      <td class="${cat !== 'good' ? 'cm-cell-good' : 'cm-cell-bad'}" style="font-weight:600">${r}</td>
       <td>${total}</td>
-      <td>${acc}</td>
+      <td><strong>${acc}</strong></td>
     </tr>`;
   }
   html += '</tbody></table></div>';
 
   // Rate analysis
   const ra = s.rate_analysis || {};
-  if (ra.avg_rate_good != null || ra.avg_rate_bad != null) {
-    html += '<h2>Rate Analysis</h2>';
+  if (ra.avg_rate_good != null) {
+    html += `<div class="section-title">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+      Pricing Analysis
+    </div>`;
     html += `<div class="card">
-      <table>
-        <tr><td>Avg rate on good borrowers</td><td>${ra.avg_rate_good != null ? (ra.avg_rate_good * 100).toFixed(1) + '%' : '—'} (${ra.n_good_offers} offers)</td></tr>
-        <tr><td>Avg rate on bad borrowers</td><td>${ra.avg_rate_bad != null ? (ra.avg_rate_bad * 100).toFixed(1) + '%' : '—'} (${ra.n_bad_offers} offers)</td></tr>
-        ${ra.avg_rate_good != null && ra.avg_rate_bad != null ?
-          `<tr><td>Spread (bad - good)</td><td>${((ra.avg_rate_bad - ra.avg_rate_good) * 100).toFixed(1)}pp</td></tr>` : ''}
-      </table>
+      <div class="stats-grid" style="grid-template-columns:repeat(3,1fr)">
+        <div style="text-align:center">
+          <div style="font-size:22px;font-weight:700;color:var(--green)">${(ra.avg_rate_good * 100).toFixed(1)}%</div>
+          <div style="font-size:12px;color:var(--text-muted);margin-top:2px">Avg Rate (Good)</div>
+          <div style="font-size:11px;color:var(--text-muted)">${ra.n_good_offers} offers</div>
+        </div>
+        <div style="text-align:center">
+          <div style="font-size:22px;font-weight:700;color:var(--red)">${ra.avg_rate_bad != null ? (ra.avg_rate_bad * 100).toFixed(1) + '%' : '—'}</div>
+          <div style="font-size:12px;color:var(--text-muted);margin-top:2px">Avg Rate (Bad)</div>
+          <div style="font-size:11px;color:var(--text-muted)">${ra.n_bad_offers} offers</div>
+        </div>
+        <div style="text-align:center">
+          <div style="font-size:22px;font-weight:700;color:var(--purple)">${ra.avg_rate_bad != null ? ((ra.avg_rate_bad - ra.avg_rate_good) * 100).toFixed(1) + 'pp' : '—'}</div>
+          <div style="font-size:12px;color:var(--text-muted);margin-top:2px">Risk Spread</div>
+          <div style="font-size:11px;color:var(--text-muted)">bad − good</div>
+        </div>
+      </div>
     </div>`;
   }
 
-  // Match list for this model
-  html += '<h2>Matches</h2>';
-  const matchIds = leaderboard.match_ids || [];
-  html += '<table><thead><tr><th>#</th><th>Match</th><th>Profit Elo</th><th>Delta</th></tr></thead><tbody>';
+  // Match history for this model
+  html += `<div class="section-title">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+    Match History
+  </div>`;
+  html += '<div class="lb-table-wrap"><table>';
+  html += '<thead><tr><th>#</th><th>Match</th><th>Profit Elo</th><th>Delta</th></tr></thead><tbody>';
   let prev = leaderboard.config.initial_elo;
   hist.forEach((h, i) => {
     const delta = h.profit_elo - prev;
-    html += `<tr>
+    html += `<tr class="tr-clickable" onclick="loadAndShowMatch('${h.match_id}')">
       <td>${i + 1}</td>
-      <td><a onclick="loadAndShowMatch('${h.match_id}')">${h.match_id}</a></td>
-      <td class="${eloClass(h.profit_elo)}">${elo(h.profit_elo)}</td>
-      <td class="${delta >= 0 ? 'num-pos' : 'num-neg'}">${delta >= 0 ? '+' : ''}${delta.toFixed(1)}</td>
+      <td style="font-family:var(--mono);font-size:12px">${h.match_id}</td>
+      <td class="elo-cell ${eloClass(h.profit_elo)}">${elo(h.profit_elo)}</td>
+      <td>
+        <span class="badge ${delta >= 0 ? 'badge-good' : 'badge-bad'}">
+          ${delta >= 0 ? '+' : ''}${delta.toFixed(0)}
+        </span>
+      </td>
     </tr>`;
     prev = h.profit_elo;
   });
-  html += '</tbody></table>';
+  html += '</tbody></table></div>';
 
+  html += '</div></div>';
   app.innerHTML = html;
 }
 
 function renderEloChart(hist) {
-  const W = 600, H = 180, PAD = 30;
+  const W = 600, H = 200, PAD = 40;
   const keys = ['profit_elo', 'credit_elo', 'dealshare_elo'];
-  const colors = ['var(--accent)', 'var(--green)', 'var(--purple)'];
+  const colors = ['#2563eb', '#16a34a', '#7c3aed'];
   const labels = ['Profit', 'Credit', 'DealShare'];
 
   const allVals = keys.flatMap(k => hist.map(h => h[k]));
-  const min = Math.min(...allVals) - 10;
-  const max = Math.max(...allVals) + 10;
+  const min = Math.min(...allVals) - 15;
+  const max = Math.max(...allVals) + 15;
   const range = max - min || 1;
 
   const x = i => PAD + (i / (hist.length - 1)) * (W - PAD * 2);
@@ -334,39 +1485,52 @@ function renderEloChart(hist) {
 
   let svg = `<svg width="100%" viewBox="0 0 ${W} ${H}" style="max-width:${W}px">`;
 
+  // Background
+  svg += `<rect x="${PAD}" y="${PAD}" width="${W-PAD*2}" height="${H-PAD*2}" fill="var(--bg-alt)" rx="4"/>`;
+
   // Grid lines
-  for (let v = Math.ceil(min / 50) * 50; v <= max; v += 50) {
-    svg += `<line x1="${PAD}" y1="${y(v)}" x2="${W - PAD}" y2="${y(v)}" stroke="var(--border)" stroke-dasharray="4"/>`;
-    svg += `<text x="${PAD - 4}" y="${y(v) + 4}" fill="var(--text-muted)" font-size="10" text-anchor="end">${v}</text>`;
+  for (let v = Math.ceil(min / 25) * 25; v <= max; v += 25) {
+    svg += `<line x1="${PAD}" y1="${y(v)}" x2="${W-PAD}" y2="${y(v)}" stroke="var(--border-light)" stroke-width="1"/>`;
+    svg += `<text x="${PAD-6}" y="${y(v)+4}" fill="var(--text-muted)" font-size="10" text-anchor="end" font-family="var(--mono)">${v}</text>`;
   }
 
-  // Lines
-  keys.forEach((k, ki) => {
-    const points = hist.map((h, i) => `${x(i)},${y(h[k])}`).join(' ');
-    svg += `<polyline fill="none" stroke="${colors[ki]}" stroke-width="2" points="${points}"/>`;
-  });
-
   // 1500 baseline
-  svg += `<line x1="${PAD}" y1="${y(1500)}" x2="${W - PAD}" y2="${y(1500)}" stroke="var(--text-muted)" stroke-dasharray="2" stroke-width="0.5"/>`;
+  if (1500 >= min && 1500 <= max) {
+    svg += `<line x1="${PAD}" y1="${y(1500)}" x2="${W-PAD}" y2="${y(1500)}" stroke="var(--text-muted)" stroke-dasharray="4 4" stroke-width="1" opacity="0.5"/>`;
+    svg += `<text x="${W-PAD+4}" y="${y(1500)+4}" fill="var(--text-muted)" font-size="9" font-family="var(--mono)">1500</text>`;
+  }
+
+  // Area fills + lines
+  keys.forEach((k, ki) => {
+    const pts = hist.map((h, i) => `${x(i)},${y(h[k])}`);
+    // Area
+    svg += `<polygon fill="${colors[ki]}" fill-opacity="0.05" points="${pts.join(' ')} ${x(hist.length-1)},${y(min)} ${x(0)},${y(min)}"/>`;
+    // Line
+    svg += `<polyline fill="none" stroke="${colors[ki]}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" points="${pts.join(' ')}"/>`;
+    // Dots
+    hist.forEach((h, i) => {
+      svg += `<circle cx="${x(i)}" cy="${y(h[k])}" r="3" fill="${colors[ki]}" stroke="white" stroke-width="1.5"/>`;
+    });
+  });
 
   // Legend
   keys.forEach((k, ki) => {
-    const lx = PAD + ki * 100;
-    svg += `<rect x="${lx}" y="${H - 12}" width="12" height="3" fill="${colors[ki]}"/>`;
-    svg += `<text x="${lx + 16}" y="${H - 8}" fill="var(--text-muted)" font-size="10">${labels[ki]}</text>`;
+    const lx = PAD + 10 + ki * 100;
+    svg += `<rect x="${lx}" y="${H-16}" width="14" height="4" rx="2" fill="${colors[ki]}"/>`;
+    svg += `<text x="${lx+18}" y="${H-11}" fill="var(--text-secondary)" font-size="11" font-weight="500">${labels[ki]}</text>`;
   });
 
   svg += '</svg>';
   return svg;
 }
 
-// ---------------------------------------------------------------------------
-// Match Detail View
-// ---------------------------------------------------------------------------
+// ===========================================================================
+// MATCH DETAIL VIEW
+// ===========================================================================
 async function loadAndShowMatch(matchId) {
   const match = await loadMatch(matchId);
   if (!match) {
-    alert('Could not load match: ' + matchId);
+    // Show inline message instead of alert
     return;
   }
   currentMatch = match;
@@ -384,73 +1548,91 @@ function renderMatchDetail() {
 }
 
 function renderMatchDetailFromData(match) {
-  let html = navHTML('');
-  html += `<div class="back"><a onclick="navigate('leaderboard')">&larr; Back to leaderboard</a></div>`;
-  html += `<h1>Match: ${match.match_id}</h1>`;
-  html += `<div class="subtitle">${match.timestamp_utc} | Mix: ${match.mix} | ${match.n_borrowers} borrowers</div>`;
+  let html = '<div class="view-enter">';
+  html += navHTML('');
+  html += '<div class="content">';
+  html += `<a class="nav-back" onclick="navigate('leaderboard')">← Back to leaderboard</a>`;
+
+  html += `<h2 style="font-size:20px;font-weight:700;margin:16px 0 4px">Match: ${match.match_id}</h2>`;
+  html += `<div style="font-size:13px;color:var(--text-muted);margin-bottom:20px">${match.timestamp_utc || ''} · Mix: ${match.mix} · ${match.n_borrowers} borrowers</div>`;
 
   // Model summary cards
-  html += '<div class="grid-3">';
   const results = match.results || [];
   const sortedResults = [...results].sort((a, b) => (b.raroc_score || 0) - (a.raroc_score || 0));
 
+  html += '<div class="match-cards-grid">';
   sortedResults.forEach((r, i) => {
     const isWinner = i === 0;
     const cm = r.confusion_matrix || {};
     const fraudsA = (cm.fraud || {}).approved || 0;
-    html += `<div class="card" style="${isWinner ? 'border-color:var(--gold)' : ''}">
-      <div style="display:flex;justify-content:space-between;align-items:center">
-        <strong>${r.model_id.split('/').pop()}</strong>
-        ${isWinner ? '<span class="badge" style="background:rgba(210,153,34,0.2);color:var(--gold)">Winner</span>' : ''}
+    const globalIdx = findStandingIndex(r.model_id);
+    const color = globalIdx >= 0 ? BLDG_COLORS[globalIdx % BLDG_COLORS.length] : BLDG_COLORS[i % BLDG_COLORS.length];
+
+    html += `<div class="match-model-card ${isWinner ? 'winner-card' : ''}">
+      <div class="card-title">
+        <div class="model-icon" style="width:28px;height:28px;font-size:12px;border-radius:6px;background:${color.bg}">${(r.display_name || r.model_id.split('/').pop()).charAt(0)}</div>
+        <span>${r.display_name || r.model_id.split('/').pop()}</span>
+        ${isWinner ? '<span class="badge badge-winner">Winner</span>' : ''}
       </div>
-      <div style="color:var(--text-muted);font-size:0.8em;margin:4px 0">${r.model_id}</div>
-      <table style="font-size:0.9em">
-        <tr><td>RAROC</td><td class="${r.raroc_score >= 0 ? 'num-pos' : 'num-neg'}">${r.raroc_score >= 0 ? '+' : ''}${(r.raroc_score || 0).toFixed(2)}%</td></tr>
-        <tr><td>Deals Won</td><td>${r.deals_won}</td></tr>
-        <tr><td>Deals Rejected</td><td>${r.deals_rejected}</td></tr>
-        <tr><td>Deployed</td><td>${dollar(r.deployed)}</td></tr>
-        <tr><td>Net P&L</td><td class="${r.net_pnl >= 0 ? 'num-pos' : 'num-neg'}">${dollar(r.net_pnl)}</td></tr>
-        <tr><td>Frauds Funded</td><td class="${fraudsA > 0 ? 'num-neg' : ''}">${r.frauds_funded || 0}</td></tr>
-        <tr><td>Defaults</td><td>${r.defaults || 0}</td></tr>
-      </table>
+      <div style="margin-top:12px">
+        <div class="match-metric">
+          <span class="match-metric-label">RAROC</span>
+          <span class="match-metric-value ${r.raroc_score >= 0 ? 'elo-up' : 'elo-down'}">${r.raroc_score >= 0 ? '+' : ''}${(r.raroc_score || 0).toFixed(1)}%</span>
+        </div>
+        <div class="match-metric">
+          <span class="match-metric-label">Deals Won</span>
+          <span class="match-metric-value">${r.deals_won}</span>
+        </div>
+        <div class="match-metric">
+          <span class="match-metric-label">Deployed</span>
+          <span class="match-metric-value">${dollar(r.deployed)}</span>
+        </div>
+        <div class="match-metric">
+          <span class="match-metric-label">Net P&L</span>
+          <span class="match-metric-value ${r.net_pnl >= 0 ? 'elo-up' : 'elo-down'}">${dollar(r.net_pnl)}</span>
+        </div>
+        <div class="match-metric">
+          <span class="match-metric-label">Defaults</span>
+          <span class="match-metric-value">${r.defaults || 0}</span>
+        </div>
+        <div class="match-metric">
+          <span class="match-metric-label">Frauds Funded</span>
+          <span class="match-metric-value" style="${fraudsA > 0 ? 'color:var(--red)' : ''}">${r.frauds_funded || fraudsA}</span>
+        </div>
+      </div>
     </div>`;
   });
   html += '</div>';
 
-  // Borrower-by-borrower table
-  html += '<h2>Borrower-by-Borrower Decisions</h2>';
+  // Borrower-by-borrower decisions
+  html += `<div class="section-title">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4-4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+    Borrower-by-Borrower Decisions
+  </div>`;
 
-  // Collect all borrower IDs
   const borrowerIds = new Set();
   results.forEach(r => {
     Object.keys(r.per_borrower || {}).forEach(bid => borrowerIds.add(bid));
   });
   const bids = [...borrowerIds].sort();
 
-  html += '<div style="overflow-x:auto"><table><thead><tr>';
-  html += '<th>Borrower</th><th>Truth</th>';
+  html += '<div class="decision-table-wrap"><table class="decision-table">';
+  html += '<thead><tr><th>Borrower</th><th>Truth</th>';
   results.forEach(r => {
-    const shortName = r.model_id.split('/').pop();
-    html += `<th>${shortName}</th>`;
+    html += `<th>${(r.display_name || r.model_id.split('/').pop())}</th>`;
   });
   html += '<th>Winner</th></tr></thead><tbody>';
 
   bids.forEach(bid => {
     html += '<tr>';
-    // Find ground truth from first result
     const gt = results[0]?.per_borrower?.[bid]?.ground_truth || '?';
-    html += `<td style="font-family:monospace;font-size:0.85em">${bid}</td>`;
-    html += `<td><span class="badge badge-${gt}">${gt}</span></td>`;
+    html += `<td style="font-family:var(--mono);font-size:12px;font-weight:500">${bid}</td>`;
+    html += `<td><span class="badge badge-${gt}">${gt.charAt(0).toUpperCase() + gt.slice(1)}</span></td>`;
 
     let winnerModel = null;
-    let lowestRate = Infinity;
-
-    // Find winner (model that won this borrower)
     results.forEach(r => {
       const bd = r.per_borrower?.[bid];
-      if (bd && bd.decision_state === 'won') {
-        winnerModel = r.model_id;
-      }
+      if (bd && bd.decision_state === 'won') winnerModel = r.model_id;
     });
 
     results.forEach(r => {
@@ -460,98 +1642,104 @@ function renderMatchDetailFromData(match) {
       const state = bd.decision_state;
       const rate = bd.rate_offered;
       const isWinner = r.model_id === winnerModel;
-
-      // Determine correctness
       const approved = state === 'won' || state === 'lost';
       const correct = (gt === 'good' && approved) || (gt !== 'good' && !approved);
 
-      let cellClass = correct ? 'correct' : 'incorrect';
+      let cellClass = correct ? 'cell-correct' : 'cell-incorrect';
       let content = '';
 
       if (state === 'declined') {
-        content = '<span style="color:var(--text-muted)">DECLINE</span>';
-      } else if (state === 'won' || state === 'lost') {
-        const rateStr = rate != null ? (rate * 100).toFixed(1) + '%' : '';
-        content = `APPROVE ${rateStr}`;
-        if (isWinner) content += ' ★';
+        content = '<span style="color:var(--text-muted);font-size:12px">DECLINE</span>';
       } else {
-        content = state;
+        const rateStr = rate != null ? (rate * 100).toFixed(1) + '%' : '';
+        content = `<span style="font-size:12px">${rateStr}</span>`;
+        if (isWinner) content += ' <span style="color:var(--gold)">★</span>';
       }
 
-      html += `<td class="${cellClass}" ${isWinner ? 'style="font-weight:600;color:var(--gold)"' : ''}>${content}</td>`;
+      html += `<td class="${cellClass} ${isWinner ? 'cell-winner' : ''}">${content}</td>`;
     });
 
-    // Winner column
     if (winnerModel) {
-      html += `<td class="winner-cell">${winnerModel.split('/').pop()}</td>`;
+      const wIdx = findStandingIndex(winnerModel);
+      const wStanding = wIdx >= 0 ? leaderboard.standings[wIdx] : null;
+      html += `<td style="font-weight:600;color:var(--gold);font-size:12px">${wStanding ? wStanding.display_name : winnerModel.split('/').pop()}</td>`;
     } else {
-      html += '<td style="color:var(--text-muted)">—</td>';
+      html += '<td style="color:var(--text-muted);font-size:12px">—</td>';
     }
-
     html += '</tr>';
   });
-
   html += '</tbody></table></div>';
 
-  // Confusion matrices per model
-  html += '<h2>Confusion Matrices</h2>';
-  html += '<div class="grid-3">';
-  results.forEach(r => {
+  // Per-model confusion matrices
+  html += `<div class="section-title">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+    Confusion Matrices
+  </div>`;
+  html += '<div class="cm-grid">';
+  results.forEach((r, i) => {
     const cm = r.confusion_matrix || {};
-    html += `<div class="card">
-      <strong>${r.model_id.split('/').pop()}</strong>
-      <table class="cm-table" style="font-size:0.9em;margin-top:8px">
+    const globalIdx = findStandingIndex(r.model_id);
+    const color = globalIdx >= 0 ? BLDG_COLORS[globalIdx % BLDG_COLORS.length] : BLDG_COLORS[i % BLDG_COLORS.length];
+    html += `<div class="cm-card">
+      <h3 style="display:flex;align-items:center;gap:6px">
+        <span style="display:inline-block;width:10px;height:10px;border-radius:3px;background:${color.bg}"></span>
+        ${r.display_name || r.model_id.split('/').pop()}
+      </h3>
+      <table class="cm-table" style="font-size:13px">
         <thead><tr><th></th><th>Approved</th><th>Rejected</th></tr></thead>
         <tbody>`;
     for (const cat of ['good', 'bad', 'fraud']) {
       const a = (cm[cat] || {}).approved || 0;
       const r2 = (cm[cat] || {}).rejected || 0;
       html += `<tr>
-        <td><span class="badge badge-${cat}">${cat}</span></td>
-        <td class="${cat === 'good' ? 'num-pos' : 'num-neg'}">${a}</td>
-        <td class="${cat !== 'good' ? 'num-pos' : 'num-neg'}">${r2}</td>
+        <td><span class="badge badge-${cat}">${cat.charAt(0).toUpperCase() + cat.slice(1)}</span></td>
+        <td class="${cat === 'good' ? 'cm-cell-good' : 'cm-cell-bad'}" style="text-align:center;font-weight:600">${a}</td>
+        <td class="${cat !== 'good' ? 'cm-cell-good' : 'cm-cell-bad'}" style="text-align:center;font-weight:600">${r2}</td>
       </tr>`;
     }
     html += '</tbody></table></div>';
   });
   html += '</div>';
 
+  html += '</div></div>';
   app.innerHTML = html;
 }
 
-// ---------------------------------------------------------------------------
-// Match History View
-// ---------------------------------------------------------------------------
+// ===========================================================================
+// MATCH HISTORY VIEW
+// ===========================================================================
 function renderMatchHistory() {
-  let html = navHTML('history');
-  html += `<h1>Match History</h1>`;
-  html += `<div class="subtitle">${leaderboard.n_matches} total matches</div>`;
+  let html = '<div class="view-enter">';
+  html += navHTML('history');
+  html += '<div class="content">';
+
+  html += `<h2 style="font-size:20px;font-weight:700;margin-bottom:4px">Match History</h2>`;
+  html += `<div style="font-size:13px;color:var(--text-muted);margin-bottom:20px">${leaderboard.n_matches} total matches</div>`;
 
   const matchIds = leaderboard.match_ids || [];
-
-  html += '<table><thead><tr>';
-  html += '<th>#</th><th>Match ID</th><th>Timestamp</th>';
-  html += '</tr></thead><tbody>';
+  html += '<div class="lb-table-wrap"><table>';
+  html += '<thead><tr><th style="width:50px">#</th><th>Match ID</th><th>Timestamp</th></tr></thead><tbody>';
 
   matchIds.forEach((mid, i) => {
-    // Parse timestamp from match ID
-    const ts = mid.replace(/_[a-f0-9]+$/, '').replace(/T/, ' ').replace(/-/g, function(m, offset) {
+    const ts = mid.replace(/_[a-f0-9]+$/, '').replace(/T/, ' ').replace(/-/g, (m, offset) => {
       return offset > 9 ? ':' : '-';
     });
-    html += `<tr>
-      <td>${i + 1}</td>
-      <td><a onclick="loadAndShowMatch('${mid}')">${mid}</a></td>
-      <td style="color:var(--text-muted)">${ts}</td>
+    html += `<tr class="tr-clickable" onclick="loadAndShowMatch('${mid}')">
+      <td><span class="rank-badge rank-other">${i + 1}</span></td>
+      <td style="font-family:var(--mono);font-size:13px;color:var(--accent)">${mid}</td>
+      <td style="color:var(--text-muted);font-size:13px">${ts}</td>
     </tr>`;
   });
 
-  html += '</tbody></table>';
+  html += '</tbody></table></div>';
+  html += '</div></div>';
   app.innerHTML = html;
 }
 
-// ---------------------------------------------------------------------------
-// Init
-// ---------------------------------------------------------------------------
+// ===========================================================================
+// INIT
+// ===========================================================================
+initDomeGrid();
 loadLeaderboard();
 </script>
 </body>
