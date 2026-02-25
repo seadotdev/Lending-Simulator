@@ -255,6 +255,23 @@ class SeasonConfig:
     custom_tools: bool = True
     economics: EconomicsConfig = field(default_factory=EconomicsConfig)
 
+    # Capital adequacy elimination — lenders below this fraction of initial
+    # capital are eliminated from the season (inspired by Skirmish's spawn
+    # destruction and real banking regulation).  0.0 = disabled.
+    capital_adequacy_ratio: float = 0.20
+
+    # Capital time-value decay — undeployed capital loses this fraction of
+    # value per week, creating Skirmish-style tension between "deploy early"
+    # and "wait for better opportunities."  0.0 = disabled.
+    capital_decay_rate: float = 0.002
+
+    # Information asymmetry — controls whether lenders see identical or
+    # different subsets of borrower data.  "full" = all see everything.
+    # "partial_statements" = each lender sees a random subset of bank
+    # statement months.  "redacted" = some financial fields are hidden
+    # per-lender.
+    info_asymmetry: str = "none"  # none | partial_statements | redacted
+
     def __post_init__(self) -> None:
         if self.weeks <= 0:
             raise ValueError("weeks must be > 0")
@@ -266,6 +283,11 @@ class SeasonConfig:
         if self.season_mix not in valid_mixes:
             raise ValueError(
                 f"season_mix must be one of {valid_mixes}, got '{self.season_mix}'"
+            )
+        valid_asymmetry = ("none", "partial_statements", "redacted")
+        if self.info_asymmetry not in valid_asymmetry:
+            raise ValueError(
+                f"info_asymmetry must be one of {valid_asymmetry}, got '{self.info_asymmetry}'"
             )
 
 
@@ -298,6 +320,11 @@ class SeasonLenderState:
     custom_tools: list = field(default_factory=list)
     # Weekly snapshots for analytics
     weekly_snapshots: list[dict] = field(default_factory=list)
+    # Capital adequacy elimination tracking
+    eliminated: bool = False
+    eliminated_week: int = 0
+    # Capital time-value decay accumulator
+    cumulative_decay: float = 0.0
 
 
 @dataclass

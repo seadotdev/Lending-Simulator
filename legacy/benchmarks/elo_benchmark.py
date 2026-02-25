@@ -82,23 +82,91 @@ COMPOSITE_WEIGHTS = {
 # Lender factory — identical config for all three slots
 # ---------------------------------------------------------------------------
 
-def make_lender(slot: int, model_id: str, display_name: str) -> LenderConfig:
+def _build_feedback_prompt(prev_results: dict) -> str:
+    """Build a coaching prompt from previous match results.
+
+    Mirrors Skirmish's NEXT_ROUND.md pattern where LLMs review match logs
+    and previous strategies before generating improved ones.
+    """
+    cm = prev_results.get("confusion_matrix", {})
+    good_app = cm.get("good", {}).get("approved", 0)
+    good_rej = cm.get("good", {}).get("rejected", 0)
+    bad_app = cm.get("bad", {}).get("approved", 0)
+    bad_rej = cm.get("bad", {}).get("rejected", 0)
+    fraud_app = cm.get("fraud", {}).get("approved", 0)
+    fraud_rej = cm.get("fraud", {}).get("rejected", 0)
+
+    deals_won = prev_results.get("deals_won", 0)
+    frauds_funded = prev_results.get("frauds_funded", 0)
+    defaults = prev_results.get("defaults", 0)
+    net_pnl = prev_results.get("net_pnl", 0)
+    score = prev_results.get("score", 0)
+
+    lines = [
+        "--- PREVIOUS MATCH PERFORMANCE REVIEW ---",
+        f"RAROC Score: {score:+.2f}%  |  Net P&L: ${net_pnl:,.0f}  |  Deals Won: {deals_won}",
+        f"Defaults: {defaults}  |  Frauds Funded: {frauds_funded}",
+        "",
+        "Decision Accuracy:",
+        f"  Good borrowers: {good_app} correctly approved, {good_rej} incorrectly rejected",
+        f"  Bad borrowers: {bad_rej} correctly rejected, {bad_app} incorrectly approved",
+        f"  Fraud borrowers: {fraud_rej} correctly rejected, {fraud_app} incorrectly approved",
+        "",
+    ]
+
+    # Add specific coaching based on weaknesses
+    if good_rej > good_app:
+        lines.append("ADJUST: You are too conservative — you rejected more good borrowers than you approved. "
+                      "Consider loosening your approval criteria for borrowers with strong fundamentals.")
+    if bad_app > bad_rej:
+        lines.append("ADJUST: You are too aggressive — you approved more bad borrowers than you rejected. "
+                      "Tighten your risk analysis, especially for borrowers with weak debt service coverage.")
+    if fraud_app > 0:
+        lines.append(f"ADJUST: You funded {fraud_app} fraudulent borrower(s). Look more carefully for "
+                      "red flags: round-number deposits, circular transfers, structured deposits under $10K, "
+                      "and fabricated statements with suspiciously regular amounts.")
+    if deals_won == 0:
+        lines.append("ADJUST: You won zero deals. Your pricing may be too high. Consider offering more "
+                      "competitive rates to win deals while maintaining positive expected value.")
+
+    lines.append("Use this feedback to improve your decisions in the next round.")
+    lines.append("--- END PERFORMANCE REVIEW ---")
+
+    return "\n".join(lines)
+
+
+def make_lender(
+    slot: int,
+    model_id: str,
+    display_name: str,
+    feedback: dict | None = None,
+) -> LenderConfig:
     """Create a lender config for the Elo tournament.
 
     All lenders get identical parameters so the only differentiator is the
     model's analytical and pricing ability.
+
+    If feedback is provided (dict with confusion_matrix, deals_won, etc.),
+    a coaching prompt from the previous match is prepended to the persona.
     """
+    base_persona = (
+        "You are a middle-market commercial lender evaluating loan applications. "
+        "Your goal is to maximize risk-adjusted returns by approving creditworthy "
+        "borrowers at appropriate interest rates while rejecting borrowers who "
+        "are unlikely to repay. Carefully analyze each borrower's financial "
+        "statements, cash flow, debt service capacity, and business fundamentals. "
+        "You offer terms between 12-30 months with competitive interest rates."
+    )
+
+    if feedback:
+        persona = _build_feedback_prompt(feedback) + "\n\n" + base_persona
+    else:
+        persona = base_persona
+
     return LenderConfig(
         id=f"ELO-{slot:03d}",
         name=f"Lender {slot} [{display_name}]",
-        persona=(
-            "You are a middle-market commercial lender evaluating loan applications. "
-            "Your goal is to maximize risk-adjusted returns by approving creditworthy "
-            "borrowers at appropriate interest rates while rejecting borrowers who "
-            "are unlikely to repay. Carefully analyze each borrower's financial "
-            "statements, cash flow, debt service capacity, and business fundamentals. "
-            "You offer terms between 12-30 months with competitive interest rates."
-        ),
+        persona=persona,
         model=model_id,
         target_yield_pct=11.0,
         max_single_loan=700000,
@@ -225,11 +293,16 @@ def run_match(
     api_key: str,
     sample_borrowers: int | None = None,
     rng: random.Random | None = None,
+    model_feedback: dict[str, dict] | None = None,
 ) -> list[dict]:
     """Run a single 3-way match.  Returns per-model results sorted by score.
 
     If sample_borrowers is set, randomly samples that many borrowers from the
     pool each match (stratified: maintains good/bad/fraud ratio).
+
+    If model_feedback is provided (model_id -> previous match results dict),
+    each model receives coaching based on its prior performance, mirroring
+    Skirmish's inter-round strategy iteration loop.
     """
     borrowers = get_borrowers(mix)
 
@@ -257,7 +330,10 @@ def run_match(
         borrowers = sampled
 
     lenders = [
-        make_lender(i + 1, model_id, name)
+        make_lender(
+            i + 1, model_id, name,
+            feedback=(model_feedback or {}).get(model_id),
+        )
         for i, (model_id, name) in enumerate(models)
     ]
 
@@ -639,8 +715,14 @@ def run_tournament(
     resume_data: dict | None = None,
     sample_borrowers: int | None = None,
     leaderboard: bool = False,
+    inter_match_feedback: bool = True,
 ) -> dict:
-    """Run the full Elo tournament with three rating systems."""
+    """Run the full Elo tournament with three rating systems.
+
+    If inter_match_feedback is True (default), each model receives coaching
+    based on its most recent match performance, mirroring Skirmish's
+    inter-round strategy iteration loop.
+    """
     # Compute baselines once (they only depend on the mix + standard lender config)
     baseline_lender = make_lender(1, "baseline", "baseline")
     all_borrowers = get_borrowers(mix)
@@ -689,11 +771,17 @@ def run_tournament(
     matchups = generate_matchups(models, remaining, seed=42 + completed)
     match_rng = random.Random(1337 + completed)
 
+    # Track latest match results per model for inter-match feedback
+    # model_id -> most recent results dict (score, confusion_matrix, deals_won, etc.)
+    latest_results: dict[str, dict] = {}
+
     print(f"\n{'='*70}")
     print(f"  LOANVILLE ELO TOURNAMENT (3-Rating System)")
     print(f"  Models: {len(models)} | Mix: {mix} | Matches: {n_matches} | K={k}")
     if sample_borrowers:
         print(f"  Borrower sampling: {sample_borrowers} per match")
+    if inter_match_feedback:
+        print(f"  Inter-match feedback: enabled")
     if completed:
         print(f"  Resuming from match {completed + 1}")
     print(f"{'='*70}\n")
@@ -705,13 +793,29 @@ def run_tournament(
               f"{names[0]} vs {names[1]} vs {names[2]}  ", end="", flush=True)
 
         try:
+            # Build feedback for models in this triplet from their latest results
+            feedback = None
+            if inter_match_feedback and latest_results:
+                feedback = {
+                    mid: latest_results[mid]
+                    for mid, _ in triplet
+                    if mid in latest_results
+                }
+                if not feedback:
+                    feedback = None
+
             t0 = time.time()
             results = run_match(
                 triplet, mix, api_key,
                 sample_borrowers=sample_borrowers,
                 rng=match_rng,
+                model_feedback=feedback,
             )
             elapsed = time.time() - t0
+
+            # Store latest results for inter-match feedback
+            for r in results:
+                latest_results[r["model"]] = r
 
             # Update all three rating systems
             old_ds = dict(dealshare_ratings)

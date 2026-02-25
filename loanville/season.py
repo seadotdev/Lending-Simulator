@@ -39,6 +39,12 @@ def _print_season_header(config: SeasonConfig) -> None:
         flags.append("speed-scoring")
     if config.custom_tools:
         flags.append("custom-tools")
+    if config.capital_adequacy_ratio > 0:
+        flags.append(f"capital-adequacy({config.capital_adequacy_ratio:.0%})")
+    if config.capital_decay_rate > 0:
+        flags.append(f"capital-decay({config.capital_decay_rate:.1%}/wk)")
+    if config.info_asymmetry != "none":
+        flags.append(f"info-asymmetry({config.info_asymmetry})")
     if flags:
         print(f"  Features: {', '.join(flags)}")
     print("=" * 70)
@@ -127,18 +133,81 @@ class SeasonEngine:
 
     def _effective_capital(self, state: SeasonLenderState) -> float:
         """Capital base adjusted for cumulative P&L — interest and fees grow it,
-        losses shrink it."""
+        losses shrink it, decay erodes idle capital."""
         return max(0.0,
                    state.total_capital
                    + state.cumulative_interest
                    + state.cumulative_fees
-                   - state.cumulative_losses)
+                   - state.cumulative_losses
+                   - state.cumulative_decay)
 
     def _recompute_available(self, state: SeasonLenderState) -> None:
         """Recompute available capital from effective capital minus deployed."""
         state.available_capital = max(0.0,
                                       self._effective_capital(state)
                                       - state.deployed_capital)
+
+    def _apply_capital_decay(self, week: int) -> list[str]:
+        """Apply time-value decay to undeployed capital.
+
+        Undeployed capital loses value each week, creating tension between
+        deploying early and waiting for better opportunities (inspired by
+        Skirmish's energy economy where idle resources lose value).
+        """
+        decay_rate = self.config.capital_decay_rate
+        if decay_rate <= 0.0:
+            return []
+
+        events = []
+        for lid, state in self.lender_states.items():
+            if state.eliminated:
+                continue
+            idle_capital = max(0.0, state.available_capital)
+            decay_amount = idle_capital * decay_rate
+            if decay_amount > 0:
+                state.cumulative_decay += decay_amount
+                self._recompute_available(state)
+                events.append(
+                    f"  [{state.lender_name}] Capital decay: "
+                    f"-${decay_amount:,.0f} on ${idle_capital:,.0f} idle "
+                    f"(cumulative: ${state.cumulative_decay:,.0f})"
+                )
+        return events
+
+    def _check_capital_adequacy(self, week: int) -> list[str]:
+        """Eliminate lenders whose effective capital falls below the threshold.
+
+        Mirrors Skirmish's spawn destruction mechanic and real banking
+        capital adequacy requirements.  Eliminated lenders no longer
+        participate in subsequent weeks.
+        """
+        threshold = self.config.capital_adequacy_ratio
+        if threshold <= 0.0:
+            return []
+
+        events = []
+        for lid, state in self.lender_states.items():
+            if state.eliminated:
+                continue
+            eff = self._effective_capital(state)
+            min_capital = state.total_capital * threshold
+            if eff < min_capital:
+                state.eliminated = True
+                state.eliminated_week = week
+                events.append(
+                    f"  *** [{state.lender_name}] ELIMINATED in week {week} — "
+                    f"effective capital ${eff:,.0f} < "
+                    f"${min_capital:,.0f} ({threshold:.0%} of initial) ***"
+                )
+        return events
+
+    @property
+    def _active_lender_ids(self) -> set[str]:
+        """IDs of lenders not yet eliminated."""
+        return {
+            lid for lid, state in self.lender_states.items()
+            if not state.eliminated
+        }
 
     # ------------------------------------------------------------------
     # Main season loop
@@ -150,10 +219,27 @@ class SeasonEngine:
         for week in range(1, self.config.weeks + 1):
             _print_week_header(week, self.config.weeks)
 
+            # Check if all lenders eliminated (early termination)
+            if not self._active_lender_ids:
+                print("\n  All lenders eliminated — ending season early.")
+                break
+
             # 1. Resolve aging loans
             events = self._resolve_week(week)
 
-            # 2. Build and print portfolio briefings
+            # 1a. Apply capital time-value decay on idle capital
+            decay_events = self._apply_capital_decay(week)
+            events.extend(decay_events)
+            for e in decay_events:
+                print(e)
+
+            # 1b. Check capital adequacy — eliminate bankrupt lenders
+            elim_events = self._check_capital_adequacy(week)
+            events.extend(elim_events)
+            for e in elim_events:
+                print(e)
+
+            # 2. Build and print portfolio briefings (only for active lenders)
             briefings = self._build_briefings(week, events)
             for lid, briefing in briefings.items():
                 print(briefing)
@@ -167,7 +253,14 @@ class SeasonEngine:
             _print_cohort_summary(week, cohort)
 
             # 5. Build week lenders (inject briefing + available capital)
+            #    Only include active (non-eliminated) lenders
             week_lenders = self._build_week_lenders(briefings)
+            active_ids = self._active_lender_ids
+            week_lenders = [l for l in week_lenders if l.id in active_ids]
+
+            if not week_lenders:
+                print("\n  No active lenders remaining — skipping origination.")
+                continue
 
             # 6. Run origination via SimulationEngine
             engine = SimulationEngine(cohort, week_lenders, **self.engine_kwargs)
