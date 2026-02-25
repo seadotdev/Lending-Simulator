@@ -552,12 +552,67 @@ class SeasonEngine:
     # ------------------------------------------------------------------
 
     def _tooling_phase(self, week: int) -> None:
-        """Tooling phase between weeks. In mock mode, skip."""
-        if self.engine_kwargs.get("mock"):
-            return
-        # For live mode, this would send a prompt to each lender's LLM
-        # asking them to create/update tools. Placeholder for now.
-        print(f"\n  [Tooling phase — week {week}] (not active in current mode)")
+        """Tooling phase between weeks.
+
+        In mock mode, auto-generate tools based on lender performance.
+        In live mode, this would prompt each lender's LLM to create/update tools.
+        Tools persist in `self.toolkits` and are available during evaluation.
+        """
+        print(f"\n  [Tooling phase — week {week}]")
+        active_ids = self._active_lender_ids
+
+        for lender in self.base_lenders:
+            if lender.id not in active_ids:
+                continue
+            state = self.lender_states[lender.id]
+            toolkit = self.toolkits[lender.id]
+
+            if self.engine_kwargs.get("mock"):
+                self._mock_tooling(toolkit, state, week)
+            else:
+                # Live mode: build a tooling prompt from performance data
+                # and inject it alongside the lender persona in the next
+                # evaluation round.  Actual LLM call deferred to origination.
+                pass
+
+            if toolkit.tools:
+                tool_names = [t.name for t in toolkit.tools]
+                print(f"    {lender.name}: {len(toolkit.tools)} tool(s) "
+                      f"[{', '.join(tool_names)}]")
+
+    def _mock_tooling(
+        self, toolkit: LenderToolkit, state: SeasonLenderState, week: int,
+    ) -> None:
+        """Auto-generate plausible tools based on lender performance patterns."""
+        # Week 1: every lender creates a sector concentration checker
+        if week == 1 and not toolkit.get_tool("sector_concentration_check"):
+            toolkit.create_tool(
+                name="sector_concentration_check",
+                description="Flag if >40% of portfolio is in one sector",
+                implementation="check sector_exposure > 0.4 * deployed_capital",
+                week=week,
+            )
+
+        # After experiencing a default: create a cash-flow stress tool
+        defaults = sum(1 for lo in state.resolved_loans if lo.defaulted)
+        if (defaults > 0
+                and not toolkit.get_tool("cashflow_stress_test")):
+            toolkit.create_tool(
+                name="cashflow_stress_test",
+                description="Stress test borrower cash flows at -20% revenue",
+                implementation="recalculate net_income with revenue * 0.8",
+                week=week,
+            )
+
+        # After losing deals (bid too low): create a pricing optimizer
+        if (state.deals_lost > 2
+                and not toolkit.get_tool("competitive_pricer")):
+            toolkit.create_tool(
+                name="competitive_pricer",
+                description="Suggest rate within market range to win deals",
+                implementation="target rate = max(floor_rate, market_avg - 0.5%)",
+                week=week,
+            )
 
     # ------------------------------------------------------------------
     # Result ingestion
