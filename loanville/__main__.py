@@ -12,6 +12,7 @@ Usage:
 import argparse
 import asyncio
 import copy
+import logging
 import os
 import sys
 
@@ -86,7 +87,7 @@ def _run_single(borrowers, lenders, api_key="", mock=False, data_mode="full",
                  los_provider="openrouter", los_mode="rules_only",
                  underwrite_only=False, los_model=None,
                  economics=None):
-    """Run a single simulation and return scores."""
+    """Run a single simulation and return (scores, engine)."""
     engine = SimulationEngine(
         borrowers, lenders, api_key, mock=mock, data_mode=data_mode,
         use_los=use_los, los_url=los_url,
@@ -107,7 +108,7 @@ def _run_single(borrowers, lenders, api_key="", mock=False, data_mode="full",
         runs=engine.runs,
     )
     print_final_report(scores, economics=economics)
-    return scores
+    return scores, engine
 
 
 def _print_mix_info(mix: str, borrowers) -> None:
@@ -138,7 +139,7 @@ def run_compare(mix: str):
     print("\n" + "#" * 70)
     print("#  ROUND 1: FRONTIER MODELS (tool-use capable)")
     print("#" * 70)
-    big_scores = _run_single(borrowers, big_lenders, mock=True, data_mode="full")
+    big_scores, _ = _run_single(borrowers, big_lenders, mock=True, data_mode="full")
 
     # --- Round 2: Small / mid-tier models ---
     small_lenders = get_lenders()
@@ -152,7 +153,7 @@ def run_compare(mix: str):
     print("\n\n" + "#" * 70)
     print("#  ROUND 2: SMALL MODELS")
     print("#" * 70)
-    small_scores = _run_single(borrowers, small_lenders, mock=True, data_mode="full")
+    small_scores, _ = _run_single(borrowers, small_lenders, mock=True, data_mode="full")
 
     # --- Comparison ---
     print("\n\n" + "=" * 70)
@@ -240,7 +241,7 @@ def run_rotate(api_key: str, mix: str, rounds: int = 3):
             lender.name = f"{base_name} [{short_name}]"
             print(f"  {base_name} -> {model}")
 
-        scores = _run_single(borrowers, lenders, api_key, mock=False, data_mode="full")
+        scores, _ = _run_single(borrowers, lenders, api_key, mock=False, data_mode="full")
         all_round_scores.append(scores)
 
     # Summary across rounds
@@ -335,12 +336,29 @@ def main() -> None:
                         help="Enable custom tool creation in season mode")
     parser.add_argument("--months-per-week", type=int, default=2,
                         help="Months of loan aging per season week (default: 2)")
+    # Leaderboard
+    parser.add_argument("--leaderboard", action="store_true",
+                        help="Emit match record to leaderboard after scoring")
+    parser.add_argument("-v", "--verbose", action="store_true",
+                        help="Enable detailed logging (LOS calls, per-borrower progress)")
     args = parser.parse_args()
 
     if args.season and args.compare:
         parser.error("--season and --compare cannot be used together.")
     if args.season and args.rotate:
         parser.error("--season and --rotate cannot be used together.")
+
+    # Configure logging — errors always shown, -v adds per-call progress
+    logging.basicConfig(
+        level=logging.INFO if args.verbose else logging.WARNING,
+        format="%(message)s",
+        stream=sys.stderr,
+    )
+    logging.getLogger("loanville.los_adapter").setLevel(
+        logging.INFO if args.verbose else logging.ERROR
+    )
+    logging.getLogger("httpx").setLevel(logging.WARNING)
+    logging.getLogger("httpcore").setLevel(logging.WARNING)
 
     if args.compare:
         print("=" * 70)
@@ -438,7 +456,7 @@ def main() -> None:
     if not mock and not use_los:
         from .llm import clear_usage
         clear_usage()
-    _run_single(
+    scores, engine = _run_single(
         borrowers, lenders, api_key, mock=mock, data_mode=args.data_mode,
         use_los=use_los, los_url=args.los_url,
         los_provider=args.los_provider, los_mode=args.los_mode,
@@ -447,6 +465,26 @@ def main() -> None:
     )
     if not mock and not use_los:
         _print_cost_summary()
+
+    # Emit match record to leaderboard
+    if args.leaderboard:
+        from .leaderboard import emit_match_record_from_sim, emit_and_update
+
+        models_info = [
+            {"model_id": l.model, "display_name": l.name}
+            for l in lenders
+        ]
+        record = emit_match_record_from_sim(
+            lenders=lenders,
+            models_info=models_info,
+            engine=engine,
+            scores=scores,
+            borrowers=borrowers,
+            mix=args.mix,
+        )
+        match_path, lb_path = emit_and_update(record)
+        print(f"\n  Leaderboard: match → {match_path.name}")
+        print(f"  Leaderboard: standings → {lb_path.name}")
 
     print("\nSimulation complete.\n")
 

@@ -570,6 +570,7 @@ def run_tournament(
     output_file: str = "elo_results.json",
     resume_data: dict | None = None,
     sample_borrowers: int | None = None,
+    leaderboard: bool = False,
 ) -> dict:
     """Run the full Elo tournament with three rating systems."""
     # Compute baselines once (they only depend on the mix + standard lender config)
@@ -686,6 +687,19 @@ def run_tournament(
                         rate_stats[mid]["good_rates"].append(rate)
                     else:  # bad or fraud
                         rate_stats[mid]["bad_rates"].append(rate)
+
+            # Emit leaderboard match record (before stripping per_applicant_payoffs)
+            if leaderboard:
+                from loanville.leaderboard import emit_match_record_from_elo, emit_and_update
+                n_b = results[0].get("n_borrowers", len(get_borrowers(mix))) if results else 0
+                lb_record = emit_match_record_from_elo(
+                    triplet=triplet,
+                    match_results=results,
+                    mix=mix,
+                    n_borrowers=n_b,
+                )
+                match_path, lb_path = emit_and_update(lb_record)
+                print(f"    → leaderboard: {match_path.name}")
 
             # Strip per_applicant_payoffs from logged results (too large for JSON)
             logged_results = []
@@ -931,6 +945,8 @@ def main():
                         help="Sample N borrowers per match from the pool (default: 12, 0=use all)")
     parser.add_argument("--no-sample", action="store_true",
                         help="Disable borrower sampling (use full pool every match)")
+    parser.add_argument("--leaderboard", action="store_true",
+                        help="Emit match records to leaderboard after each match")
     args = parser.parse_args()
 
     if args.standings:
@@ -1012,6 +1028,7 @@ def main():
         k=args.k, output_file=args.output,
         resume_data=resume_data,
         sample_borrowers=sample_n,
+        leaderboard=args.leaderboard,
     )
 
     _save_results(output, args.output)

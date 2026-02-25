@@ -1,0 +1,573 @@
+"""
+Core leaderboard logic: validate, emit, compute, adapt.
+
+Validates sim runs, stores match records as JSON in leaderboard/matches/,
+computes Elo rankings from match history, and exports standings.
+"""
+
+import hashlib
+import json
+import os
+from datetime import datetime, timezone
+from pathlib import Path
+
+# Elo math reused from elo_benchmark (moved to legacy/benchmarks/ after PR #20)
+import sys
+_legacy_benchmarks = str(Path(__file__).resolve().parent.parent.parent / "legacy" / "benchmarks")
+if _legacy_benchmarks not in sys.path:
+    sys.path.insert(0, _legacy_benchmarks)
+
+from elo_benchmark import (
+    DEFAULT_K,
+    INITIAL_ELO,
+    UTILITY_EPSILON,
+    update_dealshare_elo,
+    update_profit_elo,
+    update_credit_elo,
+)
+
+LEADERBOARD_DIR = Path(__file__).resolve().parent.parent.parent / "leaderboard"
+MATCHES_DIR = LEADERBOARD_DIR / "matches"
+LEADERBOARD_FILE = LEADERBOARD_DIR / "leaderboard.json"
+CONFIG_FILE = LEADERBOARD_DIR / "config.json"
+
+
+def load_config() -> dict:
+    """Load leaderboard config (Elo constants, validation thresholds)."""
+    if CONFIG_FILE.exists():
+        with open(CONFIG_FILE) as f:
+            return json.load(f)
+    return {
+        "k": DEFAULT_K,
+        "initial_elo": INITIAL_ELO,
+        "utility_epsilon": UTILITY_EPSILON,
+        "min_borrowers": 6,
+        "max_error_rate": 0.25,
+    }
+
+
+# ---------------------------------------------------------------------------
+# Validation
+# ---------------------------------------------------------------------------
+
+def validate_match(match_data: dict, config: dict | None = None) -> dict:
+    """Validate a match record for data quality.
+
+    Returns {"valid": bool, "errors": list[str]}
+    """
+    if config is None:
+        config = load_config()
+
+    errors = []
+    min_borrowers = config.get("min_borrowers", 6)
+    max_error_rate = config.get("max_error_rate", 0.25)
+
+    # Check basic structure
+    if "models" not in match_data or "results" not in match_data:
+        return {"valid": False, "errors": ["Missing 'models' or 'results' fields"]}
+
+    results = match_data.get("results", [])
+    n_borrowers = match_data.get("n_borrowers", 0)
+
+    # 1. Min borrowers
+    if n_borrowers < min_borrowers:
+        errors.append(f"Only {n_borrowers} borrowers (minimum {min_borrowers})")
+
+    # 2. Max error rate per model — count valid models
+    valid_models = []
+    for r in results:
+        mid = r.get("model_id", "")
+        total = r.get("deals_won", 0) + r.get("deals_rejected", 0) + r.get("deals_errored", 0)
+        errored = r.get("deals_errored", 0)
+        if total > 0 and errored / total > max_error_rate:
+            errors.append(
+                f"Model {mid}: error rate {errored}/{total} "
+                f"({errored/total:.0%}) exceeds {max_error_rate:.0%}"
+            )
+        else:
+            valid_models.append(mid)
+
+    # 3. Labels present — check per_borrower ground truth
+    for r in results:
+        mid = r.get("model_id", "")
+        per_b = r.get("per_borrower", {})
+        for bid, bdata in per_b.items():
+            if "ground_truth" not in bdata:
+                errors.append(f"Model {mid}, borrower {bid}: missing ground_truth")
+                break  # one error per model is enough
+
+    # 4. At least 2 valid models
+    if len(valid_models) < 2:
+        errors.append(f"Only {len(valid_models)} valid models (need at least 2)")
+
+    return {"valid": len(errors) == 0, "errors": errors}
+
+
+# ---------------------------------------------------------------------------
+# Match record construction
+# ---------------------------------------------------------------------------
+
+def _generate_match_id(timestamp_utc: str) -> str:
+    """Generate a unique match ID from timestamp + hash."""
+    ts_safe = timestamp_utc.replace(":", "-")[:19]
+    h = hashlib.sha256(
+        f"{timestamp_utc}-{os.getpid()}-{id(timestamp_utc)}".encode()
+    ).hexdigest()[:6]
+    return f"{ts_safe}_{h}"
+
+
+def build_match_record(
+    models: list[dict],
+    results: list[dict],
+    mix: str,
+    n_borrowers: int,
+    timestamp_utc: str | None = None,
+) -> dict:
+    """Build a match record from sim results.
+
+    Args:
+        models: [{"model_id": str, "display_name": str}, ...]
+        results: Per-model result dicts with keys:
+            model_id, raroc_score, deals_won, deals_rejected, deals_errored,
+            frauds_funded, defaults, deployed, net_pnl,
+            confusion_matrix, per_borrower
+        mix: Borrower mix name
+        n_borrowers: Total borrowers in the match
+        timestamp_utc: Optional ISO timestamp (defaults to now)
+    """
+    if timestamp_utc is None:
+        timestamp_utc = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+    match_id = _generate_match_id(timestamp_utc)
+
+    record = {
+        "match_id": match_id,
+        "timestamp_utc": timestamp_utc,
+        "mix": mix,
+        "n_borrowers": n_borrowers,
+        "models": models,
+        "results": results,
+        "validation": {"valid": True, "errors": []},
+    }
+
+    # Run validation
+    validation = validate_match(record)
+    record["validation"] = validation
+
+    return record
+
+
+# ---------------------------------------------------------------------------
+# Adapter: match record → elo_benchmark.py format
+# ---------------------------------------------------------------------------
+
+def match_to_elo_results(match: dict) -> list[dict]:
+    """Convert leaderboard match record to elo_benchmark.py format.
+
+    The Elo update functions expect:
+    [{"model": model_id, "score": raroc, "per_applicant_payoffs": {
+        "_decision_states": {bid: "won"/"lost"/"declined"},
+        "_ground_truth": {bid: "good"/"bad"/"fraud"},
+        "_utility": {bid: float},
+        "_rates_offered": {bid: float|None},
+        bid: 0.0,  # placeholder payoff entries for _get_borrower_ids()
+    }}]
+    """
+    elo_results = []
+    for r in match.get("results", []):
+        per_b = r.get("per_borrower", {})
+
+        per_applicant_payoffs = {
+            "_decision_states": {},
+            "_ground_truth": {},
+            "_utility": {},
+            "_rates_offered": {},
+        }
+
+        for bid, bdata in per_b.items():
+            per_applicant_payoffs[bid] = 0.0  # placeholder for _get_borrower_ids()
+            per_applicant_payoffs["_decision_states"][bid] = bdata.get("decision_state", "declined")
+            per_applicant_payoffs["_ground_truth"][bid] = bdata.get("ground_truth", "good")
+            per_applicant_payoffs["_utility"][bid] = bdata.get("utility", 0.0)
+            per_applicant_payoffs["_rates_offered"][bid] = bdata.get("rate_offered")
+
+        elo_results.append({
+            "model": r["model_id"],
+            "score": r.get("raroc_score", 0.0),
+            "per_applicant_payoffs": per_applicant_payoffs,
+        })
+
+    return elo_results
+
+
+# ---------------------------------------------------------------------------
+# Emit match record from sim data
+# ---------------------------------------------------------------------------
+
+def emit_match_record_from_sim(
+    lenders,
+    models_info: list[dict],
+    engine,
+    scores,
+    borrowers,
+    mix: str,
+    per_applicant_payoffs: dict | None = None,
+) -> dict:
+    """Build and write a match record from a completed sim run.
+
+    Args:
+        lenders: List of LenderConfig
+        models_info: [{"model_id": str, "display_name": str}, ...]
+        engine: SimulationEngine (has all_decisions, booked_loans, etc.)
+        scores: List of LenderScore from score_lenders()
+        borrowers: List of Borrower
+        mix: Borrower mix name
+        per_applicant_payoffs: Optional pre-computed payoffs dict
+            (model_id -> {bid -> payoff, "_decision_states" -> ..., etc.})
+            If None, will be computed from engine data.
+    """
+    from ..scoring import compute_confusion_matrix
+
+    # Build per_applicant_payoffs if not provided
+    if per_applicant_payoffs is None:
+        from elo_benchmark import _compute_per_applicant_payoffs
+        models_tuples = [(m["model_id"], m["display_name"]) for m in models_info]
+        per_applicant_payoffs = _compute_per_applicant_payoffs(
+            borrowers, lenders, models_tuples, engine,
+        )
+
+    results = []
+    for lender, minfo in zip(lenders, models_info):
+        model_id = minfo["model_id"]
+        sc = next((s for s in scores if s.lender_id == lender.id), None)
+        decisions = engine.all_decisions.get(lender.id, [])
+
+        # Confusion matrix
+        cm = compute_confusion_matrix(decisions, borrowers)
+
+        # Per-borrower data
+        pap = per_applicant_payoffs.get(model_id, {})
+        per_borrower = {}
+        for b in borrowers:
+            bid = b.id
+            states = pap.get("_decision_states", {})
+            gt = pap.get("_ground_truth", {})
+            util = pap.get("_utility", {})
+            rates = pap.get("_rates_offered", {})
+
+            per_borrower[bid] = {
+                "decision_state": states.get(bid, "declined"),
+                "ground_truth": gt.get(bid, b.true_outcome),
+                "utility": util.get(bid, 0.0),
+                "rate_offered": rates.get(bid),
+            }
+
+        result = {
+            "model_id": model_id,
+            "raroc_score": sc.raroc_score if sc else 0.0,
+            "deals_won": sc.deals_won if sc else 0,
+            "deals_rejected": sc.deals_rejected if sc else 0,
+            "deals_errored": getattr(sc, 'deals_errored', 0) if sc else 0,
+            "frauds_funded": sc.frauds_funded if sc else 0,
+            "defaults": sc.defaults_count if sc else 0,
+            "deployed": sc.total_deployed if sc else 0,
+            "net_pnl": sc.net_return if sc else 0,
+            "confusion_matrix": cm,
+            "per_borrower": per_borrower,
+        }
+        results.append(result)
+
+    record = build_match_record(
+        models=models_info,
+        results=results,
+        mix=mix,
+        n_borrowers=len(borrowers),
+    )
+
+    return record
+
+
+def emit_match_record_from_elo(
+    triplet: list[tuple[str, str]],
+    match_results: list[dict],
+    mix: str,
+    n_borrowers: int,
+) -> dict:
+    """Build a match record from elo_benchmark.py tournament match results.
+
+    Args:
+        triplet: [(model_id, display_name), ...]
+        match_results: Results from run_match() with per_applicant_payoffs
+        mix: Borrower mix name
+        n_borrowers: Total borrowers
+    """
+    models_info = [
+        {"model_id": mid, "display_name": dname}
+        for mid, dname in triplet
+    ]
+
+    results = []
+    for r in match_results:
+        model_id = r["model"]
+        pap = r.get("per_applicant_payoffs", {})
+
+        # Build per_borrower from per_applicant_payoffs
+        per_borrower = {}
+        states = pap.get("_decision_states", {})
+        gt = pap.get("_ground_truth", {})
+        util = pap.get("_utility", {})
+        rates = pap.get("_rates_offered", {})
+
+        for bid in states.keys():
+            per_borrower[bid] = {
+                "decision_state": states.get(bid, "declined"),
+                "ground_truth": gt.get(bid, "good"),
+                "utility": util.get(bid, 0.0),
+                "rate_offered": rates.get(bid),
+            }
+
+        result = {
+            "model_id": model_id,
+            "raroc_score": r.get("raroc_score", r.get("score", 0.0)),
+            "deals_won": r.get("deals_won", 0),
+            "deals_rejected": r.get("n_borrowers", n_borrowers) - r.get("deals_won", 0) - r.get("frauds_funded", 0),
+            "deals_errored": 0,
+            "frauds_funded": r.get("frauds_funded", 0),
+            "defaults": r.get("defaults", 0),
+            "deployed": r.get("deployed", 0),
+            "net_pnl": r.get("net_pnl", 0),
+            "confusion_matrix": r.get("confusion_matrix", {}),
+            "per_borrower": per_borrower,
+        }
+        results.append(result)
+
+    return build_match_record(
+        models=models_info,
+        results=results,
+        mix=mix,
+        n_borrowers=n_borrowers,
+    )
+
+
+# ---------------------------------------------------------------------------
+# Write / Read match records
+# ---------------------------------------------------------------------------
+
+def write_match_record(record: dict) -> Path:
+    """Write a match record to leaderboard/matches/."""
+    MATCHES_DIR.mkdir(parents=True, exist_ok=True)
+
+    match_id = record["match_id"]
+    filename = f"{match_id}.json"
+    filepath = MATCHES_DIR / filename
+
+    with open(filepath, "w") as f:
+        json.dump(record, f, indent=2, default=str)
+
+    return filepath
+
+
+def load_all_matches() -> list[dict]:
+    """Load all match records, sorted by timestamp."""
+    matches = []
+    if not MATCHES_DIR.exists():
+        return matches
+
+    for f in sorted(MATCHES_DIR.glob("*.json")):
+        with open(f) as fh:
+            try:
+                matches.append(json.load(fh))
+            except json.JSONDecodeError:
+                continue
+
+    # Sort by timestamp
+    matches.sort(key=lambda m: m.get("timestamp_utc", ""))
+    return matches
+
+
+# ---------------------------------------------------------------------------
+# Leaderboard computation
+# ---------------------------------------------------------------------------
+
+def compute_leaderboard(matches: list[dict] | None = None, config: dict | None = None) -> dict:
+    """Compute full leaderboard by replaying all matches chronologically.
+
+    Returns leaderboard state dict ready to write to leaderboard.json.
+    """
+    if matches is None:
+        matches = load_all_matches()
+    if config is None:
+        config = load_config()
+
+    k = config.get("k", DEFAULT_K)
+    initial_elo = config.get("initial_elo", INITIAL_ELO)
+
+    # Collect all model IDs seen
+    all_models = {}  # model_id -> display_name
+    for match in matches:
+        for m in match.get("models", []):
+            mid = m["model_id"]
+            if mid not in all_models:
+                all_models[mid] = m.get("display_name", mid)
+
+    # Init ratings
+    profit_ratings = {mid: float(initial_elo) for mid in all_models}
+    credit_ratings = {mid: float(initial_elo) for mid in all_models}
+    dealshare_ratings = {mid: float(initial_elo) for mid in all_models}
+
+    # Track per-model aggregates
+    match_counts = {mid: 0 for mid in all_models}
+    total_raroc = {mid: 0.0 for mid in all_models}
+    agg_confusion = {}
+    for mid in all_models:
+        agg_confusion[mid] = {
+            "good": {"approved": 0, "rejected": 0},
+            "bad": {"approved": 0, "rejected": 0},
+            "fraud": {"approved": 0, "rejected": 0},
+        }
+    rate_stats = {mid: {"good_rates": [], "bad_rates": []} for mid in all_models}
+
+    # Track Elo history for sparklines
+    elo_history = {mid: [] for mid in all_models}
+    match_ids = []
+
+    # Replay each match
+    for match in matches:
+        if not match.get("validation", {}).get("valid", True):
+            continue
+
+        match_ids.append(match["match_id"])
+        elo_results = match_to_elo_results(match)
+
+        if len(elo_results) < 2:
+            continue
+
+        # Ensure all models in this match have ratings
+        for r in elo_results:
+            mid = r["model"]
+            profit_ratings.setdefault(mid, float(initial_elo))
+            credit_ratings.setdefault(mid, float(initial_elo))
+            dealshare_ratings.setdefault(mid, float(initial_elo))
+            match_counts.setdefault(mid, 0)
+            total_raroc.setdefault(mid, 0.0)
+
+        # Update all three Elo systems
+        dealshare_ratings = update_dealshare_elo(dealshare_ratings, elo_results, k=k)
+        profit_ratings = update_profit_elo(profit_ratings, elo_results, k=k)
+        credit_ratings = update_credit_elo(credit_ratings, elo_results, k=k)
+
+        # Aggregate stats
+        for r in match.get("results", []):
+            mid = r["model_id"]
+            match_counts[mid] = match_counts.get(mid, 0) + 1
+            total_raroc[mid] = total_raroc.get(mid, 0.0) + r.get("raroc_score", 0.0)
+
+            # Confusion matrix
+            cm = r.get("confusion_matrix", {})
+            if mid not in agg_confusion:
+                agg_confusion[mid] = {
+                    "good": {"approved": 0, "rejected": 0},
+                    "bad": {"approved": 0, "rejected": 0},
+                    "fraud": {"approved": 0, "rejected": 0},
+                }
+            for category in ("good", "bad", "fraud"):
+                for action in ("approved", "rejected"):
+                    agg_confusion[mid][category][action] += cm.get(category, {}).get(action, 0)
+
+            # Rate stats from per_borrower
+            per_b = r.get("per_borrower", {})
+            if mid not in rate_stats:
+                rate_stats[mid] = {"good_rates": [], "bad_rates": []}
+            for bid, bdata in per_b.items():
+                rate = bdata.get("rate_offered")
+                if rate is None:
+                    continue
+                gt = bdata.get("ground_truth", "good")
+                if gt == "good":
+                    rate_stats[mid]["good_rates"].append(rate)
+                else:
+                    rate_stats[mid]["bad_rates"].append(rate)
+
+        # Record Elo snapshot
+        for mid in all_models:
+            elo_history[mid].append({
+                "match_id": match["match_id"],
+                "profit_elo": round(profit_ratings.get(mid, initial_elo), 1),
+                "credit_elo": round(credit_ratings.get(mid, initial_elo), 1),
+                "dealshare_elo": round(dealshare_ratings.get(mid, initial_elo), 1),
+            })
+
+    # Build standings
+    standings = []
+    for mid in all_models:
+        n = match_counts.get(mid, 0)
+        good_rates = rate_stats.get(mid, {}).get("good_rates", [])
+        bad_rates = rate_stats.get(mid, {}).get("bad_rates", [])
+
+        standings.append({
+            "model_id": mid,
+            "display_name": all_models[mid],
+            "profit_elo": round(profit_ratings.get(mid, initial_elo), 1),
+            "credit_elo": round(credit_ratings.get(mid, initial_elo), 1),
+            "dealshare_elo": round(dealshare_ratings.get(mid, initial_elo), 1),
+            "matches_played": n,
+            "avg_raroc": round(total_raroc.get(mid, 0.0) / n, 2) if n > 0 else 0.0,
+            "confusion_agg": agg_confusion.get(mid, {}),
+            "rate_analysis": {
+                "avg_rate_good": round(sum(good_rates) / len(good_rates), 2) if good_rates else None,
+                "avg_rate_bad": round(sum(bad_rates) / len(bad_rates), 2) if bad_rates else None,
+                "n_good_offers": len(good_rates),
+                "n_bad_offers": len(bad_rates),
+            },
+        })
+
+    # Sort by Profit Elo descending
+    standings.sort(key=lambda s: s["profit_elo"], reverse=True)
+
+    return {
+        "computed_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "n_matches": len(match_ids),
+        "config": {
+            "k": k,
+            "initial_elo": initial_elo,
+            "utility_epsilon": config.get("utility_epsilon", UTILITY_EPSILON),
+        },
+        "standings": standings,
+        "match_ids": match_ids,
+        "elo_history": elo_history,
+    }
+
+
+def write_leaderboard(leaderboard: dict | None = None) -> Path:
+    """Compute (if needed) and write leaderboard.json."""
+    if leaderboard is None:
+        leaderboard = compute_leaderboard()
+
+    LEADERBOARD_DIR.mkdir(parents=True, exist_ok=True)
+    with open(LEADERBOARD_FILE, "w") as f:
+        json.dump(leaderboard, f, indent=2, default=str)
+
+    return LEADERBOARD_FILE
+
+
+def load_leaderboard() -> dict | None:
+    """Load the cached leaderboard.json."""
+    if LEADERBOARD_FILE.exists():
+        with open(LEADERBOARD_FILE) as f:
+            return json.load(f)
+    return None
+
+
+# ---------------------------------------------------------------------------
+# High-level: emit + update
+# ---------------------------------------------------------------------------
+
+def emit_and_update(record: dict) -> tuple[Path, Path]:
+    """Write a match record and update the leaderboard.
+
+    Returns (match_file_path, leaderboard_file_path).
+    """
+    match_path = write_match_record(record)
+    leaderboard = compute_leaderboard()
+    lb_path = write_leaderboard(leaderboard)
+    return match_path, lb_path

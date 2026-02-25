@@ -1,0 +1,7 @@
+{
+  "k": 32,
+  "initial_elo": 1500,
+  "utility_epsilon": 500.0,
+  "min_borrowers": 6,
+  "max_error_rate": 0.25
+}

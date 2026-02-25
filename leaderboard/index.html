@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Loanville Leaderboard</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --border: #30363d;
+    --text: #c9d1d9;
+    --text-muted: #8b949e;
+    --accent: #58a6ff;
+    --green: #3fb950;
+    --red: #f85149;
+    --gold: #d29922;
+    --purple: #bc8cff;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+    background: var(--bg); color: var(--text);
+    line-height: 1.5; padding: 20px;
+    max-width: 1200px; margin: 0 auto;
+  }
+  a { color: var(--accent); text-decoration: none; cursor: pointer; }
+  a:hover { text-decoration: underline; }
+  h1 { font-size: 1.8em; margin-bottom: 4px; }
+  h2 { font-size: 1.3em; margin: 20px 0 10px; color: var(--text); }
+  .subtitle { color: var(--text-muted); margin-bottom: 20px; }
+  table { width: 100%; border-collapse: collapse; margin: 10px 0; }
+  th, td { padding: 8px 12px; text-align: left; border-bottom: 1px solid var(--border); }
+  th { color: var(--text-muted); font-weight: 600; font-size: 0.85em; text-transform: uppercase; }
+  tr:hover { background: rgba(88,166,255,0.04); }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 16px; margin: 12px 0; }
+  .nav { display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
+  .nav a { padding: 6px 14px; border-radius: 20px; border: 1px solid var(--border); font-size: 0.9em; }
+  .nav a.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .num-pos { color: var(--green); }
+  .num-neg { color: var(--red); }
+  .num-gold { color: var(--gold); }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 0.8em; font-weight: 600; }
+  .badge-good { background: rgba(63,185,80,0.15); color: var(--green); }
+  .badge-bad { background: rgba(248,81,73,0.15); color: var(--red); }
+  .badge-fraud { background: rgba(210,153,34,0.15); color: var(--gold); }
+  .badge-won { background: rgba(63,185,80,0.15); color: var(--green); }
+  .badge-lost { background: rgba(139,148,158,0.15); color: var(--text-muted); }
+  .badge-declined { background: rgba(248,81,73,0.1); color: var(--text-muted); }
+  .elo-chart { height: 200px; position: relative; overflow: hidden; }
+  .grid-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 12px; }
+  .back { margin-bottom: 16px; font-size: 0.9em; }
+  .correct { background: rgba(63,185,80,0.1); }
+  .incorrect { background: rgba(248,81,73,0.1); }
+  .winner-cell { color: var(--gold); font-weight: 600; }
+  .filter-bar { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; align-items: center; }
+  .filter-bar select, .filter-bar input { background: var(--surface); color: var(--text); border: 1px solid var(--border); border-radius: 4px; padding: 4px 8px; font-size: 0.9em; }
+  .sparkline { display: inline-block; vertical-align: middle; }
+  .hidden { display: none; }
+  .cm-table td { text-align: center; min-width: 60px; }
+  .cm-table th { text-align: center; }
+  #loading { text-align: center; padding: 60px; color: var(--text-muted); }
+</style>
+</head>
+<body>
+
+<div id="app">
+  <div id="loading">Loading leaderboard data...</div>
+</div>
+
+<script>
+// ---------------------------------------------------------------------------
+// State
+// ---------------------------------------------------------------------------
+let leaderboard = null;
+let matchCache = {};
+let currentView = 'leaderboard';
+let currentModel = null;
+let currentMatch = null;
+
+const app = document.getElementById('app');
+
+// ---------------------------------------------------------------------------
+// Data loading
+// ---------------------------------------------------------------------------
+async function loadLeaderboard() {
+  try {
+    const resp = await fetch('leaderboard.json');
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    leaderboard = await resp.json();
+    renderView();
+  } catch (e) {
+    app.innerHTML = `<div class="card">
+      <h2>No leaderboard data found</h2>
+      <p>Run a simulation with <code>--leaderboard</code> to generate data:</p>
+      <pre style="margin-top:8px;color:var(--text-muted)">./run_sim.sh --leaderboard --mix realistic</pre>
+    </div>`;
+  }
+}
+
+async function loadMatch(matchId) {
+  if (matchCache[matchId]) return matchCache[matchId];
+  try {
+    const resp = await fetch(`matches/${matchId}.json`);
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    const data = await resp.json();
+    matchCache[matchId] = data;
+    return data;
+  } catch (e) {
+    return null;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Navigation
+// ---------------------------------------------------------------------------
+function navigate(view, param) {
+  currentView = view;
+  if (view === 'model') currentModel = param;
+  if (view === 'match') currentMatch = param;
+  renderView();
+}
+
+function renderView() {
+  switch (currentView) {
+    case 'leaderboard': renderLeaderboard(); break;
+    case 'model': renderModelDetail(); break;
+    case 'match': renderMatchDetail(); break;
+    case 'history': renderMatchHistory(); break;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+function elo(v) { return Math.round(v); }
+function pct(v) { return v != null ? v.toFixed(1) + '%' : '—'; }
+function dollar(v) { return v != null ? '$' + Math.round(v).toLocaleString() : '—'; }
+function eloClass(v) { return v >= 1500 ? 'num-pos' : v < 1500 ? 'num-neg' : ''; }
+
+function sparklineSVG(history, key, w = 80, h = 20) {
+  if (!history || history.length < 2) return '';
+  const vals = history.map(h => h[key]);
+  const min = Math.min(...vals);
+  const max = Math.max(...vals);
+  const range = max - min || 1;
+  const points = vals.map((v, i) =>
+    `${(i / (vals.length - 1)) * w},${h - ((v - min) / range) * h}`
+  ).join(' ');
+  const last = vals[vals.length - 1];
+  const color = last >= 1500 ? 'var(--green)' : 'var(--red)';
+  return `<svg class="sparkline" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
+    <polyline fill="none" stroke="${color}" stroke-width="1.5" points="${points}"/>
+  </svg>`;
+}
+
+function navHTML(active) {
+  return `<div class="nav">
+    <a class="${active === 'leaderboard' ? 'active' : ''}" onclick="navigate('leaderboard')">Leaderboard</a>
+    <a class="${active === 'history' ? 'active' : ''}" onclick="navigate('history')">Match History</a>
+  </div>`;
+}
+
+// ---------------------------------------------------------------------------
+// Leaderboard View
+// ---------------------------------------------------------------------------
+function renderLeaderboard() {
+  const s = leaderboard.standings;
+  const hist = leaderboard.elo_history || {};
+
+  let html = navHTML('leaderboard');
+  html += `<h1>Loanville Leaderboard</h1>`;
+  html += `<div class="subtitle">${leaderboard.n_matches} matches | K=${leaderboard.config.k} | updated ${leaderboard.computed_at}</div>`;
+
+  html += `<table>
+    <thead><tr>
+      <th>#</th><th>Model</th><th>Profit Elo</th><th>Credit Elo</th><th>DealShare Elo</th>
+      <th>Matches</th><th>Avg RAROC</th><th>Trend</th>
+    </tr></thead><tbody>`;
+
+  s.forEach((m, i) => {
+    const h = hist[m.model_id] || [];
+    html += `<tr>
+      <td>${i + 1}</td>
+      <td><a onclick="navigate('model','${m.model_id}')">${m.display_name}</a></td>
+      <td class="${eloClass(m.profit_elo)}">${elo(m.profit_elo)}</td>
+      <td class="${eloClass(m.credit_elo)}">${elo(m.credit_elo)}</td>
+      <td class="${eloClass(m.dealshare_elo)}">${elo(m.dealshare_elo)}</td>
+      <td>${m.matches_played}</td>
+      <td>${m.avg_raroc >= 0 ? '+' : ''}${m.avg_raroc.toFixed(1)}%</td>
+      <td>${sparklineSVG(h, 'profit_elo')}</td>
+    </tr>`;
+  });
+
+  html += '</tbody></table>';
+
+  // Confusion matrix summary
+  html += '<h2>Aggregate Confusion Matrix</h2>';
+  html += `<table class="cm-table"><thead><tr>
+    <th>Model</th><th>Good&rarr;Approve</th><th>Good&rarr;Reject</th>
+    <th>Bad&rarr;Approve</th><th>Bad&rarr;Reject</th>
+    <th>Fraud&rarr;Approve</th><th>Fraud&rarr;Reject</th>
+  </tr></thead><tbody>`;
+
+  s.forEach(m => {
+    const cm = m.confusion_agg || {};
+    const ga = (cm.good || {}).approved || 0;
+    const gr = (cm.good || {}).rejected || 0;
+    const ba = (cm.bad || {}).approved || 0;
+    const br = (cm.bad || {}).rejected || 0;
+    const fa = (cm.fraud || {}).approved || 0;
+    const fr = (cm.fraud || {}).rejected || 0;
+    html += `<tr>
+      <td><a onclick="navigate('model','${m.model_id}')">${m.display_name}</a></td>
+      <td class="num-pos">${ga}</td><td class="num-neg">${gr}</td>
+      <td class="num-neg">${ba}</td><td class="num-pos">${br}</td>
+      <td class="num-neg">${fa}</td><td class="num-pos">${fr}</td>
+    </tr>`;
+  });
+  html += '</tbody></table>';
+
+  app.innerHTML = html;
+}
+
+// ---------------------------------------------------------------------------
+// Model Detail View
+// ---------------------------------------------------------------------------
+function renderModelDetail() {
+  const mid = currentModel;
+  const s = leaderboard.standings.find(s => s.model_id === mid);
+  if (!s) { app.innerHTML = '<p>Model not found</p>'; return; }
+
+  const hist = (leaderboard.elo_history || {})[mid] || [];
+
+  let html = navHTML('');
+  html += `<div class="back"><a onclick="navigate('leaderboard')">&larr; Back to leaderboard</a></div>`;
+  html += `<h1>${s.display_name}</h1>`;
+  html += `<div class="subtitle">${s.model_id} | ${s.matches_played} matches</div>`;
+
+  // Elo summary cards
+  html += `<div class="grid-3">
+    <div class="card">
+      <div style="color:var(--text-muted);font-size:0.85em">Profit Elo</div>
+      <div style="font-size:2em;font-weight:700" class="${eloClass(s.profit_elo)}">${elo(s.profit_elo)}</div>
+      ${sparklineSVG(hist, 'profit_elo', 120, 30)}
+    </div>
+    <div class="card">
+      <div style="color:var(--text-muted);font-size:0.85em">Credit Elo</div>
+      <div style="font-size:2em;font-weight:700" class="${eloClass(s.credit_elo)}">${elo(s.credit_elo)}</div>
+      ${sparklineSVG(hist, 'credit_elo', 120, 30)}
+    </div>
+    <div class="card">
+      <div style="color:var(--text-muted);font-size:0.85em">DealShare Elo</div>
+      <div style="font-size:2em;font-weight:700" class="${eloClass(s.dealshare_elo)}">${elo(s.dealshare_elo)}</div>
+      ${sparklineSVG(hist, 'dealshare_elo', 120, 30)}
+    </div>
+  </div>`;
+
+  // Elo history chart (simple SVG)
+  if (hist.length > 1) {
+    html += '<h2>Elo History</h2>';
+    html += '<div class="card">' + renderEloChart(hist) + '</div>';
+  }
+
+  // Confusion matrix
+  html += '<h2>Confusion Matrix</h2>';
+  const cm = s.confusion_agg || {};
+  html += `<div class="card"><table class="cm-table">
+    <thead><tr><th></th><th>Approved</th><th>Rejected</th><th>Total</th><th>Accuracy</th></tr></thead>
+    <tbody>`;
+  for (const cat of ['good', 'bad', 'fraud']) {
+    const a = (cm[cat] || {}).approved || 0;
+    const r = (cm[cat] || {}).rejected || 0;
+    const total = a + r;
+    const correct = cat === 'good' ? a : r;
+    const acc = total > 0 ? (correct / total * 100).toFixed(0) + '%' : '—';
+    html += `<tr>
+      <td><span class="badge badge-${cat}">${cat}</span></td>
+      <td class="${cat === 'good' ? 'num-pos' : 'num-neg'}">${a}</td>
+      <td class="${cat !== 'good' ? 'num-pos' : 'num-neg'}">${r}</td>
+      <td>${total}</td>
+      <td>${acc}</td>
+    </tr>`;
+  }
+  html += '</tbody></table></div>';
+
+  // Rate analysis
+  const ra = s.rate_analysis || {};
+  if (ra.avg_rate_good != null || ra.avg_rate_bad != null) {
+    html += '<h2>Rate Analysis</h2>';
+    html += `<div class="card">
+      <table>
+        <tr><td>Avg rate on good borrowers</td><td>${ra.avg_rate_good != null ? (ra.avg_rate_good * 100).toFixed(1) + '%' : '—'} (${ra.n_good_offers} offers)</td></tr>
+        <tr><td>Avg rate on bad borrowers</td><td>${ra.avg_rate_bad != null ? (ra.avg_rate_bad * 100).toFixed(1) + '%' : '—'} (${ra.n_bad_offers} offers)</td></tr>
+        ${ra.avg_rate_good != null && ra.avg_rate_bad != null ?
+          `<tr><td>Spread (bad - good)</td><td>${((ra.avg_rate_bad - ra.avg_rate_good) * 100).toFixed(1)}pp</td></tr>` : ''}
+      </table>
+    </div>`;
+  }
+
+  // Match list for this model
+  html += '<h2>Matches</h2>';
+  const matchIds = leaderboard.match_ids || [];
+  html += '<table><thead><tr><th>#</th><th>Match</th><th>Profit Elo</th><th>Delta</th></tr></thead><tbody>';
+  let prev = leaderboard.config.initial_elo;
+  hist.forEach((h, i) => {
+    const delta = h.profit_elo - prev;
+    html += `<tr>
+      <td>${i + 1}</td>
+      <td><a onclick="loadAndShowMatch('${h.match_id}')">${h.match_id}</a></td>
+      <td class="${eloClass(h.profit_elo)}">${elo(h.profit_elo)}</td>
+      <td class="${delta >= 0 ? 'num-pos' : 'num-neg'}">${delta >= 0 ? '+' : ''}${delta.toFixed(1)}</td>
+    </tr>`;
+    prev = h.profit_elo;
+  });
+  html += '</tbody></table>';
+
+  app.innerHTML = html;
+}
+
+function renderEloChart(hist) {
+  const W = 600, H = 180, PAD = 30;
+  const keys = ['profit_elo', 'credit_elo', 'dealshare_elo'];
+  const colors = ['var(--accent)', 'var(--green)', 'var(--purple)'];
+  const labels = ['Profit', 'Credit', 'DealShare'];
+
+  const allVals = keys.flatMap(k => hist.map(h => h[k]));
+  const min = Math.min(...allVals) - 10;
+  const max = Math.max(...allVals) + 10;
+  const range = max - min || 1;
+
+  const x = i => PAD + (i / (hist.length - 1)) * (W - PAD * 2);
+  const y = v => PAD + (1 - (v - min) / range) * (H - PAD * 2);
+
+  let svg = `<svg width="100%" viewBox="0 0 ${W} ${H}" style="max-width:${W}px">`;
+
+  // Grid lines
+  for (let v = Math.ceil(min / 50) * 50; v <= max; v += 50) {
+    svg += `<line x1="${PAD}" y1="${y(v)}" x2="${W - PAD}" y2="${y(v)}" stroke="var(--border)" stroke-dasharray="4"/>`;
+    svg += `<text x="${PAD - 4}" y="${y(v) + 4}" fill="var(--text-muted)" font-size="10" text-anchor="end">${v}</text>`;
+  }
+
+  // Lines
+  keys.forEach((k, ki) => {
+    const points = hist.map((h, i) => `${x(i)},${y(h[k])}`).join(' ');
+    svg += `<polyline fill="none" stroke="${colors[ki]}" stroke-width="2" points="${points}"/>`;
+  });
+
+  // 1500 baseline
+  svg += `<line x1="${PAD}" y1="${y(1500)}" x2="${W - PAD}" y2="${y(1500)}" stroke="var(--text-muted)" stroke-dasharray="2" stroke-width="0.5"/>`;
+
+  // Legend
+  keys.forEach((k, ki) => {
+    const lx = PAD + ki * 100;
+    svg += `<rect x="${lx}" y="${H - 12}" width="12" height="3" fill="${colors[ki]}"/>`;
+    svg += `<text x="${lx + 16}" y="${H - 8}" fill="var(--text-muted)" font-size="10">${labels[ki]}</text>`;
+  });
+
+  svg += '</svg>';
+  return svg;
+}
+
+// ---------------------------------------------------------------------------
+// Match Detail View
+// ---------------------------------------------------------------------------
+async function loadAndShowMatch(matchId) {
+  const match = await loadMatch(matchId);
+  if (!match) {
+    alert('Could not load match: ' + matchId);
+    return;
+  }
+  currentMatch = match;
+  currentView = 'match';
+  renderMatchDetailFromData(match);
+}
+
+function renderMatchDetail() {
+  if (!currentMatch) { navigate('leaderboard'); return; }
+  if (typeof currentMatch === 'string') {
+    loadAndShowMatch(currentMatch);
+    return;
+  }
+  renderMatchDetailFromData(currentMatch);
+}
+
+function renderMatchDetailFromData(match) {
+  let html = navHTML('');
+  html += `<div class="back"><a onclick="navigate('leaderboard')">&larr; Back to leaderboard</a></div>`;
+  html += `<h1>Match: ${match.match_id}</h1>`;
+  html += `<div class="subtitle">${match.timestamp_utc} | Mix: ${match.mix} | ${match.n_borrowers} borrowers</div>`;
+
+  // Model summary cards
+  html += '<div class="grid-3">';
+  const results = match.results || [];
+  const sortedResults = [...results].sort((a, b) => (b.raroc_score || 0) - (a.raroc_score || 0));
+
+  sortedResults.forEach((r, i) => {
+    const isWinner = i === 0;
+    const cm = r.confusion_matrix || {};
+    const fraudsA = (cm.fraud || {}).approved || 0;
+    html += `<div class="card" style="${isWinner ? 'border-color:var(--gold)' : ''}">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <strong>${r.model_id.split('/').pop()}</strong>
+        ${isWinner ? '<span class="badge" style="background:rgba(210,153,34,0.2);color:var(--gold)">Winner</span>' : ''}
+      </div>
+      <div style="color:var(--text-muted);font-size:0.8em;margin:4px 0">${r.model_id}</div>
+      <table style="font-size:0.9em">
+        <tr><td>RAROC</td><td class="${r.raroc_score >= 0 ? 'num-pos' : 'num-neg'}">${r.raroc_score >= 0 ? '+' : ''}${(r.raroc_score || 0).toFixed(2)}%</td></tr>
+        <tr><td>Deals Won</td><td>${r.deals_won}</td></tr>
+        <tr><td>Deals Rejected</td><td>${r.deals_rejected}</td></tr>
+        <tr><td>Deployed</td><td>${dollar(r.deployed)}</td></tr>
+        <tr><td>Net P&L</td><td class="${r.net_pnl >= 0 ? 'num-pos' : 'num-neg'}">${dollar(r.net_pnl)}</td></tr>
+        <tr><td>Frauds Funded</td><td class="${fraudsA > 0 ? 'num-neg' : ''}">${r.frauds_funded || 0}</td></tr>
+        <tr><td>Defaults</td><td>${r.defaults || 0}</td></tr>
+      </table>
+    </div>`;
+  });
+  html += '</div>';
+
+  // Borrower-by-borrower table
+  html += '<h2>Borrower-by-Borrower Decisions</h2>';
+
+  // Collect all borrower IDs
+  const borrowerIds = new Set();
+  results.forEach(r => {
+    Object.keys(r.per_borrower || {}).forEach(bid => borrowerIds.add(bid));
+  });
+  const bids = [...borrowerIds].sort();
+
+  html += '<div style="overflow-x:auto"><table><thead><tr>';
+  html += '<th>Borrower</th><th>Truth</th>';
+  results.forEach(r => {
+    const shortName = r.model_id.split('/').pop();
+    html += `<th>${shortName}</th>`;
+  });
+  html += '<th>Winner</th></tr></thead><tbody>';
+
+  bids.forEach(bid => {
+    html += '<tr>';
+    // Find ground truth from first result
+    const gt = results[0]?.per_borrower?.[bid]?.ground_truth || '?';
+    html += `<td style="font-family:monospace;font-size:0.85em">${bid}</td>`;
+    html += `<td><span class="badge badge-${gt}">${gt}</span></td>`;
+
+    let winnerModel = null;
+    let lowestRate = Infinity;
+
+    // Find winner (model that won this borrower)
+    results.forEach(r => {
+      const bd = r.per_borrower?.[bid];
+      if (bd && bd.decision_state === 'won') {
+        winnerModel = r.model_id;
+      }
+    });
+
+    results.forEach(r => {
+      const bd = r.per_borrower?.[bid];
+      if (!bd) { html += '<td>—</td>'; return; }
+
+      const state = bd.decision_state;
+      const rate = bd.rate_offered;
+      const isWinner = r.model_id === winnerModel;
+
+      // Determine correctness
+      const approved = state === 'won' || state === 'lost';
+      const correct = (gt === 'good' && approved) || (gt !== 'good' && !approved);
+
+      let cellClass = correct ? 'correct' : 'incorrect';
+      let content = '';
+
+      if (state === 'declined') {
+        content = '<span style="color:var(--text-muted)">DECLINE</span>';
+      } else if (state === 'won' || state === 'lost') {
+        const rateStr = rate != null ? (rate * 100).toFixed(1) + '%' : '';
+        content = `APPROVE ${rateStr}`;
+        if (isWinner) content += ' ★';
+      } else {
+        content = state;
+      }
+
+      html += `<td class="${cellClass}" ${isWinner ? 'style="font-weight:600;color:var(--gold)"' : ''}>${content}</td>`;
+    });
+
+    // Winner column
+    if (winnerModel) {
+      html += `<td class="winner-cell">${winnerModel.split('/').pop()}</td>`;
+    } else {
+      html += '<td style="color:var(--text-muted)">—</td>';
+    }
+
+    html += '</tr>';
+  });
+
+  html += '</tbody></table></div>';
+
+  // Confusion matrices per model
+  html += '<h2>Confusion Matrices</h2>';
+  html += '<div class="grid-3">';
+  results.forEach(r => {
+    const cm = r.confusion_matrix || {};
+    html += `<div class="card">
+      <strong>${r.model_id.split('/').pop()}</strong>
+      <table class="cm-table" style="font-size:0.9em;margin-top:8px">
+        <thead><tr><th></th><th>Approved</th><th>Rejected</th></tr></thead>
+        <tbody>`;
+    for (const cat of ['good', 'bad', 'fraud']) {
+      const a = (cm[cat] || {}).approved || 0;
+      const r2 = (cm[cat] || {}).rejected || 0;
+      html += `<tr>
+        <td><span class="badge badge-${cat}">${cat}</span></td>
+        <td class="${cat === 'good' ? 'num-pos' : 'num-neg'}">${a}</td>
+        <td class="${cat !== 'good' ? 'num-pos' : 'num-neg'}">${r2}</td>
+      </tr>`;
+    }
+    html += '</tbody></table></div>';
+  });
+  html += '</div>';
+
+  app.innerHTML = html;
+}
+
+// ---------------------------------------------------------------------------
+// Match History View
+// ---------------------------------------------------------------------------
+function renderMatchHistory() {
+  let html = navHTML('history');
+  html += `<h1>Match History</h1>`;
+  html += `<div class="subtitle">${leaderboard.n_matches} total matches</div>`;
+
+  const matchIds = leaderboard.match_ids || [];
+
+  html += '<table><thead><tr>';
+  html += '<th>#</th><th>Match ID</th><th>Timestamp</th>';
+  html += '</tr></thead><tbody>';
+
+  matchIds.forEach((mid, i) => {
+    // Parse timestamp from match ID
+    const ts = mid.replace(/_[a-f0-9]+$/, '').replace(/T/, ' ').replace(/-/g, function(m, offset) {
+      return offset > 9 ? ':' : '-';
+    });
+    html += `<tr>
+      <td>${i + 1}</td>
+      <td><a onclick="loadAndShowMatch('${mid}')">${mid}</a></td>
+      <td style="color:var(--text-muted)">${ts}</td>
+    </tr>`;
+  });
+
+  html += '</tbody></table>';
+  app.innerHTML = html;
+}
+
+// ---------------------------------------------------------------------------
+// Init
+// ---------------------------------------------------------------------------
+loadLeaderboard();
+</script>
+</body>
+</html>

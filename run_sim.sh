@@ -41,7 +41,7 @@
 # DEFAULT MODELS (30B-80B range, cheap on OpenRouter)
 # ===================================================
 #   Velocity Capital:   deepseek/deepseek-chat-v3-0324
-#   Heritage Trust:     qwen/qwen3-235b-a22b
+#   Heritage Trust:     google/gemini-2.5-flash
 #   Meridian Partners:  meta-llama/llama-3.3-70b-instruct
 #
 # Override all lenders to a single model with --los-model:
@@ -85,6 +85,7 @@ LOS_MODE="full"
 UNDERWRITE_ONLY="--underwrite-only"
 FULL_PIPELINE=false
 MOCK=false
+LEADERBOARD=false
 EXTRA_ARGS=()
 
 # ── Parse arguments ─────────────────────────────────────────────────────────
@@ -100,6 +101,8 @@ while [[ $# -gt 0 ]]; do
             FULL_PIPELINE=true; UNDERWRITE_ONLY=""; shift ;;
         --mock)
             MOCK=true; shift ;;
+        --leaderboard)
+            LEADERBOARD=true; shift ;;
         --los-provider)
             LOS_PROVIDER="$2"; shift 2 ;;
         --los-mode)
@@ -127,7 +130,9 @@ if $MOCK; then
     echo "  LOANVILLE — MOCK MODE (no LOS, no API key)"
     echo "═══════════════════════════════════════════════════════════════"
     cd "$SCRIPT_DIR"
-    python -m loanville --mock --mix "$MIX" --economics "$ECONOMICS" ${EXTRA_ARGS[@]+"${EXTRA_ARGS[@]}"}
+    LB_FLAG=""
+    if $LEADERBOARD; then LB_FLAG="--leaderboard"; fi
+    python -m loanville --mock --mix "$MIX" --economics "$ECONOMICS" $LB_FLAG ${EXTRA_ARGS[@]+"${EXTRA_ARGS[@]}"}
     exit 0
 fi
 
@@ -139,6 +144,14 @@ if [[ -z "${OPENROUTER_API_KEY:-}" ]]; then
     echo ""
     echo "Or run in mock mode:  ./run_sim.sh --mock"
     exit 1
+fi
+
+# ── Kill anything already on the port ────────────────────────────────────────
+EXISTING_PID=$(lsof -ti:"$LOS_PORT" 2>/dev/null || true)
+if [[ -n "$EXISTING_PID" ]]; then
+    echo "Killing existing process on port $LOS_PORT (pid $EXISTING_PID)..."
+    kill "$EXISTING_PID" 2>/dev/null || true
+    sleep 1
 fi
 
 # ── Cleanup on exit ─────────────────────────────────────────────────────────
@@ -198,14 +211,18 @@ echo "════════════════════════�
 echo ""
 
 cd "$SCRIPT_DIR"
+LB_FLAG=""
+if $LEADERBOARD; then LB_FLAG="--leaderboard"; fi
 python -m loanville \
     --los \
     --los-url "http://localhost:$LOS_PORT" \
     --los-provider "$LOS_PROVIDER" \
     --los-mode "$LOS_MODE" \
+    -v \
     --mix "$MIX" \
     --economics "$ECONOMICS" \
     $UNDERWRITE_ONLY \
+    $LB_FLAG \
     ${EXTRA_ARGS[@]+"${EXTRA_ARGS[@]}"}
 
 echo ""
