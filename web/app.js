@@ -8,7 +8,7 @@
 
 import { AssetLoader } from './asset-loader.js';
 import { TownScene } from './town-scene.js';
-import { generateLayout } from './town-layout.js';
+import { generateLayout, generatePortfolioLayout } from './town-layout.js';
 import { renderStats } from './stats-dashboard.js';
 import { Dashboard2D } from './dashboard-2d.js';
 import { renderElo } from './elo-dashboard.js';
@@ -21,6 +21,9 @@ const LENDER_COLORS = [
 ];
 
 const SPEED_LEVELS = [1, 2, 4];
+const DEFAULT_VISUALIZATION_MODE = 'town';
+const DEFAULT_PORTFOLIO_SHARE_MODE = 'capital';
+const DEFAULT_LABEL_SIZE = 'large';
 
 // ---- App ----
 
@@ -54,10 +57,16 @@ class App {
     this.eventLogEntries = [];
     this.logDetailLevel = 'all';
     this.showLosDetail = false;
+    this.visualizationMode = DEFAULT_VISUALIZATION_MODE;
+    this.portfolioShareMode = DEFAULT_PORTFOLIO_SHARE_MODE;
+    this.labelSize = DEFAULT_LABEL_SIZE;
+    this.configPanelOpen = false;
 
     this.dom = {};
     this._initDOM();
     this._bindEvents();
+    this._applyGameLabelSize();
+    this._syncVisualizationControlState();
     this._populateSeasonDropdown();
   }
 
@@ -96,7 +105,8 @@ class App {
         this.dashboard2d = null;
         await this._initTown();
         this.dom.controlsGroup.hidden = false;
-        this.dom.packSelector.hidden = false;
+        this.dom.configGroup.hidden = false;
+        this._syncVisualizationControlState();
         this._buildTimeline();
         this._renderLeaderboard(-1);
         this._extractSeasonTraces();
@@ -141,10 +151,17 @@ class App {
       losPanel: $('los-panel'),
       losPanelBody: $('los-panel-body'),
       controlsGroup: $('controls-group'),
+      configGroup: $('config-group'),
+      btnConfig: $('btn-config'),
+      configPanel: $('config-panel'),
+      selectVisualization: $('select-visualization'),
+      configBuildingRow: $('config-row-building-pack'),
+      selectPortfolioShare: $('select-portfolio-share'),
+      configPortfolioRow: $('config-row-portfolio-share'),
+      selectLabelSize: $('select-label-size'),
       // Season selector
       selectSeason: $('select-season'),
-      // Pack selector
-      packSelector: $('pack-selector'),
+      // Visualization config
       selectBuildingPack: $('select-building-pack'),
       selectCharacterPack: $('select-character-pack'),
       // Trace tab
@@ -209,7 +226,19 @@ class App {
       if (url) this._loadSeasonFromUrl(url);
     });
 
-    // Pack selector
+    // Visualization config
+    this.dom.btnConfig?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      this._setConfigPanelOpen(!this.configPanelOpen);
+    });
+    this.dom.configPanel?.addEventListener('click', (e) => e.stopPropagation());
+    document.addEventListener('click', () => this._setConfigPanelOpen(false));
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') this._setConfigPanelOpen(false);
+    });
+    this.dom.selectVisualization?.addEventListener('change', () => this._changePack());
+    this.dom.selectPortfolioShare?.addEventListener('change', () => this._changePack());
+    this.dom.selectLabelSize?.addEventListener('change', () => this._changeLabelSize());
     this.dom.selectBuildingPack.addEventListener('change', () => this._changePack());
     this.dom.selectCharacterPack.addEventListener('change', () => this._changePack());
 
@@ -255,7 +284,8 @@ class App {
       this.dashboard2d = null;
       await this._initTown();
       this.dom.controlsGroup.hidden = false;
-      this.dom.packSelector.hidden = false;
+      this.dom.configGroup.hidden = false;
+      this._syncVisualizationControlState();
       this._buildTimeline();
       this._renderLeaderboard(-1);
       this._extractSeasonTraces();
@@ -324,8 +354,12 @@ class App {
     if (this.townScene) this.townScene.dispose();
 
     const lenderCount = this.season.lenders.length;
+    this.visualizationMode = this.dom.selectVisualization?.value || DEFAULT_VISUALIZATION_MODE;
+    this.portfolioShareMode = this.dom.selectPortfolioShare?.value || DEFAULT_PORTFOLIO_SHARE_MODE;
+    this.labelSize = this.dom.selectLabelSize?.value || DEFAULT_LABEL_SIZE;
+    this._applyGameLabelSize();
 
-    this.townScene = new TownScene();
+    this.townScene = new TownScene({ mode: this.visualizationMode });
     this.townScene.init(this.dom.townContainer);
 
     try {
@@ -337,40 +371,94 @@ class App {
       // Honor explicit picker values after first load.
       if (!this.dom.selectBuildingPack.value) this.dom.selectBuildingPack.value = manifest.activePack;
       if (!this.dom.selectCharacterPack.value) this.dom.selectCharacterPack.value = manifest.characterPack;
+      if (!this.dom.selectVisualization?.value) this.dom.selectVisualization.value = this.visualizationMode;
+      if (!this.dom.selectPortfolioShare?.value) this.dom.selectPortfolioShare.value = this.portfolioShareMode;
+      if (!this.dom.selectLabelSize?.value) this.dom.selectLabelSize.value = this.labelSize;
       manifest.activePack = this.dom.selectBuildingPack.value || manifest.activePack;
       manifest.characterPack = this.dom.selectCharacterPack.value || manifest.characterPack;
+      this._syncVisualizationControlState();
 
-      // Use buildingTiers (curated order) if available, else fall back to buildings list
-      const packConfig = this.assetLoader.getActivePack();
-      const buildingFiles = packConfig.buildingTiers || packConfig.buildings;
-      this.layout = generateLayout(lenderCount, buildingFiles);
+      if (this.visualizationMode === 'portfolio-hex') {
+        this.layout = generatePortfolioLayout(this.season.lenders, this.season.weeks, {
+          shareMode: this.portfolioShareMode,
+        });
+      } else {
+        // Use buildingTiers (curated order) if available, else fall back to buildings list
+        const packConfig = this.assetLoader.getActivePack();
+        const buildingFiles = packConfig.buildingTiers || packConfig.buildings;
+        this.layout = generateLayout(lenderCount, buildingFiles);
+      }
 
       // Always set layout on the scene so animations work even without 3D models
       this.townScene.layout = this.layout;
 
       const names = this.season.lenders.map(l => l.name);
       const buildResult = await this.townScene.buildTown(this.layout, names, this.assetLoader);
-      if (buildResult?.fallbackUsed) {
+      if (buildResult?.fallbackUsed && this.visualizationMode === 'town') {
         this._logEvent('system', 'Asset pack not found; rendering fallback town geometry.');
       }
     } catch (err) {
       console.warn('Asset loading failed, continuing without 3D models:', err);
-      // Fallback layout without curated buildings
-      this.layout = generateLayout(lenderCount);
+      // Fallback layout without curated buildings/assets.
+      this.layout = this.visualizationMode === 'portfolio-hex'
+        ? generatePortfolioLayout(this.season.lenders, this.season.weeks, {
+          shareMode: this.portfolioShareMode,
+        })
+        : generateLayout(lenderCount);
       this.townScene.layout = this.layout;
+      const names = this.season.lenders.map(l => l.name);
+      await this.townScene.buildTown(this.layout, names, this.assetLoader);
     }
 
     this.townScene.onBuildingClick = idx => this._showDetail(idx);
     this._renderLenderVisualStates();
   }
 
+  _setConfigPanelOpen(open) {
+    this.configPanelOpen = !!open;
+    if (this.dom.configPanel) this.dom.configPanel.hidden = !this.configPanelOpen;
+    if (this.dom.btnConfig) this.dom.btnConfig.classList.toggle('active', this.configPanelOpen);
+  }
+
+  _syncVisualizationControlState() {
+    const mode = this.dom.selectVisualization?.value || DEFAULT_VISUALIZATION_MODE;
+    const isTown = mode === 'town';
+    const isPortfolio = mode === 'portfolio-hex';
+    if (this.dom.selectBuildingPack) this.dom.selectBuildingPack.disabled = !isTown;
+    if (this.dom.configBuildingRow) this.dom.configBuildingRow.classList.toggle('disabled', !isTown);
+    if (this.dom.selectPortfolioShare) this.dom.selectPortfolioShare.disabled = !isPortfolio;
+    if (this.dom.configPortfolioRow) this.dom.configPortfolioRow.classList.toggle('disabled', !isPortfolio);
+  }
+
+  _applyGameLabelSize() {
+    this.labelSize = this.dom.selectLabelSize?.value || this.labelSize || DEFAULT_LABEL_SIZE;
+    const body = document.body;
+    if (!body) return;
+    body.classList.remove('game-labels-small', 'game-labels-medium', 'game-labels-large');
+    body.classList.add(`game-labels-${this.labelSize}`);
+  }
+
+  _changeLabelSize() {
+    this.labelSize = this.dom.selectLabelSize?.value || DEFAULT_LABEL_SIZE;
+    this._applyGameLabelSize();
+  }
+
   async _changePack() {
-    if (!this.season) return;
+    this.visualizationMode = this.dom.selectVisualization?.value || DEFAULT_VISUALIZATION_MODE;
+    this.portfolioShareMode = this.dom.selectPortfolioShare?.value || DEFAULT_PORTFOLIO_SHARE_MODE;
+    this.labelSize = this.dom.selectLabelSize?.value || DEFAULT_LABEL_SIZE;
+    this._applyGameLabelSize();
+    this._syncVisualizationControlState();
+    if (!this.season) {
+      this._setConfigPanelOpen(false);
+      return;
+    }
     if (!this.assetLoader.manifest) {
       await this.assetLoader.loadManifest();
     }
     this.assetLoader.manifest.activePack = this.dom.selectBuildingPack.value;
     this.assetLoader.manifest.characterPack = this.dom.selectCharacterPack.value;
+    this._setConfigPanelOpen(false);
     // Rebuild town with new assets
     this._reset();
     await this._initTown();
@@ -637,12 +725,13 @@ class App {
     if (this.dom.toggleLosDetail) this.dom.toggleLosDetail.checked = false;
     this._applyEventLogFilters();
     this._renderLosPanel();
+    this._setConfigPanelOpen(false);
     this.dom.detailPanel.innerHTML = '<div class="detail-placeholder">Click a building to inspect</div>';
 
     // Reset bank signposts
     if (this.season && this.townScene) {
       for (let i = 0; i < this.season.lenders.length; i++) {
-        this.townScene.updateSignpost(i, this.season.lenders[i].name, null, null);
+        this.townScene.updateSignpost(i, this.season.lenders[i].name, null, null, null, null);
         this.townScene.updateLenderBorrowerStack(i, []);
       }
       this._renderLenderVisualStates();
@@ -734,7 +823,22 @@ class App {
       if (!snap) continue;
       const totalDec = (snap.deals_won || 0) + (snap.deals_rejected || 0) + (snap.deals_lost || 0);
       const approvalRate = totalDec > 0 ? ((snap.deals_won || 0) / totalDec) * 100 : null;
-      this.townScene.updateSignpost(i, snap.name, approvalRate, snap.net_pnl);
+      const activeLoans = Array.isArray(snap.active_loans_detail) ? snap.active_loans_detail : [];
+      let aum = null;
+      let avgLoanSize = null;
+      if (activeLoans.length) {
+        aum = activeLoans.reduce(
+          (sum, loan) => sum + (Number(loan.remaining_balance) || Number(loan.principal) || 0),
+          0,
+        );
+        avgLoanSize = aum > 0 ? (aum / activeLoans.length) : null;
+      } else {
+        const deployed = Number(snap.deployed) || 0;
+        const won = Number(snap.deals_won) || 0;
+        aum = deployed > 0 ? deployed : null;
+        avgLoanSize = (deployed > 0 && won > 0) ? (deployed / won) : null;
+      }
+      this.townScene.updateSignpost(i, snap.name, approvalRate, snap.net_pnl, avgLoanSize, aum);
     }
     this._updateSignpostBorrowerStacks();
   }
@@ -750,6 +854,19 @@ class App {
   }
 
   _queuePositionForLender(lenderIndex, queueCount) {
+    if (this.layout?.type === 'portfolio-hex') {
+      const slots = this.layout?.portfolioSlotsByLender?.[lenderIndex] || [];
+      if (slots.length) {
+        const slot = slots[Math.min(queueCount, slots.length - 1)];
+        if (queueCount < slots.length) {
+          return { x: slot.x, z: slot.z };
+        }
+        const overflow = queueCount - slots.length + 1;
+        const angle = overflow * (Math.PI / 3);
+        const radius = 0.45 + Math.floor(overflow / 6) * 0.25;
+        return { x: slot.x + Math.cos(angle) * radius, z: slot.z + Math.sin(angle) * radius };
+      }
+    }
     const bld = this.townScene?.layout?.buildings?.[lenderIndex];
     if (!bld) return null;
     const side = Math.sign(bld.z) || 1;
@@ -1018,6 +1135,10 @@ class App {
       const pnlStr = s.net_pnl >= 0 ? `+$${fmtNum(s.net_pnl)}` : `-$${fmtNum(Math.abs(s.net_pnl))}`;
       const deployed = s.deployed || 0;
       const raroc = deployed > 0 ? ((s.net_pnl / deployed) * 100).toFixed(1) : '0.0';
+      const dealsWon = s.deals_won || 0;
+      const avgLoanSize = dealsWon > 0 ? deployed / dealsWon : 0;
+      const avgLoanStr = dealsWon > 0 ? `$${fmtNum(avgLoanSize)}` : '—';
+      const aumStr = `$${fmtNum(deployed)}`;
 
       const costStr = s.cost_usd > 0 ? `$${s.cost_usd.toFixed(2)}` : '';
 
@@ -1026,6 +1147,10 @@ class App {
         <div class="lb-info">
           <div class="lb-name">${esc(s.name)}</div>
           <div class="lb-model">${esc(s.model)}</div>
+          <div class="lb-bottom">
+            <span class="lb-metric">Loan ${avgLoanStr}</span>
+            <span class="lb-metric">AUM ${aumStr}</span>
+          </div>
         </div>
         <div class="lb-stats">
           <span class="lb-pnl ${pnlClass}">${pnlStr}</span>
