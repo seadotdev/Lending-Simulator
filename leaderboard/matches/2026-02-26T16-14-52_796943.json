@@ -1,0 +1,1887 @@
+{
+  "match_id": "2026-02-26T16-14-52_796943",
+  "timestamp_utc": "2026-02-26T16:14:52Z",
+  "mock": false,
+  "mix": "season-escalating",
+  "n_borrowers": 150,
+  "models": [
+    {
+      "model_id": "nvidia/nemotron-nano-9b-v2",
+      "display_name": "Meridian Partners [nemotron-nano-9b-v2]"
+    },
+    {
+      "model_id": "google/gemini-2.5-flash",
+      "display_name": "Pinnacle Finance [gemini-2.5-flash]"
+    }
+  ],
+  "results": [
+    {
+      "model_id": "nvidia/nemotron-nano-9b-v2",
+      "lender_id": "LND-003",
+      "lender_persona": "Meridian Partners [nemotron-nano-9b-v2]",
+      "raroc_score": 40.02,
+      "deals_won": 18,
+      "deals_rejected": 102,
+      "deals_errored": 30,
+      "frauds_funded": 1,
+      "defaults": 5,
+      "deployed": 1200000.0499999993,
+      "net_pnl": -20384.599999999977,
+      "confusion_matrix": {
+        "good": {
+          "approved": 38,
+          "rejected": 60
+        },
+        "bad": {
+          "approved": 5,
+          "rejected": 11
+        },
+        "fraud": {
+          "approved": 2,
+          "rejected": 4
+        }
+      },
+      "per_borrower": {
+        "BRW-002": {
+          "decision_state": "lost",
+          "ground_truth": "good",
+          "utility": 42000.00000000001,
+          "rate_offered": 10.0
+        },
+        "BRW-029": {
+          "decision_state": "lost",
+          "ground_truth": "good",
+          "utility": 35000.0,
+          "rate_offered": 10.5
+        },
+        "BRW-013": {
+          "decision_state": "lost",
+          "ground_truth": "good",
+          "utility": 56000.00000000001,
+          "rate_offered": 10.0
+        },
+        "BRW-004": {
+          "decision_state": "declined",
+          "ground_truth": "good",
+          "utility": 21000.000000000004,
+          "rate_offered": null
+        },
+        "BRW-036": {
+          "decision_state": "declined",
+          "ground_truth": "good",
+          "utility": 42000.00000000001,
+          "rate_offered": null
+        },
+        "BRW-014": {
+          "decision_state": "declined",
+          "ground_truth": "good",
+          "utility": 28000.000000000004,
+          "rate_offered": null
+        },
+        "BRW-034": {
+          "decision_state": "declined",
+          "ground_truth": "good",
+          "utility": 31500.000000000004,
+          "rate_offered": null
+        },
+        "BRW-030": {
+          "decision_state": "declined",
+          "ground_truth": "good",
+          "utility": 49000.00000000001,
+          "rate_offered": null
+        },
+        "BRW-003": {
+          "decision_state": "declined",
+          "ground_truth": "good",
+          "utility": 105000.00000000001,
+          "rate_offered": null
+        },
+        "BRW-022": {
+          "decision_state": "declined",
+          "ground_truth": "bad",
+          "utility": 42000.00000000001,
+          "rate_offered": null
+        },
+        "BRW-005": {
+          "decision_state": "lost",
+          "ground_truth": "good",
+          "utility": 56000.00000000001,
+          "rate_offered": 10.5
+        },
+        "BRW-017": {
+          "decision_state": "lost",
+          "ground_truth": "good",
+          "utility": 42000.00000000001,
+          "rate_offered": 10.5
+        },
+        "BRW-015": {
+          "decision_state": "lost",
+          "ground_truth": "good",
+          "utility": 49000.00000000001,
+          "rate_offered": 10.5
+        },
+        "BRW-035": {
+          "decision_state": "declined",
+          "ground_truth": "good",
+          "utility": 38500.00000000001,
+          "rate_offered": null
+        },
+        "BRW-016": {
+          "decision_state": "declined",
+          "ground_truth": "good",
+          "utility": 38500.00000000001,
+          "rate_offered": null
+        },
+        "BRW-032": {
+          "decision_state": "declined",
+          "ground_truth": "good",
+          "utility": 24500.000000000004,
+          "rate_offered": null
+        },
+        "BRW-001": {
+          "decision_state": "declined",
+          "ground_truth": "good",
+          "utility": 70000.0,
+          "rate_offered": null
+        },
+        "BRW-033": {
+          "decision_state": "declined",
+          "ground_truth": "good",
+          "utility": 49000.00000000001,
+          "rate_offered": null
+        },
+        "BRW-031": {
+          "decision_state": "declined",
+          "ground_truth": "good",
+          "utility": 28000.000000000004,
+          "rate_offered": null
+        },
+        "BRW-023": {
+          "decision_state": "declined",
+          "ground_truth": "bad",
+          "utility": 63000.00000000001,
+          "rate_offered": null
+        },
+        "BRW-S03-006": {
+          "decision_state": "lost",
+          "ground_truth": "good",
+          "utility": 71400.0,
+          "rate_offered": 10.5
+        },
+        "BRW-S03-007": {
+          "decision_state": "won",
+          "ground_truth": "good",
+          "utility": 27545.124865707014,
+          "rate_offered": 10.5
+        },
+        "BRW-S03-004": {
+          "decision_state": "won",
+          "ground_truth": "good",
+          "utility": 27545.124865707014,
+          "rate_offered": 10.5
+        },
+        "BRW-S03-009": {
+          "decision_state": "declined",
+          "ground_truth": "good",
+          "utility": 63000.00000000001,
+          "rate_offered": null
+        },
+        "BRW-S03-002": {
+          "decision_state": "declined",
+          "ground_truth": "good",
+          "utility": 71400.0,
+          "rate_offered": null
+        },
+        "BRW-S03-010": {
+          "decision_state": "declined",
+          "ground_truth": "bad",
+          "utility": 42000.00000000001,
+          "rate_offered": null
+        },
+        "BRW-S03-001": {
+          "decision_state": "declined",
+          "ground_truth": "good",
+          "utility": 50400.00000000001,
+          "rate_offered": null
+        },
+        "BRW-S03-003": {
+          "decision_state": "declined",
+          "ground_truth": "good",
+          "utility": 60200.00000000001,
+          "rate_offered": null
+        },
+        "BRW-S03-005": {
+          "decision_state": "declined",
+          "ground_truth": "good",
+          "utility": 61600.00000000001,
+          "rate_offered": null
+        },
+        "BRW-S03-008": {
+          "decision_state": "declined",
+          "ground_truth": "good",
+          "utility": 64400.00000000001,
+          "rate_offered": null
+        },
+        "BRW-S04-004": {
+          "decision_state": "lost",
+          "ground_truth": "good",
+          "utility": 44800.00000000001,
+          "rate_offered": 10.0
+        },
+        "BRW-S04-009": {
+          "decision_state": "won",
+          "ground_truth": "good",
+          "utility": 22823.103460157283,
+          "rate_offered": 10.5
+        },
+        "BRW-S04-001": {
+          "decision_state": "won",
+          "ground_truth": "good",
+          "utility": 22036.099892565617,
+          "rate_offered": 10.5
+        },
+        "BRW-S04-005": {
+          "decision_state": "declined",
+          "ground_truth": "good",
+          "utility": 54600.00000000001,
+          "rate_offered": null
+        },
+        "BRW-S04-008": {
+          "decision_state": "declined",
+          "ground_truth": "good",
+          "utility": 61600.00000000001,
+          "rate_offered": null
+        },
+        "BRW-S04-007": {
+          "decision_state": "declined",
+          "ground_truth": "good",
+          "utility": 46200.00000000001,
+          "rate_offered": null
+        },
+        "BRW-S04-010": {
+          "decision_state": "declined",
+          "ground_truth": "bad",
+          "utility": 37800.0,
+          "rate_offered": null
+        },
+        "BRW-S04-002": {
+          "decision_state": "declined",
+          "ground_truth": "good",
+          "utility": 42000.00000000001,
+          "rate_offered": null
+        },
+        "BRW-S04-006": {
+          "decision_state": "declined",
+          "ground_truth": "good",
+          "utility": 42000.00000000001,
+          "rate_offered": null
+        },
+        "BRW-S04-003": {
+          "decision_state": "declined",
+          "ground_truth": "good",
+          "utility": 60200.00000000001,
+          "rate_offered": null
+        },
+        "BRW-S05-007": {
+          "decision_state": "lost",
+          "ground_truth": "good",
+          "utility": 25200.000000000004,
+          "rate_offered": 10.5
+        },
+        "BRW-S05-002": {
+          "decision_state": "declined",
+          "ground_truth": "good",
+          "utility": 71400.0,
+          "rate_offered": null
+        },
+        "BRW-S05-008": {
+          "decision_state": "won",
+          "ground_truth": "good",
+          "utility": 43285.19621753957,
+          "rate_offered": 10.5
+        },
+        "BRW-S05-010": {
+          "decision_state": "declined",
+          "ground_truth": "bad",
+          "utility": 53200.00000000001,
+          "rate_offered": null
+        },
+        "BRW-S05-005": {
+          "decision_state": "won",
+          "ground_truth": "good",
+          "utility": 25971.11773052378,
+          "rate_offered": 10.5
+        },
+        "BRW-S05-001": {
+          "decision_state": "declined",
+          "ground_truth": "good",
+          "utility": 26600.000000000004,
+          "rate_offered": null
+        },
+        "BRW-S05-004": {
+          "decision_state": "declined",
+          "ground_truth": "good",
+          "utility": 53200.00000000001,
+          "rate_offered": null
+        },
+        "BRW-S05-009": {
+          "decision_state": "declined",
+          "ground_truth": "bad",
+          "utility": 16800.0,
+          "rate_offered": null
+        },
+        "BRW-S05-006": {
+          "decision_state": "declined",
+          "ground_truth": "good",
+          "utility": 78400.00000000001,
+          "rate_offered": null
+        },
+        "BRW-S05-003": {
+          "decision_state": "declined",
+          "ground_truth": "good",
+          "utility": 25200.000000000004,
+          "rate_offered": null
+        },
+        "BRW-S06-001": {
+          "decision_state": "lost",
+          "ground_truth": "good",
+          "utility": 78400.00000000001,
+          "rate_offered": 10.5
+        },
+        "BRW-S06-006": {
+          "decision_state": "won",
+          "ground_truth": "good",
+          "utility": 24397.110595340506,
+          "rate_offered": 10.5
+        },
+        "BRW-S06-008": {
+          "decision_state": "declined",
+          "ground_truth": "good",
+          "utility": 32200.000000000004,
+          "rate_offered": null
+        },
+        "BRW-S06-010": {
+          "decision_state": "won",
+          "ground_truth": "bad",
+          "utility": -65721.2178680438,
+          "rate_offered": 10.5
+        },
+        "BRW-S06-007": {
+          "decision_state": "declined",
+          "ground_truth": "good",
+          "utility": 29400.000000000004,
+          "rate_offered": null
+        },
+        "BRW-S06-003": {
+          "decision_state": "declined",
+          "ground_truth": "good",
+          "utility": 84000.00000000001,
+          "rate_offered": null
+        },
+        "BRW-S06-005": {
+          "decision_state": "declined",
+          "ground_truth": "good",
+          "utility": 29400.000000000004,
+          "rate_offered": null
+        },
+        "BRW-S06-002": {
+          "decision_state": "declined",
+          "ground_truth": "good",
+          "utility": 50400.00000000001,
+          "rate_offered": null
+        },
+        "BRW-S06-009": {
+          "decision_state": "declined",
+          "ground_truth": "bad",
+          "utility": 16800.0,
+          "rate_offered": null
+        },
+        "BRW-S06-004": {
+          "decision_state": "declined",
+          "ground_truth": "good",
+          "utility": 21000.000000000004,
+          "rate_offered": null
+        },
+        "BRW-S07-009": {
+          "decision_state": "lost",
+          "ground_truth": "bad",
+          "utility": 54600.00000000001,
+          "rate_offered": 10.5
+        },
+        "BRW-S07-010": {
+          "decision_state": "won",
+          "ground_truth": "bad",
+          "utility": -65721.2178680438,
+          "rate_offered": 10.5
+        },
+        "BRW-S07-002": {
+          "decision_state": "lost",
+          "ground_truth": "good",
+          "utility": 22400.000000000004,
+          "rate_offered": 10.5
+        },
+        "BRW-S07-004": {
+          "decision_state": "declined",
+          "ground_truth": "good",
+          "utility": 79800.00000000001,
+          "rate_offered": null
+        },
+        "BRW-S07-008": {
+          "decision_state": "declined",
+          "ground_truth": "good",
+          "utility": 78400.00000000001,
+          "rate_offered": null
+        },
+        "BRW-S07-005": {
+          "decision_state": "declined",
+          "ground_truth": "good",
+          "utility": 57400.00000000001,
+          "rate_offered": null
+        },
+        "BRW-S07-006": {
+          "decision_state": "declined",
+          "ground_truth": "good",
+          "utility": 70000.0,
+          "rate_offered": null
+        },
+        "BRW-S07-007": {
+          "decision_state": "declined",
+          "ground_truth": "good",
+          "utility": 37800.0,
+          "rate_offered": null
+        },
+        "BRW-S07-003": {
+          "decision_state": "declined",
+          "ground_truth": "good",
+          "utility": 68600.0,
+          "rate_offered": null
+        },
+        "BRW-S07-001": {
+          "decision_state": "declined",
+          "ground_truth": "good",
+          "utility": 22400.000000000004,
+          "rate_offered": null
+        },
+        "BRW-S08-002": {
+          "decision_state": "declined",
+          "ground_truth": "good",
+          "utility": 78400.00000000001,
+          "rate_offered": null
+        },
+        "BRW-S08-001": {
+          "decision_state": "lost",
+          "ground_truth": "good",
+          "utility": 75600.0,
+          "rate_offered": 10.5
+        },
+        "BRW-S08-008": {
+          "decision_state": "lost",
+          "ground_truth": "good",
+          "utility": 33600.0,
+          "rate_offered": 10.5
+        },
+        "BRW-S08-006": {
+          "decision_state": "won",
+          "ground_truth": "good",
+          "utility": 22036.099892565617,
+          "rate_offered": 10.5
+        },
+        "BRW-S08-003": {
+          "decision_state": "declined",
+          "ground_truth": "good",
+          "utility": 50400.00000000001,
+          "rate_offered": null
+        },
+        "BRW-S08-007": {
+          "decision_state": "declined",
+          "ground_truth": "good",
+          "utility": 36400.0,
+          "rate_offered": null
+        },
+        "BRW-S08-005": {
+          "decision_state": "declined",
+          "ground_truth": "good",
+          "utility": 33600.0,
+          "rate_offered": null
+        },
+        "BRW-S08-004": {
+          "decision_state": "declined",
+          "ground_truth": "good",
+          "utility": 30800.000000000004,
+          "rate_offered": null
+        },
+        "BRW-S08-010": {
+          "decision_state": "declined",
+          "ground_truth": "bad",
+          "utility": 46200.00000000001,
+          "rate_offered": null
+        },
+        "BRW-S08-009": {
+          "decision_state": "declined",
+          "ground_truth": "bad",
+          "utility": 56000.00000000001,
+          "rate_offered": null
+        },
+        "BRW-S09-001": {
+          "decision_state": "lost",
+          "ground_truth": "good",
+          "utility": 21000.000000000004,
+          "rate_offered": 10.5
+        },
+        "BRW-S09-004": {
+          "decision_state": "won",
+          "ground_truth": "good",
+          "utility": 26758.121298115344,
+          "rate_offered": 10.5
+        },
+        "BRW-S09-008": {
+          "decision_state": "lost",
+          "ground_truth": "good",
+          "utility": 61600.00000000001,
+          "rate_offered": 10.5
+        },
+        "BRW-S09-006": {
+          "decision_state": "declined",
+          "ground_truth": "good",
+          "utility": 51800.00000000001,
+          "rate_offered": null
+        },
+        "BRW-S09-005": {
+          "decision_state": "declined",
+          "ground_truth": "good",
+          "utility": 78400.00000000001,
+          "rate_offered": null
+        },
+        "BRW-S09-003": {
+          "decision_state": "declined",
+          "ground_truth": "good",
+          "utility": 63000.00000000001,
+          "rate_offered": null
+        },
+        "BRW-S09-010": {
+          "decision_state": "declined",
+          "ground_truth": "bad",
+          "utility": 37800.0,
+          "rate_offered": null
+        },
+        "BRW-S09-002": {
+          "decision_state": "declined",
+          "ground_truth": "good",
+          "utility": 77000.00000000001,
+          "rate_offered": null
+        },
+        "BRW-S09-007": {
+          "decision_state": "declined",
+          "ground_truth": "good",
+          "utility": 74200.0,
+          "rate_offered": null
+        },
+        "BRW-S09-009": {
+          "decision_state": "declined",
+          "ground_truth": "bad",
+          "utility": 50400.00000000001,
+          "rate_offered": null
+        },
+        "BRW-S10-001": {
+          "decision_state": "lost",
+          "ground_truth": "good",
+          "utility": 47600.00000000001,
+          "rate_offered": 10.5
+        },
+        "BRW-S10-007": {
+          "decision_state": "won",
+          "ground_truth": "bad",
+          "utility": -90231.14635442843,
+          "rate_offered": 10.5
+        },
+        "BRW-S10-003": {
+          "decision_state": "won",
+          "ground_truth": "good",
+          "utility": 15740.071351832567,
+          "rate_offered": 10.5
+        },
+        "BRW-S10-002": {
+          "decision_state": "declined",
+          "ground_truth": "good",
+          "utility": 44800.00000000001,
+          "rate_offered": null
+        },
+        "BRW-S10-010": {
+          "decision_state": "declined",
+          "ground_truth": "fraud",
+          "utility": 53200.00000000001,
+          "rate_offered": null
+        },
+        "BRW-S10-004": {
+          "decision_state": "declined",
+          "ground_truth": "good",
+          "utility": 65800.0,
+          "rate_offered": null
+        },
+        "BRW-S10-005": {
+          "decision_state": "declined",
+          "ground_truth": "good",
+          "utility": 56000.00000000001,
+          "rate_offered": null
+        },
+        "BRW-S10-009": {
+          "decision_state": "declined",
+          "ground_truth": "bad",
+          "utility": 25200.000000000004,
+          "rate_offered": null
+        },
+        "BRW-S10-008": {
+          "decision_state": "declined",
+          "ground_truth": "bad",
+          "utility": 36400.0,
+          "rate_offered": null
+        },
+        "BRW-S10-006": {
+          "decision_state": "declined",
+          "ground_truth": "good",
+          "utility": 63000.00000000001,
+          "rate_offered": null
+        },
+        "BRW-S11-003": {
+          "decision_state": "lost",
+          "ground_truth": "good",
+          "utility": 56000.00000000001,
+          "rate_offered": 10.5
+        },
+        "BRW-S11-005": {
+          "decision_state": "lost",
+          "ground_truth": "good",
+          "utility": 75600.0,
+          "rate_offered": 10.5
+        },
+        "BRW-S11-002": {
+          "decision_state": "lost",
+          "ground_truth": "good",
+          "utility": 23800.000000000004,
+          "rate_offered": 10.5
+        },
+        "BRW-S11-006": {
+          "decision_state": "declined",
+          "ground_truth": "good",
+          "utility": 74200.0,
+          "rate_offered": null
+        },
+        "BRW-S11-008": {
+          "decision_state": "declined",
+          "ground_truth": "bad",
+          "utility": 42000.00000000001,
+          "rate_offered": null
+        },
+        "BRW-S11-001": {
+          "decision_state": "declined",
+          "ground_truth": "good",
+          "utility": 22400.000000000004,
+          "rate_offered": null
+        },
+        "BRW-S11-004": {
+          "decision_state": "declined",
+          "ground_truth": "good",
+          "utility": 51800.00000000001,
+          "rate_offered": null
+        },
+        "BRW-S11-010": {
+          "decision_state": "declined",
+          "ground_truth": "fraud",
+          "utility": 30800.000000000004,
+          "rate_offered": null
+        },
+        "BRW-S11-009": {
+          "decision_state": "declined",
+          "ground_truth": "bad",
+          "utility": 30800.000000000004,
+          "rate_offered": null
+        },
+        "BRW-S11-007": {
+          "decision_state": "declined",
+          "ground_truth": "bad",
+          "utility": 58800.00000000001,
+          "rate_offered": null
+        },
+        "BRW-S12-001": {
+          "decision_state": "lost",
+          "ground_truth": "good",
+          "utility": 36400.0,
+          "rate_offered": 10.5
+        },
+        "BRW-S12-004": {
+          "decision_state": "won",
+          "ground_truth": "good",
+          "utility": 44072.19978513123,
+          "rate_offered": 10.5
+        },
+        "BRW-S12-007": {
+          "decision_state": "declined",
+          "ground_truth": "bad",
+          "utility": 43400.00000000001,
+          "rate_offered": null
+        },
+        "BRW-S12-002": {
+          "decision_state": "lost",
+          "ground_truth": "good",
+          "utility": 26600.000000000004,
+          "rate_offered": 10.5
+        },
+        "BRW-S12-006": {
+          "decision_state": "declined",
+          "ground_truth": "good",
+          "utility": 74200.0,
+          "rate_offered": null
+        },
+        "BRW-S12-005": {
+          "decision_state": "declined",
+          "ground_truth": "good",
+          "utility": 56000.00000000001,
+          "rate_offered": null
+        },
+        "BRW-S12-003": {
+          "decision_state": "declined",
+          "ground_truth": "good",
+          "utility": 70000.0,
+          "rate_offered": null
+        },
+        "BRW-S12-008": {
+          "decision_state": "declined",
+          "ground_truth": "bad",
+          "utility": 25200.000000000004,
+          "rate_offered": null
+        },
+        "BRW-S12-010": {
+          "decision_state": "declined",
+          "ground_truth": "fraud",
+          "utility": 60200.00000000001,
+          "rate_offered": null
+        },
+        "BRW-S12-009": {
+          "decision_state": "declined",
+          "ground_truth": "bad",
+          "utility": 53200.00000000001,
+          "rate_offered": null
+        },
+        "BRW-S13-002": {
+          "decision_state": "declined",
+          "ground_truth": "good",
+          "utility": 81200.00000000001,
+          "rate_offered": null
+        },
+        "BRW-S13-009": {
+          "decision_state": "declined",
+          "ground_truth": "bad",
+          "utility": 26600.000000000004,
+          "rate_offered": null
+        },
+        "BRW-S13-010": {
+          "decision_state": "lost",
+          "ground_truth": "fraud",
+          "utility": 33600.0,
+          "rate_offered": 11.0
+        },
+        "BRW-S13-008": {
+          "decision_state": "declined",
+          "ground_truth": "bad",
+          "utility": 15400.000000000002,
+          "rate_offered": null
+        },
+        "BRW-S13-005": {
+          "decision_state": "won",
+          "ground_truth": "good",
+          "utility": 16527.074919424223,
+          "rate_offered": 10.5
+        },
+        "BRW-S13-006": {
+          "decision_state": "lost",
+          "ground_truth": "good",
+          "utility": 77000.00000000001,
+          "rate_offered": 10.5
+        },
+        "BRW-S13-001": {
+          "decision_state": "declined",
+          "ground_truth": "good",
+          "utility": 58800.00000000001,
+          "rate_offered": null
+        },
+        "BRW-S13-003": {
+          "decision_state": "declined",
+          "ground_truth": "good",
+          "utility": 75600.0,
+          "rate_offered": null
+        },
+        "BRW-S13-007": {
+          "decision_state": "declined",
+          "ground_truth": "bad",
+          "utility": 46200.00000000001,
+          "rate_offered": null
+        },
+        "BRW-S13-004": {
+          "decision_state": "declined",
+          "ground_truth": "good",
+          "utility": 82600.00000000001,
+          "rate_offered": null
+        },
+        "BRW-S14-006": {
+          "decision_state": "lost",
+          "ground_truth": "good",
+          "utility": 39200.00000000001,
+          "rate_offered": 10.5
+        },
+        "BRW-S14-002": {
+          "decision_state": "won",
+          "ground_truth": "good",
+          "utility": 25184.11416293212,
+          "rate_offered": 10.5
+        },
+        "BRW-S14-004": {
+          "decision_state": "lost",
+          "ground_truth": "good",
+          "utility": 82600.00000000001,
+          "rate_offered": 10.5
+        },
+        "BRW-S14-005": {
+          "decision_state": "declined",
+          "ground_truth": "good",
+          "utility": 58800.00000000001,
+          "rate_offered": null
+        },
+        "BRW-S14-001": {
+          "decision_state": "declined",
+          "ground_truth": "good",
+          "utility": 84000.00000000001,
+          "rate_offered": null
+        },
+        "BRW-S14-008": {
+          "decision_state": "declined",
+          "ground_truth": "bad",
+          "utility": 30800.000000000004,
+          "rate_offered": null
+        },
+        "BRW-S14-003": {
+          "decision_state": "declined",
+          "ground_truth": "good",
+          "utility": 32200.000000000004,
+          "rate_offered": null
+        },
+        "BRW-S14-007": {
+          "decision_state": "declined",
+          "ground_truth": "bad",
+          "utility": 44800.00000000001,
+          "rate_offered": null
+        },
+        "BRW-S14-009": {
+          "decision_state": "declined",
+          "ground_truth": "bad",
+          "utility": 61600.00000000001,
+          "rate_offered": null
+        },
+        "BRW-S14-010": {
+          "decision_state": "declined",
+          "ground_truth": "fraud",
+          "utility": 30800.000000000004,
+          "rate_offered": null
+        },
+        "BRW-S15-010": {
+          "decision_state": "won",
+          "ground_truth": "fraud",
+          "utility": -441960.0,
+          "rate_offered": 10.5
+        },
+        "BRW-S15-005": {
+          "decision_state": "lost",
+          "ground_truth": "good",
+          "utility": 26600.000000000004,
+          "rate_offered": 10.5
+        },
+        "BRW-S15-001": {
+          "decision_state": "declined",
+          "ground_truth": "good",
+          "utility": 53200.00000000001,
+          "rate_offered": null
+        },
+        "BRW-S15-008": {
+          "decision_state": "won",
+          "ground_truth": "bad",
+          "utility": -66510.10610064269,
+          "rate_offered": 10.5
+        },
+        "BRW-S15-006": {
+          "decision_state": "declined",
+          "ground_truth": "good",
+          "utility": 22400.000000000004,
+          "rate_offered": null
+        },
+        "BRW-S15-003": {
+          "decision_state": "declined",
+          "ground_truth": "good",
+          "utility": 29400.000000000004,
+          "rate_offered": null
+        },
+        "BRW-S15-002": {
+          "decision_state": "declined",
+          "ground_truth": "good",
+          "utility": 70000.0,
+          "rate_offered": null
+        },
+        "BRW-S15-007": {
+          "decision_state": "declined",
+          "ground_truth": "bad",
+          "utility": 58800.00000000001,
+          "rate_offered": null
+        },
+        "BRW-S15-009": {
+          "decision_state": "declined",
+          "ground_truth": "bad",
+          "utility": 21000.000000000004,
+          "rate_offered": null
+        },
+        "BRW-S15-004": {
+          "decision_state": "declined",
+          "ground_truth": "good",
+          "utility": 57400.00000000001,
+          "rate_offered": null
+        }
+      },
+      "tokens_in": 948550,
+      "tokens_out": 94127,
+      "cost_usd": 4.2576
+    },
+    {
+      "model_id": "google/gemini-2.5-flash",
+      "lender_id": "LND-004",
+      "lender_persona": "Pinnacle Finance [gemini-2.5-flash]",
+      "raroc_score": 93.6,
+      "deals_won": 9,
+      "deals_rejected": 137,
+      "deals_errored": 4,
+      "frauds_funded": 0,
+      "defaults": 0,
+      "deployed": 880000.0100000004,
+      "net_pnl": 656217.96,
+      "confusion_matrix": {
+        "good": {
+          "approved": 43,
+          "rejected": 68
+        },
+        "bad": {
+          "approved": 0,
+          "rejected": 29
+        },
+        "fraud": {
+          "approved": 2,
+          "rejected": 4
+        }
+      },
+      "per_borrower": {
+        "BRW-002": {
+          "decision_state": "lost",
+          "ground_truth": "good",
+          "utility": 42000.00000000001,
+          "rate_offered": 12.0
+        },
+        "BRW-029": {
+          "decision_state": "lost",
+          "ground_truth": "good",
+          "utility": 35000.0,
+          "rate_offered": 12.0
+        },
+        "BRW-013": {
+          "decision_state": "lost",
+          "ground_truth": "good",
+          "utility": 56000.00000000001,
+          "rate_offered": 12.0
+        },
+        "BRW-004": {
+          "decision_state": "declined",
+          "ground_truth": "good",
+          "utility": 21000.000000000004,
+          "rate_offered": null
+        },
+        "BRW-036": {
+          "decision_state": "declined",
+          "ground_truth": "good",
+          "utility": 42000.00000000001,
+          "rate_offered": null
+        },
+        "BRW-014": {
+          "decision_state": "declined",
+          "ground_truth": "good",
+          "utility": 28000.000000000004,
+          "rate_offered": null
+        },
+        "BRW-034": {
+          "decision_state": "declined",
+          "ground_truth": "good",
+          "utility": 31500.000000000004,
+          "rate_offered": null
+        },
+        "BRW-030": {
+          "decision_state": "declined",
+          "ground_truth": "good",
+          "utility": 49000.00000000001,
+          "rate_offered": null
+        },
+        "BRW-003": {
+          "decision_state": "declined",
+          "ground_truth": "good",
+          "utility": 105000.00000000001,
+          "rate_offered": null
+        },
+        "BRW-022": {
+          "decision_state": "declined",
+          "ground_truth": "bad",
+          "utility": 42000.00000000001,
+          "rate_offered": null
+        },
+        "BRW-005": {
+          "decision_state": "lost",
+          "ground_truth": "good",
+          "utility": 56000.00000000001,
+          "rate_offered": 12.0
+        },
+        "BRW-017": {
+          "decision_state": "lost",
+          "ground_truth": "good",
+          "utility": 42000.00000000001,
+          "rate_offered": 11.5
+        },
+        "BRW-015": {
+          "decision_state": "lost",
+          "ground_truth": "good",
+          "utility": 49000.00000000001,
+          "rate_offered": 12.5
+        },
+        "BRW-035": {
+          "decision_state": "declined",
+          "ground_truth": "good",
+          "utility": 38500.00000000001,
+          "rate_offered": null
+        },
+        "BRW-016": {
+          "decision_state": "declined",
+          "ground_truth": "good",
+          "utility": 38500.00000000001,
+          "rate_offered": null
+        },
+        "BRW-032": {
+          "decision_state": "declined",
+          "ground_truth": "good",
+          "utility": 24500.000000000004,
+          "rate_offered": null
+        },
+        "BRW-001": {
+          "decision_state": "declined",
+          "ground_truth": "good",
+          "utility": 70000.0,
+          "rate_offered": null
+        },
+        "BRW-033": {
+          "decision_state": "declined",
+          "ground_truth": "good",
+          "utility": 49000.00000000001,
+          "rate_offered": null
+        },
+        "BRW-031": {
+          "decision_state": "declined",
+          "ground_truth": "good",
+          "utility": 28000.000000000004,
+          "rate_offered": null
+        },
+        "BRW-023": {
+          "decision_state": "declined",
+          "ground_truth": "bad",
+          "utility": 63000.00000000001,
+          "rate_offered": null
+        },
+        "BRW-S03-006": {
+          "decision_state": "lost",
+          "ground_truth": "good",
+          "utility": 71400.0,
+          "rate_offered": 11.5
+        },
+        "BRW-S03-007": {
+          "decision_state": "lost",
+          "ground_truth": "good",
+          "utility": 49000.00000000001,
+          "rate_offered": 11.5
+        },
+        "BRW-S03-004": {
+          "decision_state": "lost",
+          "ground_truth": "good",
+          "utility": 49000.00000000001,
+          "rate_offered": 11.5
+        },
+        "BRW-S03-009": {
+          "decision_state": "declined",
+          "ground_truth": "good",
+          "utility": 63000.00000000001,
+          "rate_offered": null
+        },
+        "BRW-S03-002": {
+          "decision_state": "declined",
+          "ground_truth": "good",
+          "utility": 71400.0,
+          "rate_offered": null
+        },
+        "BRW-S03-010": {
+          "decision_state": "declined",
+          "ground_truth": "bad",
+          "utility": 42000.00000000001,
+          "rate_offered": null
+        },
+        "BRW-S03-001": {
+          "decision_state": "declined",
+          "ground_truth": "good",
+          "utility": 50400.00000000001,
+          "rate_offered": null
+        },
+        "BRW-S03-003": {
+          "decision_state": "declined",
+          "ground_truth": "good",
+          "utility": 60200.00000000001,
+          "rate_offered": null
+        },
+        "BRW-S03-005": {
+          "decision_state": "declined",
+          "ground_truth": "good",
+          "utility": 61600.00000000001,
+          "rate_offered": null
+        },
+        "BRW-S03-008": {
+          "decision_state": "declined",
+          "ground_truth": "good",
+          "utility": 64400.00000000001,
+          "rate_offered": null
+        },
+        "BRW-S04-004": {
+          "decision_state": "lost",
+          "ground_truth": "good",
+          "utility": 44800.00000000001,
+          "rate_offered": 11.8
+        },
+        "BRW-S04-009": {
+          "decision_state": "lost",
+          "ground_truth": "good",
+          "utility": 40600.00000000001,
+          "rate_offered": 11.5
+        },
+        "BRW-S04-001": {
+          "decision_state": "lost",
+          "ground_truth": "good",
+          "utility": 39200.00000000001,
+          "rate_offered": 11.8
+        },
+        "BRW-S04-005": {
+          "decision_state": "declined",
+          "ground_truth": "good",
+          "utility": 54600.00000000001,
+          "rate_offered": null
+        },
+        "BRW-S04-008": {
+          "decision_state": "declined",
+          "ground_truth": "good",
+          "utility": 61600.00000000001,
+          "rate_offered": null
+        },
+        "BRW-S04-007": {
+          "decision_state": "declined",
+          "ground_truth": "good",
+          "utility": 46200.00000000001,
+          "rate_offered": null
+        },
+        "BRW-S04-010": {
+          "decision_state": "declined",
+          "ground_truth": "bad",
+          "utility": 37800.0,
+          "rate_offered": null
+        },
+        "BRW-S04-002": {
+          "decision_state": "declined",
+          "ground_truth": "good",
+          "utility": 42000.00000000001,
+          "rate_offered": null
+        },
+        "BRW-S04-006": {
+          "decision_state": "declined",
+          "ground_truth": "good",
+          "utility": 42000.00000000001,
+          "rate_offered": null
+        },
+        "BRW-S04-003": {
+          "decision_state": "declined",
+          "ground_truth": "good",
+          "utility": 60200.00000000001,
+          "rate_offered": null
+        },
+        "BRW-S05-007": {
+          "decision_state": "lost",
+          "ground_truth": "good",
+          "utility": 25200.000000000004,
+          "rate_offered": 10.5
+        },
+        "BRW-S05-002": {
+          "decision_state": "won",
+          "ground_truth": "good",
+          "utility": 48592.09890466052,
+          "rate_offered": 10.5
+        },
+        "BRW-S05-008": {
+          "decision_state": "lost",
+          "ground_truth": "good",
+          "utility": 77000.00000000001,
+          "rate_offered": 10.5
+        },
+        "BRW-S05-010": {
+          "decision_state": "declined",
+          "ground_truth": "bad",
+          "utility": 53200.00000000001,
+          "rate_offered": null
+        },
+        "BRW-S05-005": {
+          "decision_state": "declined",
+          "ground_truth": "good",
+          "utility": 46200.00000000001,
+          "rate_offered": null
+        },
+        "BRW-S05-001": {
+          "decision_state": "declined",
+          "ground_truth": "good",
+          "utility": 26600.000000000004,
+          "rate_offered": null
+        },
+        "BRW-S05-004": {
+          "decision_state": "declined",
+          "ground_truth": "good",
+          "utility": 53200.00000000001,
+          "rate_offered": null
+        },
+        "BRW-S05-009": {
+          "decision_state": "declined",
+          "ground_truth": "bad",
+          "utility": 16800.0,
+          "rate_offered": null
+        },
+        "BRW-S05-006": {
+          "decision_state": "declined",
+          "ground_truth": "good",
+          "utility": 78400.00000000001,
+          "rate_offered": null
+        },
+        "BRW-S05-003": {
+          "decision_state": "declined",
+          "ground_truth": "good",
+          "utility": 25200.000000000004,
+          "rate_offered": null
+        },
+        "BRW-S06-001": {
+          "decision_state": "won",
+          "ground_truth": "good",
+          "utility": 68899.61664610641,
+          "rate_offered": 12.5
+        },
+        "BRW-S06-006": {
+          "decision_state": "lost",
+          "ground_truth": "good",
+          "utility": 43400.00000000001,
+          "rate_offered": 11.0
+        },
+        "BRW-S06-008": {
+          "decision_state": "won",
+          "ground_truth": "good",
+          "utility": 23501.269109133413,
+          "rate_offered": 11.0
+        },
+        "BRW-S06-010": {
+          "decision_state": "declined",
+          "ground_truth": "bad",
+          "utility": 18200.0,
+          "rate_offered": null
+        },
+        "BRW-S06-007": {
+          "decision_state": "declined",
+          "ground_truth": "good",
+          "utility": 29400.000000000004,
+          "rate_offered": null
+        },
+        "BRW-S06-003": {
+          "decision_state": "declined",
+          "ground_truth": "good",
+          "utility": 84000.00000000001,
+          "rate_offered": null
+        },
+        "BRW-S06-005": {
+          "decision_state": "declined",
+          "ground_truth": "good",
+          "utility": 29400.000000000004,
+          "rate_offered": null
+        },
+        "BRW-S06-002": {
+          "decision_state": "declined",
+          "ground_truth": "good",
+          "utility": 50400.00000000001,
+          "rate_offered": null
+        },
+        "BRW-S06-009": {
+          "decision_state": "declined",
+          "ground_truth": "bad",
+          "utility": 16800.0,
+          "rate_offered": null
+        },
+        "BRW-S06-004": {
+          "decision_state": "declined",
+          "ground_truth": "good",
+          "utility": 21000.000000000004,
+          "rate_offered": null
+        },
+        "BRW-S07-009": {
+          "decision_state": "declined",
+          "ground_truth": "bad",
+          "utility": 54600.00000000001,
+          "rate_offered": null
+        },
+        "BRW-S07-010": {
+          "decision_state": "declined",
+          "ground_truth": "bad",
+          "utility": 18200.0,
+          "rate_offered": null
+        },
+        "BRW-S07-002": {
+          "decision_state": "lost",
+          "ground_truth": "good",
+          "utility": 22400.000000000004,
+          "rate_offered": 11.5
+        },
+        "BRW-S07-004": {
+          "decision_state": "won",
+          "ground_truth": "good",
+          "utility": 62190.2992451999,
+          "rate_offered": 11.5
+        },
+        "BRW-S07-008": {
+          "decision_state": "won",
+          "ground_truth": "good",
+          "utility": 63433.35829125113,
+          "rate_offered": 11.8
+        },
+        "BRW-S07-005": {
+          "decision_state": "declined",
+          "ground_truth": "good",
+          "utility": 57400.00000000001,
+          "rate_offered": null
+        },
+        "BRW-S07-006": {
+          "decision_state": "declined",
+          "ground_truth": "good",
+          "utility": 70000.0,
+          "rate_offered": null
+        },
+        "BRW-S07-007": {
+          "decision_state": "declined",
+          "ground_truth": "good",
+          "utility": 37800.0,
+          "rate_offered": null
+        },
+        "BRW-S07-003": {
+          "decision_state": "declined",
+          "ground_truth": "good",
+          "utility": 68600.0,
+          "rate_offered": null
+        },
+        "BRW-S07-001": {
+          "decision_state": "declined",
+          "ground_truth": "good",
+          "utility": 22400.000000000004,
+          "rate_offered": null
+        },
+        "BRW-S08-002": {
+          "decision_state": "lost",
+          "ground_truth": "good",
+          "utility": 78400.00000000001,
+          "rate_offered": 10.8
+        },
+        "BRW-S08-001": {
+          "decision_state": "lost",
+          "ground_truth": "good",
+          "utility": 75600.0,
+          "rate_offered": 10.4
+        },
+        "BRW-S08-008": {
+          "decision_state": "lost",
+          "ground_truth": "good",
+          "utility": 33600.0,
+          "rate_offered": 10.5
+        },
+        "BRW-S08-006": {
+          "decision_state": "declined",
+          "ground_truth": "good",
+          "utility": 39200.00000000001,
+          "rate_offered": null
+        },
+        "BRW-S08-003": {
+          "decision_state": "declined",
+          "ground_truth": "good",
+          "utility": 50400.00000000001,
+          "rate_offered": null
+        },
+        "BRW-S08-007": {
+          "decision_state": "declined",
+          "ground_truth": "good",
+          "utility": 36400.0,
+          "rate_offered": null
+        },
+        "BRW-S08-005": {
+          "decision_state": "declined",
+          "ground_truth": "good",
+          "utility": 33600.0,
+          "rate_offered": null
+        },
+        "BRW-S08-004": {
+          "decision_state": "declined",
+          "ground_truth": "good",
+          "utility": 30800.000000000004,
+          "rate_offered": null
+        },
+        "BRW-S08-010": {
+          "decision_state": "declined",
+          "ground_truth": "bad",
+          "utility": 46200.00000000001,
+          "rate_offered": null
+        },
+        "BRW-S08-009": {
+          "decision_state": "declined",
+          "ground_truth": "bad",
+          "utility": 56000.00000000001,
+          "rate_offered": null
+        },
+        "BRW-S09-001": {
+          "decision_state": "lost",
+          "ground_truth": "good",
+          "utility": 21000.000000000004,
+          "rate_offered": 11.5
+        },
+        "BRW-S09-004": {
+          "decision_state": "lost",
+          "ground_truth": "good",
+          "utility": 47600.00000000001,
+          "rate_offered": 12.0
+        },
+        "BRW-S09-008": {
+          "decision_state": "lost",
+          "ground_truth": "good",
+          "utility": 61600.00000000001,
+          "rate_offered": 12.0
+        },
+        "BRW-S09-006": {
+          "decision_state": "declined",
+          "ground_truth": "good",
+          "utility": 51800.00000000001,
+          "rate_offered": null
+        },
+        "BRW-S09-005": {
+          "decision_state": "declined",
+          "ground_truth": "good",
+          "utility": 78400.00000000001,
+          "rate_offered": null
+        },
+        "BRW-S09-003": {
+          "decision_state": "declined",
+          "ground_truth": "good",
+          "utility": 63000.00000000001,
+          "rate_offered": null
+        },
+        "BRW-S09-010": {
+          "decision_state": "declined",
+          "ground_truth": "bad",
+          "utility": 37800.0,
+          "rate_offered": null
+        },
+        "BRW-S09-002": {
+          "decision_state": "declined",
+          "ground_truth": "good",
+          "utility": 77000.00000000001,
+          "rate_offered": null
+        },
+        "BRW-S09-007": {
+          "decision_state": "declined",
+          "ground_truth": "good",
+          "utility": 74200.0,
+          "rate_offered": null
+        },
+        "BRW-S09-009": {
+          "decision_state": "declined",
+          "ground_truth": "bad",
+          "utility": 50400.00000000001,
+          "rate_offered": null
+        },
+        "BRW-S10-001": {
+          "decision_state": "lost",
+          "ground_truth": "good",
+          "utility": 47600.00000000001,
+          "rate_offered": 10.5
+        },
+        "BRW-S10-007": {
+          "decision_state": "declined",
+          "ground_truth": "bad",
+          "utility": 39200.00000000001,
+          "rate_offered": null
+        },
+        "BRW-S10-003": {
+          "decision_state": "lost",
+          "ground_truth": "good",
+          "utility": 28000.000000000004,
+          "rate_offered": 11.5
+        },
+        "BRW-S10-002": {
+          "decision_state": "won",
+          "ground_truth": "good",
+          "utility": 32697.4178909682,
+          "rate_offered": 11.0
+        },
+        "BRW-S10-010": {
+          "decision_state": "declined",
+          "ground_truth": "fraud",
+          "utility": 53200.00000000001,
+          "rate_offered": null
+        },
+        "BRW-S10-004": {
+          "decision_state": "declined",
+          "ground_truth": "good",
+          "utility": 65800.0,
+          "rate_offered": null
+        },
+        "BRW-S10-005": {
+          "decision_state": "declined",
+          "ground_truth": "good",
+          "utility": 56000.00000000001,
+          "rate_offered": null
+        },
+        "BRW-S10-009": {
+          "decision_state": "declined",
+          "ground_truth": "bad",
+          "utility": 25200.000000000004,
+          "rate_offered": null
+        },
+        "BRW-S10-008": {
+          "decision_state": "declined",
+          "ground_truth": "bad",
+          "utility": 36400.0,
+          "rate_offered": null
+        },
+        "BRW-S10-006": {
+          "decision_state": "declined",
+          "ground_truth": "good",
+          "utility": 63000.00000000001,
+          "rate_offered": null
+        },
+        "BRW-S11-003": {
+          "decision_state": "won",
+          "ground_truth": "good",
+          "utility": 43642.31525978944,
+          "rate_offered": 11.5
+        },
+        "BRW-S11-005": {
+          "decision_state": "lost",
+          "ground_truth": "good",
+          "utility": 75600.0,
+          "rate_offered": 11.5
+        },
+        "BRW-S11-002": {
+          "decision_state": "lost",
+          "ground_truth": "good",
+          "utility": 23800.000000000004,
+          "rate_offered": 11.5
+        },
+        "BRW-S11-006": {
+          "decision_state": "declined",
+          "ground_truth": "good",
+          "utility": 74200.0,
+          "rate_offered": null
+        },
+        "BRW-S11-008": {
+          "decision_state": "declined",
+          "ground_truth": "bad",
+          "utility": 42000.00000000001,
+          "rate_offered": null
+        },
+        "BRW-S11-001": {
+          "decision_state": "declined",
+          "ground_truth": "good",
+          "utility": 22400.000000000004,
+          "rate_offered": null
+        },
+        "BRW-S11-004": {
+          "decision_state": "declined",
+          "ground_truth": "good",
+          "utility": 51800.00000000001,
+          "rate_offered": null
+        },
+        "BRW-S11-010": {
+          "decision_state": "declined",
+          "ground_truth": "fraud",
+          "utility": 30800.000000000004,
+          "rate_offered": null
+        },
+        "BRW-S11-009": {
+          "decision_state": "declined",
+          "ground_truth": "bad",
+          "utility": 30800.000000000004,
+          "rate_offered": null
+        },
+        "BRW-S11-007": {
+          "decision_state": "declined",
+          "ground_truth": "bad",
+          "utility": 58800.00000000001,
+          "rate_offered": null
+        },
+        "BRW-S12-001": {
+          "decision_state": "lost",
+          "ground_truth": "good",
+          "utility": 36400.0,
+          "rate_offered": 11.5
+        },
+        "BRW-S12-004": {
+          "decision_state": "lost",
+          "ground_truth": "good",
+          "utility": 78400.00000000001,
+          "rate_offered": 12.0
+        },
+        "BRW-S12-007": {
+          "decision_state": "declined",
+          "ground_truth": "bad",
+          "utility": 43400.00000000001,
+          "rate_offered": null
+        },
+        "BRW-S12-002": {
+          "decision_state": "won",
+          "ground_truth": "good",
+          "utility": 22050.956398084352,
+          "rate_offered": 12.0
+        },
+        "BRW-S12-006": {
+          "decision_state": "declined",
+          "ground_truth": "good",
+          "utility": 74200.0,
+          "rate_offered": null
+        },
+        "BRW-S12-005": {
+          "decision_state": "declined",
+          "ground_truth": "good",
+          "utility": 56000.00000000001,
+          "rate_offered": null
+        },
+        "BRW-S12-003": {
+          "decision_state": "declined",
+          "ground_truth": "good",
+          "utility": 70000.0,
+          "rate_offered": null
+        },
+        "BRW-S12-008": {
+          "decision_state": "declined",
+          "ground_truth": "bad",
+          "utility": 25200.000000000004,
+          "rate_offered": null
+        },
+        "BRW-S12-010": {
+          "decision_state": "declined",
+          "ground_truth": "fraud",
+          "utility": 60200.00000000001,
+          "rate_offered": null
+        },
+        "BRW-S12-009": {
+          "decision_state": "declined",
+          "ground_truth": "bad",
+          "utility": 53200.00000000001,
+          "rate_offered": null
+        },
+        "BRW-S13-002": {
+          "decision_state": "lost",
+          "ground_truth": "good",
+          "utility": 81200.00000000001,
+          "rate_offered": 11.5
+        },
+        "BRW-S13-009": {
+          "decision_state": "declined",
+          "ground_truth": "bad",
+          "utility": 26600.000000000004,
+          "rate_offered": null
+        },
+        "BRW-S13-010": {
+          "decision_state": "lost",
+          "ground_truth": "fraud",
+          "utility": 33600.0,
+          "rate_offered": 11.5
+        },
+        "BRW-S13-008": {
+          "decision_state": "declined",
+          "ground_truth": "bad",
+          "utility": 15400.000000000002,
+          "rate_offered": null
+        },
+        "BRW-S13-005": {
+          "decision_state": "lost",
+          "ground_truth": "good",
+          "utility": 29400.000000000004,
+          "rate_offered": 11.5
+        },
+        "BRW-S13-006": {
+          "decision_state": "declined",
+          "ground_truth": "good",
+          "utility": 77000.00000000001,
+          "rate_offered": null
+        },
+        "BRW-S13-001": {
+          "decision_state": "declined",
+          "ground_truth": "good",
+          "utility": 58800.00000000001,
+          "rate_offered": null
+        },
+        "BRW-S13-003": {
+          "decision_state": "declined",
+          "ground_truth": "good",
+          "utility": 75600.0,
+          "rate_offered": null
+        },
+        "BRW-S13-007": {
+          "decision_state": "declined",
+          "ground_truth": "bad",
+          "utility": 46200.00000000001,
+          "rate_offered": null
+        },
+        "BRW-S13-004": {
+          "decision_state": "declined",
+          "ground_truth": "good",
+          "utility": 82600.00000000001,
+          "rate_offered": null
+        },
+        "BRW-S14-006": {
+          "decision_state": "lost",
+          "ground_truth": "good",
+          "utility": 39200.00000000001,
+          "rate_offered": 11.0
+        },
+        "BRW-S14-002": {
+          "decision_state": "lost",
+          "ground_truth": "good",
+          "utility": 44800.00000000001,
+          "rate_offered": 10.5
+        },
+        "BRW-S14-004": {
+          "decision_state": "won",
+          "ground_truth": "good",
+          "utility": 60285.86423647265,
+          "rate_offered": 11.0
+        },
+        "BRW-S14-005": {
+          "decision_state": "declined",
+          "ground_truth": "good",
+          "utility": 58800.00000000001,
+          "rate_offered": null
+        },
+        "BRW-S14-001": {
+          "decision_state": "declined",
+          "ground_truth": "good",
+          "utility": 84000.00000000001,
+          "rate_offered": null
+        },
+        "BRW-S14-008": {
+          "decision_state": "declined",
+          "ground_truth": "bad",
+          "utility": 30800.000000000004,
+          "rate_offered": null
+        },
+        "BRW-S14-003": {
+          "decision_state": "declined",
+          "ground_truth": "good",
+          "utility": 32200.000000000004,
+          "rate_offered": null
+        },
+        "BRW-S14-007": {
+          "decision_state": "declined",
+          "ground_truth": "bad",
+          "utility": 44800.00000000001,
+          "rate_offered": null
+        },
+        "BRW-S14-009": {
+          "decision_state": "declined",
+          "ground_truth": "bad",
+          "utility": 61600.00000000001,
+          "rate_offered": null
+        },
+        "BRW-S14-010": {
+          "decision_state": "declined",
+          "ground_truth": "fraud",
+          "utility": 30800.000000000004,
+          "rate_offered": null
+        },
+        "BRW-S15-010": {
+          "decision_state": "lost",
+          "ground_truth": "fraud",
+          "utility": 44800.00000000001,
+          "rate_offered": 11.5
+        },
+        "BRW-S15-005": {
+          "decision_state": "lost",
+          "ground_truth": "good",
+          "utility": 26600.000000000004,
+          "rate_offered": 10.5
+        },
+        "BRW-S15-001": {
+          "decision_state": "lost",
+          "ground_truth": "good",
+          "utility": 53200.00000000001,
+          "rate_offered": 11.5
+        },
+        "BRW-S15-008": {
+          "decision_state": "declined",
+          "ground_truth": "bad",
+          "utility": 19600.000000000004,
+          "rate_offered": null
+        },
+        "BRW-S15-006": {
+          "decision_state": "declined",
+          "ground_truth": "good",
+          "utility": 22400.000000000004,
+          "rate_offered": null
+        },
+        "BRW-S15-003": {
+          "decision_state": "declined",
+          "ground_truth": "good",
+          "utility": 29400.000000000004,
+          "rate_offered": null
+        },
+        "BRW-S15-002": {
+          "decision_state": "declined",
+          "ground_truth": "good",
+          "utility": 70000.0,
+          "rate_offered": null
+        },
+        "BRW-S15-007": {
+          "decision_state": "declined",
+          "ground_truth": "bad",
+          "utility": 58800.00000000001,
+          "rate_offered": null
+        },
+        "BRW-S15-009": {
+          "decision_state": "declined",
+          "ground_truth": "bad",
+          "utility": 21000.000000000004,
+          "rate_offered": null
+        },
+        "BRW-S15-004": {
+          "decision_state": "declined",
+          "ground_truth": "good",
+          "utility": 57400.00000000001,
+          "rate_offered": null
+        }
+      },
+      "tokens_in": 1072477,
+      "tokens_out": 12330,
+      "cost_usd": 3.4024
+    }
+  ],
+  "validation": {
+    "valid": true,
+    "errors": []
+  }
+}

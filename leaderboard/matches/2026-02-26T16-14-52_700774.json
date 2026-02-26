@@ -1,0 +1,207 @@
+{
+  "match_id": "2026-02-26T16-14-52_700774",
+  "timestamp_utc": "2026-02-26T16:14:52Z",
+  "mock": false,
+  "mix": "season-escalating-week-04",
+  "n_borrowers": 10,
+  "models": [
+    {
+      "model_id": "nvidia/nemotron-nano-9b-v2",
+      "display_name": "Meridian Partners [nemotron-nano-9b-v2]"
+    },
+    {
+      "model_id": "google/gemini-2.5-flash",
+      "display_name": "Pinnacle Finance [gemini-2.5-flash]"
+    }
+  ],
+  "results": [
+    {
+      "model_id": "nvidia/nemotron-nano-9b-v2",
+      "lender_id": "LND-003",
+      "lender_persona": "Meridian Partners [nemotron-nano-9b-v2]",
+      "raroc_score": 7.870035675916299,
+      "deals_won": 2,
+      "deals_rejected": 7,
+      "deals_errored": 1,
+      "frauds_funded": 0,
+      "defaults": 0,
+      "deployed": 570000.0,
+      "net_pnl": 44859.2033527229,
+      "confusion_matrix": {
+        "good": {
+          "approved": 3,
+          "rejected": 6
+        },
+        "bad": {
+          "approved": 0,
+          "rejected": 0
+        },
+        "fraud": {
+          "approved": 0,
+          "rejected": 0
+        }
+      },
+      "per_borrower": {
+        "BRW-S04-004": {
+          "decision_state": "lost",
+          "ground_truth": "good",
+          "utility": 44800.00000000001,
+          "rate_offered": 10.0
+        },
+        "BRW-S04-009": {
+          "decision_state": "won",
+          "ground_truth": "good",
+          "utility": 22823.103460157283,
+          "rate_offered": 10.5
+        },
+        "BRW-S04-001": {
+          "decision_state": "won",
+          "ground_truth": "good",
+          "utility": 22036.099892565617,
+          "rate_offered": 10.5
+        },
+        "BRW-S04-005": {
+          "decision_state": "declined",
+          "ground_truth": "good",
+          "utility": 54600.00000000001,
+          "rate_offered": null
+        },
+        "BRW-S04-008": {
+          "decision_state": "declined",
+          "ground_truth": "good",
+          "utility": 61600.00000000001,
+          "rate_offered": null
+        },
+        "BRW-S04-007": {
+          "decision_state": "declined",
+          "ground_truth": "good",
+          "utility": 46200.00000000001,
+          "rate_offered": null
+        },
+        "BRW-S04-010": {
+          "decision_state": "declined",
+          "ground_truth": "bad",
+          "utility": 37800.0,
+          "rate_offered": null
+        },
+        "BRW-S04-002": {
+          "decision_state": "declined",
+          "ground_truth": "good",
+          "utility": 42000.00000000001,
+          "rate_offered": null
+        },
+        "BRW-S04-006": {
+          "decision_state": "declined",
+          "ground_truth": "good",
+          "utility": 42000.00000000001,
+          "rate_offered": null
+        },
+        "BRW-S04-003": {
+          "decision_state": "declined",
+          "ground_truth": "good",
+          "utility": 60200.00000000001,
+          "rate_offered": null
+        }
+      },
+      "tokens_in": 63332,
+      "tokens_out": 6807,
+      "cost_usd": 0.2921
+    },
+    {
+      "model_id": "google/gemini-2.5-flash",
+      "lender_id": "LND-004",
+      "lender_persona": "Pinnacle Finance [gemini-2.5-flash]",
+      "raroc_score": 0.0,
+      "deals_won": 0,
+      "deals_rejected": 10,
+      "deals_errored": 0,
+      "frauds_funded": 0,
+      "defaults": 0,
+      "deployed": 0,
+      "net_pnl": 0.0,
+      "confusion_matrix": {
+        "good": {
+          "approved": 3,
+          "rejected": 6
+        },
+        "bad": {
+          "approved": 0,
+          "rejected": 1
+        },
+        "fraud": {
+          "approved": 0,
+          "rejected": 0
+        }
+      },
+      "per_borrower": {
+        "BRW-S04-004": {
+          "decision_state": "lost",
+          "ground_truth": "good",
+          "utility": 44800.00000000001,
+          "rate_offered": 11.8
+        },
+        "BRW-S04-009": {
+          "decision_state": "lost",
+          "ground_truth": "good",
+          "utility": 40600.00000000001,
+          "rate_offered": 11.5
+        },
+        "BRW-S04-001": {
+          "decision_state": "lost",
+          "ground_truth": "good",
+          "utility": 39200.00000000001,
+          "rate_offered": 11.8
+        },
+        "BRW-S04-005": {
+          "decision_state": "declined",
+          "ground_truth": "good",
+          "utility": 54600.00000000001,
+          "rate_offered": null
+        },
+        "BRW-S04-008": {
+          "decision_state": "declined",
+          "ground_truth": "good",
+          "utility": 61600.00000000001,
+          "rate_offered": null
+        },
+        "BRW-S04-007": {
+          "decision_state": "declined",
+          "ground_truth": "good",
+          "utility": 46200.00000000001,
+          "rate_offered": null
+        },
+        "BRW-S04-010": {
+          "decision_state": "declined",
+          "ground_truth": "bad",
+          "utility": 37800.0,
+          "rate_offered": null
+        },
+        "BRW-S04-002": {
+          "decision_state": "declined",
+          "ground_truth": "good",
+          "utility": 42000.00000000001,
+          "rate_offered": null
+        },
+        "BRW-S04-006": {
+          "decision_state": "declined",
+          "ground_truth": "good",
+          "utility": 42000.00000000001,
+          "rate_offered": null
+        },
+        "BRW-S04-003": {
+          "decision_state": "declined",
+          "ground_truth": "good",
+          "utility": 60200.00000000001,
+          "rate_offered": null
+        }
+      },
+      "tokens_in": 68285,
+      "tokens_out": 815,
+      "cost_usd": 0.2171
+    }
+  ],
+  "validation": {
+    "valid": true,
+    "errors": []
+  }
+}

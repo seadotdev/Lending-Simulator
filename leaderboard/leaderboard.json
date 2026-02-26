@@ -1,6 +1,6 @@
 {
-  "computed_at": "2026-02-26T14:19:57Z",
-  "n_matches": 13,
+  "computed_at": "2026-02-26T16:14:52Z",
+  "n_matches": 51,
   "config": {
     "k": 32,
     "initial_elo": 1500,
@@ -117,6 +117,41 @@
       "total_tokens_out": 0,
       "total_cost_usd": 0.0,
       "avg_cost_per_decision": 0.0
+    },
+    {
+      "model_id": "google/gemini-2.5-flash",
+      "display_name": "gemini-2.5-flash",
+      "composite_elo": 1506.3,
+      "profit_elo": 1510.9,
+      "credit_elo": 1506.4,
+      "dealshare_elo": 1494.7,
+      "matches_played": 45,
+      "mock_matches": 0,
+      "avg_net_pnl": 84358.7,
+      "confusion_agg": {
+        "good": {
+          "approved": 624,
+          "rejected": 181
+        },
+        "bad": {
+          "approved": 19,
+          "rejected": 137
+        },
+        "fraud": {
+          "approved": 24,
+          "rejected": 14
+        }
+      },
+      "rate_analysis": {
+        "avg_rate_good": 10.6,
+        "avg_rate_bad": 11.19,
+        "n_good_offers": 624,
+        "n_bad_offers": 43
+      },
+      "total_tokens_in": 6255686,
+      "total_tokens_out": 66222,
+      "total_cost_usd": 19.7603,
+      "avg_cost_per_decision": 0.0206
     },
     {
       "model_id": "qwen/qwen3-next-80b-a3b-instruct",
@@ -574,41 +609,6 @@
       "avg_cost_per_decision": 0.0
     },
     {
-      "model_id": "nvidia/llama-3.3-nemotron-super-49b-v1.5",
-      "display_name": "llama-3.3-nemotron-super-49b-v1.5",
-      "composite_elo": 1495.3,
-      "profit_elo": 1489.9,
-      "credit_elo": 1503.4,
-      "dealshare_elo": 1496.7,
-      "matches_played": 5,
-      "mock_matches": 0,
-      "avg_net_pnl": 337748.01,
-      "confusion_agg": {
-        "good": {
-          "approved": 111,
-          "rejected": 17
-        },
-        "bad": {
-          "approved": 5,
-          "rejected": 27
-        },
-        "fraud": {
-          "approved": 0,
-          "rejected": 0
-        }
-      },
-      "rate_analysis": {
-        "avg_rate_good": 13.0,
-        "avg_rate_bad": 13.2,
-        "n_good_offers": 111,
-        "n_bad_offers": 5
-      },
-      "total_tokens_in": 0,
-      "total_tokens_out": 0,
-      "total_cost_usd": 0.0,
-      "avg_cost_per_decision": 0.0
-    },
-    {
       "model_id": "minimax/minimax-01",
       "display_name": "minimax-01",
       "composite_elo": 1495.0,
@@ -644,45 +644,187 @@
       "avg_cost_per_decision": 0.0
     },
     {
-      "model_id": "google/gemini-2.5-flash",
-      "display_name": "gemini-2.5-flash",
-      "composite_elo": 1483.6,
-      "profit_elo": 1468.7,
-      "credit_elo": 1477.3,
-      "dealshare_elo": 1530.2,
-      "matches_played": 7,
+      "model_id": "nvidia/nemotron-nano-9b-v2",
+      "display_name": "nemotron-nano-9b-v2",
+      "composite_elo": 1490.5,
+      "profit_elo": 1491.0,
+      "credit_elo": 1480.7,
+      "dealshare_elo": 1504.0,
+      "matches_played": 38,
       "mock_matches": 0,
-      "avg_net_pnl": 315527.98,
+      "avg_net_pnl": -13759.03,
       "confusion_agg": {
         "good": {
-          "approved": 99,
-          "rejected": 45
+          "approved": 487,
+          "rejected": 106
         },
         "bad": {
-          "approved": 3,
-          "rejected": 29
+          "approved": 59,
+          "rejected": 19
         },
         "fraud": {
-          "approved": 3,
+          "approved": 23,
+          "rejected": 7
+        }
+      },
+      "rate_analysis": {
+        "avg_rate_good": 10.48,
+        "avg_rate_bad": 10.6,
+        "n_good_offers": 487,
+        "n_bad_offers": 82
+      },
+      "total_tokens_in": 5697396,
+      "total_tokens_out": 556008,
+      "total_cost_usd": 25.4326,
+      "avg_cost_per_decision": 0.0306
+    },
+    {
+      "model_id": "nvidia/llama-3.3-nemotron-super-49b-v1.5",
+      "display_name": "llama-3.3-nemotron-super-49b-v1.5",
+      "composite_elo": 1482.0,
+      "profit_elo": 1456.7,
+      "credit_elo": 1493.5,
+      "dealshare_elo": 1528.3,
+      "matches_played": 26,
+      "mock_matches": 0,
+      "avg_net_pnl": 101358.65,
+      "confusion_agg": {
+        "good": {
+          "approved": 365,
+          "rejected": 32
+        },
+        "bad": {
+          "approved": 28,
+          "rejected": 30
+        },
+        "fraud": {
+          "approved": 10,
           "rejected": 0
         }
       },
       "rate_analysis": {
-        "avg_rate_good": 6.97,
-        "avg_rate_bad": 8.88,
-        "n_good_offers": 99,
-        "n_bad_offers": 6
+        "avg_rate_good": 9.55,
+        "avg_rate_bad": 8.8,
+        "n_good_offers": 365,
+        "n_bad_offers": 38
       },
-      "total_tokens_in": 0,
-      "total_tokens_out": 0,
-      "total_cost_usd": 0.0,
-      "avg_cost_per_decision": 0.0
+      "total_tokens_in": 2330583,
+      "total_tokens_out": 388969,
+      "total_cost_usd": 12.8261,
+      "avg_cost_per_decision": 0.029
     }
   ],
   "sub_leaderboards": {
-    "by_lender": {},
+    "by_lender": {
+      "LND-002 (Heritage Trust Bank [llama-3.3-nemotron-super-49b-v1.5])": [
+        {
+          "model_id": "google/gemini-2.5-flash",
+          "display_name": "gemini-2.5-flash",
+          "composite_elo": 1516.4,
+          "profit_elo": 1533.2,
+          "credit_elo": 1511.5,
+          "dealshare_elo": 1481.8,
+          "matches_played": 21,
+          "avg_net_pnl": 32290.63
+        },
+        {
+          "model_id": "nvidia/nemotron-nano-9b-v2",
+          "display_name": "nemotron-nano-9b-v2",
+          "composite_elo": 1495.0,
+          "profit_elo": 1497.2,
+          "credit_elo": 1490.8,
+          "dealshare_elo": 1496.0,
+          "matches_played": 21,
+          "avg_net_pnl": -8155.26
+        },
+        {
+          "model_id": "nvidia/llama-3.3-nemotron-super-49b-v1.5",
+          "display_name": "llama-3.3-nemotron-super-49b-v1.5",
+          "composite_elo": 1488.5,
+          "profit_elo": 1469.6,
+          "credit_elo": 1497.6,
+          "dealshare_elo": 1522.2,
+          "matches_played": 21,
+          "avg_net_pnl": 45075.47
+        }
+      ],
+      "LND-003 (Meridian Partners [nemotron-nano-9b-v2])": [
+        {
+          "model_id": "google/gemini-2.5-flash",
+          "display_name": "gemini-2.5-flash",
+          "composite_elo": 1514.1,
+          "profit_elo": 1526.0,
+          "credit_elo": 1514.6,
+          "dealshare_elo": 1483.5,
+          "matches_played": 38,
+          "avg_net_pnl": 41774.88
+        },
+        {
+          "model_id": "nvidia/nemotron-nano-9b-v2",
+          "display_name": "nemotron-nano-9b-v2",
+          "composite_elo": 1497.4,
+          "profit_elo": 1504.4,
+          "credit_elo": 1487.8,
+          "dealshare_elo": 1494.3,
+          "matches_played": 38,
+          "avg_net_pnl": -13759.03
+        },
+        {
+          "model_id": "nvidia/llama-3.3-nemotron-super-49b-v1.5",
+          "display_name": "llama-3.3-nemotron-super-49b-v1.5",
+          "composite_elo": 1488.5,
+          "profit_elo": 1469.6,
+          "credit_elo": 1497.6,
+          "dealshare_elo": 1522.2,
+          "matches_played": 21,
+          "avg_net_pnl": 45075.47
+        }
+      ],
+      "LND-004 (Pinnacle Finance [gemini-2.5-flash])": [
+        {
+          "model_id": "google/gemini-2.5-flash",
+          "display_name": "gemini-2.5-flash",
+          "composite_elo": 1514.1,
+          "profit_elo": 1526.0,
+          "credit_elo": 1514.6,
+          "dealshare_elo": 1483.5,
+          "matches_played": 38,
+          "avg_net_pnl": 41774.88
+        },
+        {
+          "model_id": "nvidia/nemotron-nano-9b-v2",
+          "display_name": "nemotron-nano-9b-v2",
+          "composite_elo": 1497.4,
+          "profit_elo": 1504.4,
+          "credit_elo": 1487.8,
+          "dealshare_elo": 1494.3,
+          "matches_played": 38,
+          "avg_net_pnl": -13759.03
+        },
+        {
+          "model_id": "nvidia/llama-3.3-nemotron-super-49b-v1.5",
+          "display_name": "llama-3.3-nemotron-super-49b-v1.5",
+          "composite_elo": 1488.5,
+          "profit_elo": 1469.6,
+          "credit_elo": 1497.6,
+          "dealshare_elo": 1522.2,
+          "matches_played": 21,
+          "avg_net_pnl": 45075.47
+        }
+      ]
+    },
     "by_match_type": {
       "season": [
+        {
+          "model_id": "google/gemini-2.5-flash",
+          "display_name": "gemini-2.5-flash",
+          "composite_elo": 1510.9,
+          "profit_elo": 1523.9,
+          "credit_elo": 1508.8,
+          "dealshare_elo": 1481.8,
+          "matches_played": 42,
+          "avg_net_pnl": 68819.29
+        },
         {
           "model_id": "openai/gpt-4.1-nano",
           "display_name": "gpt-4.1-nano",
@@ -814,16 +956,6 @@
           "avg_net_pnl": -20603.93
         },
         {
-          "model_id": "nvidia/llama-3.3-nemotron-super-49b-v1.5",
-          "display_name": "llama-3.3-nemotron-super-49b-v1.5",
-          "composite_elo": 1496.3,
-          "profit_elo": 1492.7,
-          "credit_elo": 1503.9,
-          "dealshare_elo": 1493.9,
-          "matches_played": 5,
-          "avg_net_pnl": 337748.01
-        },
-        {
           "model_id": "minimax/minimax-01",
           "display_name": "minimax-01",
           "composite_elo": 1495.0,
@@ -834,14 +966,24 @@
           "avg_net_pnl": 0.0
         },
         {
-          "model_id": "google/gemini-2.5-flash",
-          "display_name": "gemini-2.5-flash",
-          "composite_elo": 1494.4,
-          "profit_elo": 1499.3,
+          "model_id": "nvidia/nemotron-nano-9b-v2",
+          "display_name": "nemotron-nano-9b-v2",
+          "composite_elo": 1494.5,
+          "profit_elo": 1502.3,
           "credit_elo": 1482.8,
-          "dealshare_elo": 1499.6,
-          "matches_played": 4,
-          "avg_net_pnl": 325741.23
+          "dealshare_elo": 1492.6,
+          "matches_played": 38,
+          "avg_net_pnl": -13759.03
+        },
+        {
+          "model_id": "nvidia/llama-3.3-nemotron-super-49b-v1.5",
+          "display_name": "llama-3.3-nemotron-super-49b-v1.5",
+          "composite_elo": 1485.3,
+          "profit_elo": 1465.8,
+          "credit_elo": 1495.2,
+          "dealshare_elo": 1519.1,
+          "matches_played": 26,
+          "avg_net_pnl": 101358.65
         }
       ],
       "single": [
@@ -901,7 +1043,45 @@
     "2026-02-25T19-17-24_3a51a5",
     "2026-02-25T19-30-47_343dac",
     "2026-02-26T14-10-54_f1b9b5",
-    "2026-02-26T14-10-54_f51407"
+    "2026-02-26T14-10-54_f51407",
+    "2026-02-26T15-25-46_66984f",
+    "2026-02-26T15-25-46_ab3b24",
+    "2026-02-26T15-25-46_c33fb5",
+    "2026-02-26T15-25-46_cd2ddc",
+    "2026-02-26T15-25-46_f1d5b7",
+    "2026-02-26T15-25-46_fb664c",
+    "2026-02-26T15-39-33_092608",
+    "2026-02-26T15-39-33_3d48ca",
+    "2026-02-26T15-39-33_4e0851",
+    "2026-02-26T15-39-33_7ef1f1",
+    "2026-02-26T15-39-33_940c60",
+    "2026-02-26T15-39-33_d3045d",
+    "2026-02-26T15-39-33_dc6779",
+    "2026-02-26T15-39-33_e75289",
+    "2026-02-26T15-39-33_f4260b",
+    "2026-02-26T15-55-16_30a39d",
+    "2026-02-26T15-55-16_366b1d",
+    "2026-02-26T15-55-16_43bd71",
+    "2026-02-26T15-55-16_50cb8e",
+    "2026-02-26T15-55-16_71639d",
+    "2026-02-26T15-55-16_793635",
+    "2026-02-26T15-55-16_be14ae",
+    "2026-02-26T15-55-16_bfbfb5",
+    "2026-02-26T15-55-16_ceff51",
+    "2026-02-26T15-55-16_dd346b",
+    "2026-02-26T15-55-16_f02bb7",
+    "2026-02-26T15-55-16_fe7c71",
+    "2026-02-26T16-14-52_2b9886",
+    "2026-02-26T16-14-52_52f37f",
+    "2026-02-26T16-14-52_700774",
+    "2026-02-26T16-14-52_796943",
+    "2026-02-26T16-14-52_82c48f",
+    "2026-02-26T16-14-52_951ad7",
+    "2026-02-26T16-14-52_a55073",
+    "2026-02-26T16-14-52_b99930",
+    "2026-02-26T16-14-52_e258de",
+    "2026-02-26T16-14-52_f2d0fd",
+    "2026-02-26T16-14-52_ff2b22"
   ],
   "elo_history": {
     "deepseek/deepseek-chat-v3-0324": [
@@ -979,6 +1159,234 @@
       },
       {
         "match_id": "2026-02-26T14-10-54_f51407",
+        "profit_elo": 1524.4,
+        "credit_elo": 1503.6,
+        "dealshare_elo": 1475.6
+      },
+      {
+        "match_id": "2026-02-26T15-25-46_66984f",
+        "profit_elo": 1524.4,
+        "credit_elo": 1503.6,
+        "dealshare_elo": 1475.6
+      },
+      {
+        "match_id": "2026-02-26T15-25-46_ab3b24",
+        "profit_elo": 1524.4,
+        "credit_elo": 1503.6,
+        "dealshare_elo": 1475.6
+      },
+      {
+        "match_id": "2026-02-26T15-25-46_c33fb5",
+        "profit_elo": 1524.4,
+        "credit_elo": 1503.6,
+        "dealshare_elo": 1475.6
+      },
+      {
+        "match_id": "2026-02-26T15-25-46_cd2ddc",
+        "profit_elo": 1524.4,
+        "credit_elo": 1503.6,
+        "dealshare_elo": 1475.6
+      },
+      {
+        "match_id": "2026-02-26T15-25-46_f1d5b7",
+        "profit_elo": 1524.4,
+        "credit_elo": 1503.6,
+        "dealshare_elo": 1475.6
+      },
+      {
+        "match_id": "2026-02-26T15-25-46_fb664c",
+        "profit_elo": 1524.4,
+        "credit_elo": 1503.6,
+        "dealshare_elo": 1475.6
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_092608",
+        "profit_elo": 1524.4,
+        "credit_elo": 1503.6,
+        "dealshare_elo": 1475.6
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_3d48ca",
+        "profit_elo": 1524.4,
+        "credit_elo": 1503.6,
+        "dealshare_elo": 1475.6
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_4e0851",
+        "profit_elo": 1524.4,
+        "credit_elo": 1503.6,
+        "dealshare_elo": 1475.6
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_7ef1f1",
+        "profit_elo": 1524.4,
+        "credit_elo": 1503.6,
+        "dealshare_elo": 1475.6
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_940c60",
+        "profit_elo": 1524.4,
+        "credit_elo": 1503.6,
+        "dealshare_elo": 1475.6
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_d3045d",
+        "profit_elo": 1524.4,
+        "credit_elo": 1503.6,
+        "dealshare_elo": 1475.6
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_dc6779",
+        "profit_elo": 1524.4,
+        "credit_elo": 1503.6,
+        "dealshare_elo": 1475.6
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_e75289",
+        "profit_elo": 1524.4,
+        "credit_elo": 1503.6,
+        "dealshare_elo": 1475.6
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_f4260b",
+        "profit_elo": 1524.4,
+        "credit_elo": 1503.6,
+        "dealshare_elo": 1475.6
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_30a39d",
+        "profit_elo": 1524.4,
+        "credit_elo": 1503.6,
+        "dealshare_elo": 1475.6
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_366b1d",
+        "profit_elo": 1524.4,
+        "credit_elo": 1503.6,
+        "dealshare_elo": 1475.6
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_43bd71",
+        "profit_elo": 1524.4,
+        "credit_elo": 1503.6,
+        "dealshare_elo": 1475.6
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_50cb8e",
+        "profit_elo": 1524.4,
+        "credit_elo": 1503.6,
+        "dealshare_elo": 1475.6
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_71639d",
+        "profit_elo": 1524.4,
+        "credit_elo": 1503.6,
+        "dealshare_elo": 1475.6
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_793635",
+        "profit_elo": 1524.4,
+        "credit_elo": 1503.6,
+        "dealshare_elo": 1475.6
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_be14ae",
+        "profit_elo": 1524.4,
+        "credit_elo": 1503.6,
+        "dealshare_elo": 1475.6
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_bfbfb5",
+        "profit_elo": 1524.4,
+        "credit_elo": 1503.6,
+        "dealshare_elo": 1475.6
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_ceff51",
+        "profit_elo": 1524.4,
+        "credit_elo": 1503.6,
+        "dealshare_elo": 1475.6
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_dd346b",
+        "profit_elo": 1524.4,
+        "credit_elo": 1503.6,
+        "dealshare_elo": 1475.6
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_f02bb7",
+        "profit_elo": 1524.4,
+        "credit_elo": 1503.6,
+        "dealshare_elo": 1475.6
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_fe7c71",
+        "profit_elo": 1524.4,
+        "credit_elo": 1503.6,
+        "dealshare_elo": 1475.6
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_2b9886",
+        "profit_elo": 1524.4,
+        "credit_elo": 1503.6,
+        "dealshare_elo": 1475.6
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_52f37f",
+        "profit_elo": 1524.4,
+        "credit_elo": 1503.6,
+        "dealshare_elo": 1475.6
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_700774",
+        "profit_elo": 1524.4,
+        "credit_elo": 1503.6,
+        "dealshare_elo": 1475.6
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_796943",
+        "profit_elo": 1524.4,
+        "credit_elo": 1503.6,
+        "dealshare_elo": 1475.6
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_82c48f",
+        "profit_elo": 1524.4,
+        "credit_elo": 1503.6,
+        "dealshare_elo": 1475.6
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_951ad7",
+        "profit_elo": 1524.4,
+        "credit_elo": 1503.6,
+        "dealshare_elo": 1475.6
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_a55073",
+        "profit_elo": 1524.4,
+        "credit_elo": 1503.6,
+        "dealshare_elo": 1475.6
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_b99930",
+        "profit_elo": 1524.4,
+        "credit_elo": 1503.6,
+        "dealshare_elo": 1475.6
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_e258de",
+        "profit_elo": 1524.4,
+        "credit_elo": 1503.6,
+        "dealshare_elo": 1475.6
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_f2d0fd",
+        "profit_elo": 1524.4,
+        "credit_elo": 1503.6,
+        "dealshare_elo": 1475.6
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_ff2b22",
         "profit_elo": 1524.4,
         "credit_elo": 1503.6,
         "dealshare_elo": 1475.6
@@ -1062,6 +1470,234 @@
         "profit_elo": 1468.7,
         "credit_elo": 1477.3,
         "dealshare_elo": 1530.2
+      },
+      {
+        "match_id": "2026-02-26T15-25-46_66984f",
+        "profit_elo": 1477.6,
+        "credit_elo": 1478.4,
+        "dealshare_elo": 1521.0
+      },
+      {
+        "match_id": "2026-02-26T15-25-46_ab3b24",
+        "profit_elo": 1483.1,
+        "credit_elo": 1481.0,
+        "dealshare_elo": 1517.2
+      },
+      {
+        "match_id": "2026-02-26T15-25-46_c33fb5",
+        "profit_elo": 1493.3,
+        "credit_elo": 1482.0,
+        "dealshare_elo": 1506.9
+      },
+      {
+        "match_id": "2026-02-26T15-25-46_cd2ddc",
+        "profit_elo": 1496.4,
+        "credit_elo": 1488.9,
+        "dealshare_elo": 1512.7
+      },
+      {
+        "match_id": "2026-02-26T15-25-46_f1d5b7",
+        "profit_elo": 1497.3,
+        "credit_elo": 1489.2,
+        "dealshare_elo": 1510.9
+      },
+      {
+        "match_id": "2026-02-26T15-25-46_fb664c",
+        "profit_elo": 1502.8,
+        "credit_elo": 1489.5,
+        "dealshare_elo": 1504.6
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_092608",
+        "profit_elo": 1504.2,
+        "credit_elo": 1491.6,
+        "dealshare_elo": 1504.4
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_3d48ca",
+        "profit_elo": 1509.2,
+        "credit_elo": 1494.3,
+        "dealshare_elo": 1498.5
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_4e0851",
+        "profit_elo": 1509.7,
+        "credit_elo": 1497.4,
+        "dealshare_elo": 1499.2
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_7ef1f1",
+        "profit_elo": 1510.2,
+        "credit_elo": 1500.3,
+        "dealshare_elo": 1499.8
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_940c60",
+        "profit_elo": 1511.2,
+        "credit_elo": 1501.4,
+        "dealshare_elo": 1504.1
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_d3045d",
+        "profit_elo": 1511.6,
+        "credit_elo": 1503.5,
+        "dealshare_elo": 1504.3
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_dc6779",
+        "profit_elo": 1510.3,
+        "credit_elo": 1503.7,
+        "dealshare_elo": 1504.3
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_e75289",
+        "profit_elo": 1509.1,
+        "credit_elo": 1505.0,
+        "dealshare_elo": 1504.3
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_f4260b",
+        "profit_elo": 1509.4,
+        "credit_elo": 1507.1,
+        "dealshare_elo": 1504.4
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_30a39d",
+        "profit_elo": 1509.4,
+        "credit_elo": 1500.9,
+        "dealshare_elo": 1503.1
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_366b1d",
+        "profit_elo": 1511.3,
+        "credit_elo": 1501.8,
+        "dealshare_elo": 1503.2
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_43bd71",
+        "profit_elo": 1516.6,
+        "credit_elo": 1501.2,
+        "dealshare_elo": 1502.9
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_50cb8e",
+        "profit_elo": 1518.4,
+        "credit_elo": 1505.4,
+        "dealshare_elo": 1500.3
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_71639d",
+        "profit_elo": 1518.6,
+        "credit_elo": 1507.7,
+        "dealshare_elo": 1501.6
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_793635",
+        "profit_elo": 1515.0,
+        "credit_elo": 1503.7,
+        "dealshare_elo": 1503.6
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_be14ae",
+        "profit_elo": 1516.2,
+        "credit_elo": 1504.6,
+        "dealshare_elo": 1507.1
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_bfbfb5",
+        "profit_elo": 1519.7,
+        "credit_elo": 1505.3,
+        "dealshare_elo": 1500.3
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_ceff51",
+        "profit_elo": 1519.6,
+        "credit_elo": 1506.1,
+        "dealshare_elo": 1498.8
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_dd346b",
+        "profit_elo": 1520.0,
+        "credit_elo": 1506.5,
+        "dealshare_elo": 1498.1
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_f02bb7",
+        "profit_elo": 1517.8,
+        "credit_elo": 1504.1,
+        "dealshare_elo": 1498.8
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_fe7c71",
+        "profit_elo": 1516.4,
+        "credit_elo": 1505.8,
+        "dealshare_elo": 1498.8
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_2b9886",
+        "profit_elo": 1516.3,
+        "credit_elo": 1504.7,
+        "dealshare_elo": 1497.6
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_52f37f",
+        "profit_elo": 1514.9,
+        "credit_elo": 1506.9,
+        "dealshare_elo": 1497.9
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_700774",
+        "profit_elo": 1516.5,
+        "credit_elo": 1505.7,
+        "dealshare_elo": 1495.3
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_796943",
+        "profit_elo": 1515.9,
+        "credit_elo": 1505.7,
+        "dealshare_elo": 1495.0
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_82c48f",
+        "profit_elo": 1512.9,
+        "credit_elo": 1510.9,
+        "dealshare_elo": 1497.2
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_951ad7",
+        "profit_elo": 1513.5,
+        "credit_elo": 1509.7,
+        "dealshare_elo": 1495.6
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_a55073",
+        "profit_elo": 1513.7,
+        "credit_elo": 1511.3,
+        "dealshare_elo": 1494.7
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_b99930",
+        "profit_elo": 1514.2,
+        "credit_elo": 1510.1,
+        "dealshare_elo": 1493.4
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_e258de",
+        "profit_elo": 1514.6,
+        "credit_elo": 1509.0,
+        "dealshare_elo": 1492.1
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_f2d0fd",
+        "profit_elo": 1511.9,
+        "credit_elo": 1507.7,
+        "dealshare_elo": 1494.2
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_ff2b22",
+        "profit_elo": 1510.9,
+        "credit_elo": 1506.4,
+        "dealshare_elo": 1494.7
       }
     ],
     "meta-llama/llama-3.3-70b-instruct": [
@@ -1139,6 +1775,234 @@
       },
       {
         "match_id": "2026-02-26T14-10-54_f51407",
+        "profit_elo": 1520.3,
+        "credit_elo": 1502.8,
+        "dealshare_elo": 1479.7
+      },
+      {
+        "match_id": "2026-02-26T15-25-46_66984f",
+        "profit_elo": 1520.3,
+        "credit_elo": 1502.8,
+        "dealshare_elo": 1479.7
+      },
+      {
+        "match_id": "2026-02-26T15-25-46_ab3b24",
+        "profit_elo": 1520.3,
+        "credit_elo": 1502.8,
+        "dealshare_elo": 1479.7
+      },
+      {
+        "match_id": "2026-02-26T15-25-46_c33fb5",
+        "profit_elo": 1520.3,
+        "credit_elo": 1502.8,
+        "dealshare_elo": 1479.7
+      },
+      {
+        "match_id": "2026-02-26T15-25-46_cd2ddc",
+        "profit_elo": 1520.3,
+        "credit_elo": 1502.8,
+        "dealshare_elo": 1479.7
+      },
+      {
+        "match_id": "2026-02-26T15-25-46_f1d5b7",
+        "profit_elo": 1520.3,
+        "credit_elo": 1502.8,
+        "dealshare_elo": 1479.7
+      },
+      {
+        "match_id": "2026-02-26T15-25-46_fb664c",
+        "profit_elo": 1520.3,
+        "credit_elo": 1502.8,
+        "dealshare_elo": 1479.7
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_092608",
+        "profit_elo": 1520.3,
+        "credit_elo": 1502.8,
+        "dealshare_elo": 1479.7
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_3d48ca",
+        "profit_elo": 1520.3,
+        "credit_elo": 1502.8,
+        "dealshare_elo": 1479.7
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_4e0851",
+        "profit_elo": 1520.3,
+        "credit_elo": 1502.8,
+        "dealshare_elo": 1479.7
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_7ef1f1",
+        "profit_elo": 1520.3,
+        "credit_elo": 1502.8,
+        "dealshare_elo": 1479.7
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_940c60",
+        "profit_elo": 1520.3,
+        "credit_elo": 1502.8,
+        "dealshare_elo": 1479.7
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_d3045d",
+        "profit_elo": 1520.3,
+        "credit_elo": 1502.8,
+        "dealshare_elo": 1479.7
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_dc6779",
+        "profit_elo": 1520.3,
+        "credit_elo": 1502.8,
+        "dealshare_elo": 1479.7
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_e75289",
+        "profit_elo": 1520.3,
+        "credit_elo": 1502.8,
+        "dealshare_elo": 1479.7
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_f4260b",
+        "profit_elo": 1520.3,
+        "credit_elo": 1502.8,
+        "dealshare_elo": 1479.7
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_30a39d",
+        "profit_elo": 1520.3,
+        "credit_elo": 1502.8,
+        "dealshare_elo": 1479.7
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_366b1d",
+        "profit_elo": 1520.3,
+        "credit_elo": 1502.8,
+        "dealshare_elo": 1479.7
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_43bd71",
+        "profit_elo": 1520.3,
+        "credit_elo": 1502.8,
+        "dealshare_elo": 1479.7
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_50cb8e",
+        "profit_elo": 1520.3,
+        "credit_elo": 1502.8,
+        "dealshare_elo": 1479.7
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_71639d",
+        "profit_elo": 1520.3,
+        "credit_elo": 1502.8,
+        "dealshare_elo": 1479.7
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_793635",
+        "profit_elo": 1520.3,
+        "credit_elo": 1502.8,
+        "dealshare_elo": 1479.7
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_be14ae",
+        "profit_elo": 1520.3,
+        "credit_elo": 1502.8,
+        "dealshare_elo": 1479.7
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_bfbfb5",
+        "profit_elo": 1520.3,
+        "credit_elo": 1502.8,
+        "dealshare_elo": 1479.7
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_ceff51",
+        "profit_elo": 1520.3,
+        "credit_elo": 1502.8,
+        "dealshare_elo": 1479.7
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_dd346b",
+        "profit_elo": 1520.3,
+        "credit_elo": 1502.8,
+        "dealshare_elo": 1479.7
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_f02bb7",
+        "profit_elo": 1520.3,
+        "credit_elo": 1502.8,
+        "dealshare_elo": 1479.7
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_fe7c71",
+        "profit_elo": 1520.3,
+        "credit_elo": 1502.8,
+        "dealshare_elo": 1479.7
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_2b9886",
+        "profit_elo": 1520.3,
+        "credit_elo": 1502.8,
+        "dealshare_elo": 1479.7
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_52f37f",
+        "profit_elo": 1520.3,
+        "credit_elo": 1502.8,
+        "dealshare_elo": 1479.7
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_700774",
+        "profit_elo": 1520.3,
+        "credit_elo": 1502.8,
+        "dealshare_elo": 1479.7
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_796943",
+        "profit_elo": 1520.3,
+        "credit_elo": 1502.8,
+        "dealshare_elo": 1479.7
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_82c48f",
+        "profit_elo": 1520.3,
+        "credit_elo": 1502.8,
+        "dealshare_elo": 1479.7
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_951ad7",
+        "profit_elo": 1520.3,
+        "credit_elo": 1502.8,
+        "dealshare_elo": 1479.7
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_a55073",
+        "profit_elo": 1520.3,
+        "credit_elo": 1502.8,
+        "dealshare_elo": 1479.7
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_b99930",
+        "profit_elo": 1520.3,
+        "credit_elo": 1502.8,
+        "dealshare_elo": 1479.7
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_e258de",
+        "profit_elo": 1520.3,
+        "credit_elo": 1502.8,
+        "dealshare_elo": 1479.7
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_f2d0fd",
+        "profit_elo": 1520.3,
+        "credit_elo": 1502.8,
+        "dealshare_elo": 1479.7
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_ff2b22",
         "profit_elo": 1520.3,
         "credit_elo": 1502.8,
         "dealshare_elo": 1479.7
@@ -1222,6 +2086,234 @@
         "profit_elo": 1491.7,
         "credit_elo": 1500.2,
         "dealshare_elo": 1508.3
+      },
+      {
+        "match_id": "2026-02-26T15-25-46_66984f",
+        "profit_elo": 1491.7,
+        "credit_elo": 1500.2,
+        "dealshare_elo": 1508.3
+      },
+      {
+        "match_id": "2026-02-26T15-25-46_ab3b24",
+        "profit_elo": 1491.7,
+        "credit_elo": 1500.2,
+        "dealshare_elo": 1508.3
+      },
+      {
+        "match_id": "2026-02-26T15-25-46_c33fb5",
+        "profit_elo": 1491.7,
+        "credit_elo": 1500.2,
+        "dealshare_elo": 1508.3
+      },
+      {
+        "match_id": "2026-02-26T15-25-46_cd2ddc",
+        "profit_elo": 1491.7,
+        "credit_elo": 1500.2,
+        "dealshare_elo": 1508.3
+      },
+      {
+        "match_id": "2026-02-26T15-25-46_f1d5b7",
+        "profit_elo": 1491.7,
+        "credit_elo": 1500.2,
+        "dealshare_elo": 1508.3
+      },
+      {
+        "match_id": "2026-02-26T15-25-46_fb664c",
+        "profit_elo": 1491.7,
+        "credit_elo": 1500.2,
+        "dealshare_elo": 1508.3
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_092608",
+        "profit_elo": 1491.7,
+        "credit_elo": 1500.2,
+        "dealshare_elo": 1508.3
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_3d48ca",
+        "profit_elo": 1491.7,
+        "credit_elo": 1500.2,
+        "dealshare_elo": 1508.3
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_4e0851",
+        "profit_elo": 1491.7,
+        "credit_elo": 1500.2,
+        "dealshare_elo": 1508.3
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_7ef1f1",
+        "profit_elo": 1491.7,
+        "credit_elo": 1500.2,
+        "dealshare_elo": 1508.3
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_940c60",
+        "profit_elo": 1491.7,
+        "credit_elo": 1500.2,
+        "dealshare_elo": 1508.3
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_d3045d",
+        "profit_elo": 1491.7,
+        "credit_elo": 1500.2,
+        "dealshare_elo": 1508.3
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_dc6779",
+        "profit_elo": 1491.7,
+        "credit_elo": 1500.2,
+        "dealshare_elo": 1508.3
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_e75289",
+        "profit_elo": 1491.7,
+        "credit_elo": 1500.2,
+        "dealshare_elo": 1508.3
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_f4260b",
+        "profit_elo": 1491.7,
+        "credit_elo": 1500.2,
+        "dealshare_elo": 1508.3
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_30a39d",
+        "profit_elo": 1491.7,
+        "credit_elo": 1500.2,
+        "dealshare_elo": 1508.3
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_366b1d",
+        "profit_elo": 1491.7,
+        "credit_elo": 1500.2,
+        "dealshare_elo": 1508.3
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_43bd71",
+        "profit_elo": 1491.7,
+        "credit_elo": 1500.2,
+        "dealshare_elo": 1508.3
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_50cb8e",
+        "profit_elo": 1491.7,
+        "credit_elo": 1500.2,
+        "dealshare_elo": 1508.3
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_71639d",
+        "profit_elo": 1491.7,
+        "credit_elo": 1500.2,
+        "dealshare_elo": 1508.3
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_793635",
+        "profit_elo": 1491.7,
+        "credit_elo": 1500.2,
+        "dealshare_elo": 1508.3
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_be14ae",
+        "profit_elo": 1491.7,
+        "credit_elo": 1500.2,
+        "dealshare_elo": 1508.3
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_bfbfb5",
+        "profit_elo": 1491.7,
+        "credit_elo": 1500.2,
+        "dealshare_elo": 1508.3
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_ceff51",
+        "profit_elo": 1491.7,
+        "credit_elo": 1500.2,
+        "dealshare_elo": 1508.3
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_dd346b",
+        "profit_elo": 1491.7,
+        "credit_elo": 1500.2,
+        "dealshare_elo": 1508.3
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_f02bb7",
+        "profit_elo": 1491.7,
+        "credit_elo": 1500.2,
+        "dealshare_elo": 1508.3
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_fe7c71",
+        "profit_elo": 1491.7,
+        "credit_elo": 1500.2,
+        "dealshare_elo": 1508.3
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_2b9886",
+        "profit_elo": 1491.7,
+        "credit_elo": 1500.2,
+        "dealshare_elo": 1508.3
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_52f37f",
+        "profit_elo": 1491.7,
+        "credit_elo": 1500.2,
+        "dealshare_elo": 1508.3
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_700774",
+        "profit_elo": 1491.7,
+        "credit_elo": 1500.2,
+        "dealshare_elo": 1508.3
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_796943",
+        "profit_elo": 1491.7,
+        "credit_elo": 1500.2,
+        "dealshare_elo": 1508.3
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_82c48f",
+        "profit_elo": 1491.7,
+        "credit_elo": 1500.2,
+        "dealshare_elo": 1508.3
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_951ad7",
+        "profit_elo": 1491.7,
+        "credit_elo": 1500.2,
+        "dealshare_elo": 1508.3
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_a55073",
+        "profit_elo": 1491.7,
+        "credit_elo": 1500.2,
+        "dealshare_elo": 1508.3
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_b99930",
+        "profit_elo": 1491.7,
+        "credit_elo": 1500.2,
+        "dealshare_elo": 1508.3
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_e258de",
+        "profit_elo": 1491.7,
+        "credit_elo": 1500.2,
+        "dealshare_elo": 1508.3
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_f2d0fd",
+        "profit_elo": 1491.7,
+        "credit_elo": 1500.2,
+        "dealshare_elo": 1508.3
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_ff2b22",
+        "profit_elo": 1491.7,
+        "credit_elo": 1500.2,
+        "dealshare_elo": 1508.3
       }
     ],
     "nvidia/llama-3.3-nemotron-super-49b-v1.5": [
@@ -1302,6 +2394,234 @@
         "profit_elo": 1489.9,
         "credit_elo": 1503.4,
         "dealshare_elo": 1496.7
+      },
+      {
+        "match_id": "2026-02-26T15-25-46_66984f",
+        "profit_elo": 1474.1,
+        "credit_elo": 1502.7,
+        "dealshare_elo": 1513.1
+      },
+      {
+        "match_id": "2026-02-26T15-25-46_ab3b24",
+        "profit_elo": 1470.7,
+        "credit_elo": 1500.9,
+        "dealshare_elo": 1516.1
+      },
+      {
+        "match_id": "2026-02-26T15-25-46_c33fb5",
+        "profit_elo": 1470.7,
+        "credit_elo": 1500.9,
+        "dealshare_elo": 1516.1
+      },
+      {
+        "match_id": "2026-02-26T15-25-46_cd2ddc",
+        "profit_elo": 1470.7,
+        "credit_elo": 1500.9,
+        "dealshare_elo": 1516.1
+      },
+      {
+        "match_id": "2026-02-26T15-25-46_f1d5b7",
+        "profit_elo": 1463.9,
+        "credit_elo": 1500.4,
+        "dealshare_elo": 1523.4
+      },
+      {
+        "match_id": "2026-02-26T15-25-46_fb664c",
+        "profit_elo": 1466.9,
+        "credit_elo": 1499.9,
+        "dealshare_elo": 1521.0
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_092608",
+        "profit_elo": 1466.9,
+        "credit_elo": 1499.9,
+        "dealshare_elo": 1521.0
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_3d48ca",
+        "profit_elo": 1461.9,
+        "credit_elo": 1497.5,
+        "dealshare_elo": 1526.5
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_4e0851",
+        "profit_elo": 1462.5,
+        "credit_elo": 1495.6,
+        "dealshare_elo": 1525.3
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_7ef1f1",
+        "profit_elo": 1463.0,
+        "credit_elo": 1495.5,
+        "dealshare_elo": 1524.2
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_940c60",
+        "profit_elo": 1464.0,
+        "credit_elo": 1493.8,
+        "dealshare_elo": 1520.6
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_d3045d",
+        "profit_elo": 1464.5,
+        "credit_elo": 1491.7,
+        "dealshare_elo": 1519.9
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_dc6779",
+        "profit_elo": 1464.5,
+        "credit_elo": 1491.7,
+        "dealshare_elo": 1519.9
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_e75289",
+        "profit_elo": 1464.5,
+        "credit_elo": 1491.7,
+        "dealshare_elo": 1519.9
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_f4260b",
+        "profit_elo": 1464.8,
+        "credit_elo": 1490.1,
+        "dealshare_elo": 1519.4
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_30a39d",
+        "profit_elo": 1465.5,
+        "credit_elo": 1494.1,
+        "dealshare_elo": 1519.5
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_366b1d",
+        "profit_elo": 1465.5,
+        "credit_elo": 1494.1,
+        "dealshare_elo": 1519.5
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_43bd71",
+        "profit_elo": 1469.1,
+        "credit_elo": 1491.8,
+        "dealshare_elo": 1513.4
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_50cb8e",
+        "profit_elo": 1467.1,
+        "credit_elo": 1489.6,
+        "dealshare_elo": 1514.6
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_71639d",
+        "profit_elo": 1468.4,
+        "credit_elo": 1488.2,
+        "dealshare_elo": 1512.7
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_793635",
+        "profit_elo": 1468.4,
+        "credit_elo": 1488.2,
+        "dealshare_elo": 1512.7
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_be14ae",
+        "profit_elo": 1468.1,
+        "credit_elo": 1487.8,
+        "dealshare_elo": 1510.9
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_bfbfb5",
+        "profit_elo": 1456.0,
+        "credit_elo": 1487.5,
+        "dealshare_elo": 1524.7
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_ceff51",
+        "profit_elo": 1456.0,
+        "credit_elo": 1487.5,
+        "dealshare_elo": 1524.7
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_dd346b",
+        "profit_elo": 1456.0,
+        "credit_elo": 1487.5,
+        "dealshare_elo": 1524.7
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_f02bb7",
+        "profit_elo": 1458.1,
+        "credit_elo": 1491.0,
+        "dealshare_elo": 1523.6
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_fe7c71",
+        "profit_elo": 1460.8,
+        "credit_elo": 1493.5,
+        "dealshare_elo": 1521.8
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_2b9886",
+        "profit_elo": 1460.8,
+        "credit_elo": 1493.5,
+        "dealshare_elo": 1521.8
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_52f37f",
+        "profit_elo": 1460.8,
+        "credit_elo": 1493.5,
+        "dealshare_elo": 1521.8
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_700774",
+        "profit_elo": 1460.8,
+        "credit_elo": 1493.5,
+        "dealshare_elo": 1521.8
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_796943",
+        "profit_elo": 1460.8,
+        "credit_elo": 1493.5,
+        "dealshare_elo": 1521.8
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_82c48f",
+        "profit_elo": 1460.8,
+        "credit_elo": 1493.5,
+        "dealshare_elo": 1521.8
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_951ad7",
+        "profit_elo": 1462.5,
+        "credit_elo": 1493.5,
+        "dealshare_elo": 1520.9
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_a55073",
+        "profit_elo": 1462.5,
+        "credit_elo": 1493.5,
+        "dealshare_elo": 1520.9
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_b99930",
+        "profit_elo": 1459.5,
+        "credit_elo": 1493.5,
+        "dealshare_elo": 1524.7
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_e258de",
+        "profit_elo": 1456.7,
+        "credit_elo": 1493.5,
+        "dealshare_elo": 1528.3
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_f2d0fd",
+        "profit_elo": 1456.7,
+        "credit_elo": 1493.5,
+        "dealshare_elo": 1528.3
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_ff2b22",
+        "profit_elo": 1456.7,
+        "credit_elo": 1493.5,
+        "dealshare_elo": 1528.3
       }
     ],
     "openai/gpt-4.1-nano": [
@@ -1379,6 +2699,234 @@
       },
       {
         "match_id": "2026-02-26T14-10-54_f51407",
+        "profit_elo": 1501.8,
+        "credit_elo": 1515.8,
+        "dealshare_elo": 1505.1
+      },
+      {
+        "match_id": "2026-02-26T15-25-46_66984f",
+        "profit_elo": 1501.8,
+        "credit_elo": 1515.8,
+        "dealshare_elo": 1505.1
+      },
+      {
+        "match_id": "2026-02-26T15-25-46_ab3b24",
+        "profit_elo": 1501.8,
+        "credit_elo": 1515.8,
+        "dealshare_elo": 1505.1
+      },
+      {
+        "match_id": "2026-02-26T15-25-46_c33fb5",
+        "profit_elo": 1501.8,
+        "credit_elo": 1515.8,
+        "dealshare_elo": 1505.1
+      },
+      {
+        "match_id": "2026-02-26T15-25-46_cd2ddc",
+        "profit_elo": 1501.8,
+        "credit_elo": 1515.8,
+        "dealshare_elo": 1505.1
+      },
+      {
+        "match_id": "2026-02-26T15-25-46_f1d5b7",
+        "profit_elo": 1501.8,
+        "credit_elo": 1515.8,
+        "dealshare_elo": 1505.1
+      },
+      {
+        "match_id": "2026-02-26T15-25-46_fb664c",
+        "profit_elo": 1501.8,
+        "credit_elo": 1515.8,
+        "dealshare_elo": 1505.1
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_092608",
+        "profit_elo": 1501.8,
+        "credit_elo": 1515.8,
+        "dealshare_elo": 1505.1
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_3d48ca",
+        "profit_elo": 1501.8,
+        "credit_elo": 1515.8,
+        "dealshare_elo": 1505.1
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_4e0851",
+        "profit_elo": 1501.8,
+        "credit_elo": 1515.8,
+        "dealshare_elo": 1505.1
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_7ef1f1",
+        "profit_elo": 1501.8,
+        "credit_elo": 1515.8,
+        "dealshare_elo": 1505.1
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_940c60",
+        "profit_elo": 1501.8,
+        "credit_elo": 1515.8,
+        "dealshare_elo": 1505.1
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_d3045d",
+        "profit_elo": 1501.8,
+        "credit_elo": 1515.8,
+        "dealshare_elo": 1505.1
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_dc6779",
+        "profit_elo": 1501.8,
+        "credit_elo": 1515.8,
+        "dealshare_elo": 1505.1
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_e75289",
+        "profit_elo": 1501.8,
+        "credit_elo": 1515.8,
+        "dealshare_elo": 1505.1
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_f4260b",
+        "profit_elo": 1501.8,
+        "credit_elo": 1515.8,
+        "dealshare_elo": 1505.1
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_30a39d",
+        "profit_elo": 1501.8,
+        "credit_elo": 1515.8,
+        "dealshare_elo": 1505.1
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_366b1d",
+        "profit_elo": 1501.8,
+        "credit_elo": 1515.8,
+        "dealshare_elo": 1505.1
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_43bd71",
+        "profit_elo": 1501.8,
+        "credit_elo": 1515.8,
+        "dealshare_elo": 1505.1
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_50cb8e",
+        "profit_elo": 1501.8,
+        "credit_elo": 1515.8,
+        "dealshare_elo": 1505.1
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_71639d",
+        "profit_elo": 1501.8,
+        "credit_elo": 1515.8,
+        "dealshare_elo": 1505.1
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_793635",
+        "profit_elo": 1501.8,
+        "credit_elo": 1515.8,
+        "dealshare_elo": 1505.1
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_be14ae",
+        "profit_elo": 1501.8,
+        "credit_elo": 1515.8,
+        "dealshare_elo": 1505.1
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_bfbfb5",
+        "profit_elo": 1501.8,
+        "credit_elo": 1515.8,
+        "dealshare_elo": 1505.1
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_ceff51",
+        "profit_elo": 1501.8,
+        "credit_elo": 1515.8,
+        "dealshare_elo": 1505.1
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_dd346b",
+        "profit_elo": 1501.8,
+        "credit_elo": 1515.8,
+        "dealshare_elo": 1505.1
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_f02bb7",
+        "profit_elo": 1501.8,
+        "credit_elo": 1515.8,
+        "dealshare_elo": 1505.1
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_fe7c71",
+        "profit_elo": 1501.8,
+        "credit_elo": 1515.8,
+        "dealshare_elo": 1505.1
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_2b9886",
+        "profit_elo": 1501.8,
+        "credit_elo": 1515.8,
+        "dealshare_elo": 1505.1
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_52f37f",
+        "profit_elo": 1501.8,
+        "credit_elo": 1515.8,
+        "dealshare_elo": 1505.1
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_700774",
+        "profit_elo": 1501.8,
+        "credit_elo": 1515.8,
+        "dealshare_elo": 1505.1
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_796943",
+        "profit_elo": 1501.8,
+        "credit_elo": 1515.8,
+        "dealshare_elo": 1505.1
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_82c48f",
+        "profit_elo": 1501.8,
+        "credit_elo": 1515.8,
+        "dealshare_elo": 1505.1
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_951ad7",
+        "profit_elo": 1501.8,
+        "credit_elo": 1515.8,
+        "dealshare_elo": 1505.1
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_a55073",
+        "profit_elo": 1501.8,
+        "credit_elo": 1515.8,
+        "dealshare_elo": 1505.1
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_b99930",
+        "profit_elo": 1501.8,
+        "credit_elo": 1515.8,
+        "dealshare_elo": 1505.1
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_e258de",
+        "profit_elo": 1501.8,
+        "credit_elo": 1515.8,
+        "dealshare_elo": 1505.1
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_f2d0fd",
+        "profit_elo": 1501.8,
+        "credit_elo": 1515.8,
+        "dealshare_elo": 1505.1
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_ff2b22",
         "profit_elo": 1501.8,
         "credit_elo": 1515.8,
         "dealshare_elo": 1505.1
@@ -1462,6 +3010,234 @@
         "profit_elo": 1495.4,
         "credit_elo": 1499.7,
         "dealshare_elo": 1497.2
+      },
+      {
+        "match_id": "2026-02-26T15-25-46_66984f",
+        "profit_elo": 1495.4,
+        "credit_elo": 1499.7,
+        "dealshare_elo": 1497.2
+      },
+      {
+        "match_id": "2026-02-26T15-25-46_ab3b24",
+        "profit_elo": 1495.4,
+        "credit_elo": 1499.7,
+        "dealshare_elo": 1497.2
+      },
+      {
+        "match_id": "2026-02-26T15-25-46_c33fb5",
+        "profit_elo": 1495.4,
+        "credit_elo": 1499.7,
+        "dealshare_elo": 1497.2
+      },
+      {
+        "match_id": "2026-02-26T15-25-46_cd2ddc",
+        "profit_elo": 1495.4,
+        "credit_elo": 1499.7,
+        "dealshare_elo": 1497.2
+      },
+      {
+        "match_id": "2026-02-26T15-25-46_f1d5b7",
+        "profit_elo": 1495.4,
+        "credit_elo": 1499.7,
+        "dealshare_elo": 1497.2
+      },
+      {
+        "match_id": "2026-02-26T15-25-46_fb664c",
+        "profit_elo": 1495.4,
+        "credit_elo": 1499.7,
+        "dealshare_elo": 1497.2
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_092608",
+        "profit_elo": 1495.4,
+        "credit_elo": 1499.7,
+        "dealshare_elo": 1497.2
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_3d48ca",
+        "profit_elo": 1495.4,
+        "credit_elo": 1499.7,
+        "dealshare_elo": 1497.2
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_4e0851",
+        "profit_elo": 1495.4,
+        "credit_elo": 1499.7,
+        "dealshare_elo": 1497.2
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_7ef1f1",
+        "profit_elo": 1495.4,
+        "credit_elo": 1499.7,
+        "dealshare_elo": 1497.2
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_940c60",
+        "profit_elo": 1495.4,
+        "credit_elo": 1499.7,
+        "dealshare_elo": 1497.2
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_d3045d",
+        "profit_elo": 1495.4,
+        "credit_elo": 1499.7,
+        "dealshare_elo": 1497.2
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_dc6779",
+        "profit_elo": 1495.4,
+        "credit_elo": 1499.7,
+        "dealshare_elo": 1497.2
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_e75289",
+        "profit_elo": 1495.4,
+        "credit_elo": 1499.7,
+        "dealshare_elo": 1497.2
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_f4260b",
+        "profit_elo": 1495.4,
+        "credit_elo": 1499.7,
+        "dealshare_elo": 1497.2
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_30a39d",
+        "profit_elo": 1495.4,
+        "credit_elo": 1499.7,
+        "dealshare_elo": 1497.2
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_366b1d",
+        "profit_elo": 1495.4,
+        "credit_elo": 1499.7,
+        "dealshare_elo": 1497.2
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_43bd71",
+        "profit_elo": 1495.4,
+        "credit_elo": 1499.7,
+        "dealshare_elo": 1497.2
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_50cb8e",
+        "profit_elo": 1495.4,
+        "credit_elo": 1499.7,
+        "dealshare_elo": 1497.2
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_71639d",
+        "profit_elo": 1495.4,
+        "credit_elo": 1499.7,
+        "dealshare_elo": 1497.2
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_793635",
+        "profit_elo": 1495.4,
+        "credit_elo": 1499.7,
+        "dealshare_elo": 1497.2
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_be14ae",
+        "profit_elo": 1495.4,
+        "credit_elo": 1499.7,
+        "dealshare_elo": 1497.2
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_bfbfb5",
+        "profit_elo": 1495.4,
+        "credit_elo": 1499.7,
+        "dealshare_elo": 1497.2
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_ceff51",
+        "profit_elo": 1495.4,
+        "credit_elo": 1499.7,
+        "dealshare_elo": 1497.2
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_dd346b",
+        "profit_elo": 1495.4,
+        "credit_elo": 1499.7,
+        "dealshare_elo": 1497.2
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_f02bb7",
+        "profit_elo": 1495.4,
+        "credit_elo": 1499.7,
+        "dealshare_elo": 1497.2
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_fe7c71",
+        "profit_elo": 1495.4,
+        "credit_elo": 1499.7,
+        "dealshare_elo": 1497.2
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_2b9886",
+        "profit_elo": 1495.4,
+        "credit_elo": 1499.7,
+        "dealshare_elo": 1497.2
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_52f37f",
+        "profit_elo": 1495.4,
+        "credit_elo": 1499.7,
+        "dealshare_elo": 1497.2
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_700774",
+        "profit_elo": 1495.4,
+        "credit_elo": 1499.7,
+        "dealshare_elo": 1497.2
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_796943",
+        "profit_elo": 1495.4,
+        "credit_elo": 1499.7,
+        "dealshare_elo": 1497.2
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_82c48f",
+        "profit_elo": 1495.4,
+        "credit_elo": 1499.7,
+        "dealshare_elo": 1497.2
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_951ad7",
+        "profit_elo": 1495.4,
+        "credit_elo": 1499.7,
+        "dealshare_elo": 1497.2
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_a55073",
+        "profit_elo": 1495.4,
+        "credit_elo": 1499.7,
+        "dealshare_elo": 1497.2
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_b99930",
+        "profit_elo": 1495.4,
+        "credit_elo": 1499.7,
+        "dealshare_elo": 1497.2
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_e258de",
+        "profit_elo": 1495.4,
+        "credit_elo": 1499.7,
+        "dealshare_elo": 1497.2
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_f2d0fd",
+        "profit_elo": 1495.4,
+        "credit_elo": 1499.7,
+        "dealshare_elo": 1497.2
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_ff2b22",
+        "profit_elo": 1495.4,
+        "credit_elo": 1499.7,
+        "dealshare_elo": 1497.2
       }
     ],
     "deepseek/deepseek-r1": [
@@ -1539,6 +3315,234 @@
       },
       {
         "match_id": "2026-02-26T14-10-54_f51407",
+        "profit_elo": 1504.5,
+        "credit_elo": 1500.6,
+        "dealshare_elo": 1502.7
+      },
+      {
+        "match_id": "2026-02-26T15-25-46_66984f",
+        "profit_elo": 1504.5,
+        "credit_elo": 1500.6,
+        "dealshare_elo": 1502.7
+      },
+      {
+        "match_id": "2026-02-26T15-25-46_ab3b24",
+        "profit_elo": 1504.5,
+        "credit_elo": 1500.6,
+        "dealshare_elo": 1502.7
+      },
+      {
+        "match_id": "2026-02-26T15-25-46_c33fb5",
+        "profit_elo": 1504.5,
+        "credit_elo": 1500.6,
+        "dealshare_elo": 1502.7
+      },
+      {
+        "match_id": "2026-02-26T15-25-46_cd2ddc",
+        "profit_elo": 1504.5,
+        "credit_elo": 1500.6,
+        "dealshare_elo": 1502.7
+      },
+      {
+        "match_id": "2026-02-26T15-25-46_f1d5b7",
+        "profit_elo": 1504.5,
+        "credit_elo": 1500.6,
+        "dealshare_elo": 1502.7
+      },
+      {
+        "match_id": "2026-02-26T15-25-46_fb664c",
+        "profit_elo": 1504.5,
+        "credit_elo": 1500.6,
+        "dealshare_elo": 1502.7
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_092608",
+        "profit_elo": 1504.5,
+        "credit_elo": 1500.6,
+        "dealshare_elo": 1502.7
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_3d48ca",
+        "profit_elo": 1504.5,
+        "credit_elo": 1500.6,
+        "dealshare_elo": 1502.7
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_4e0851",
+        "profit_elo": 1504.5,
+        "credit_elo": 1500.6,
+        "dealshare_elo": 1502.7
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_7ef1f1",
+        "profit_elo": 1504.5,
+        "credit_elo": 1500.6,
+        "dealshare_elo": 1502.7
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_940c60",
+        "profit_elo": 1504.5,
+        "credit_elo": 1500.6,
+        "dealshare_elo": 1502.7
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_d3045d",
+        "profit_elo": 1504.5,
+        "credit_elo": 1500.6,
+        "dealshare_elo": 1502.7
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_dc6779",
+        "profit_elo": 1504.5,
+        "credit_elo": 1500.6,
+        "dealshare_elo": 1502.7
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_e75289",
+        "profit_elo": 1504.5,
+        "credit_elo": 1500.6,
+        "dealshare_elo": 1502.7
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_f4260b",
+        "profit_elo": 1504.5,
+        "credit_elo": 1500.6,
+        "dealshare_elo": 1502.7
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_30a39d",
+        "profit_elo": 1504.5,
+        "credit_elo": 1500.6,
+        "dealshare_elo": 1502.7
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_366b1d",
+        "profit_elo": 1504.5,
+        "credit_elo": 1500.6,
+        "dealshare_elo": 1502.7
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_43bd71",
+        "profit_elo": 1504.5,
+        "credit_elo": 1500.6,
+        "dealshare_elo": 1502.7
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_50cb8e",
+        "profit_elo": 1504.5,
+        "credit_elo": 1500.6,
+        "dealshare_elo": 1502.7
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_71639d",
+        "profit_elo": 1504.5,
+        "credit_elo": 1500.6,
+        "dealshare_elo": 1502.7
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_793635",
+        "profit_elo": 1504.5,
+        "credit_elo": 1500.6,
+        "dealshare_elo": 1502.7
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_be14ae",
+        "profit_elo": 1504.5,
+        "credit_elo": 1500.6,
+        "dealshare_elo": 1502.7
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_bfbfb5",
+        "profit_elo": 1504.5,
+        "credit_elo": 1500.6,
+        "dealshare_elo": 1502.7
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_ceff51",
+        "profit_elo": 1504.5,
+        "credit_elo": 1500.6,
+        "dealshare_elo": 1502.7
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_dd346b",
+        "profit_elo": 1504.5,
+        "credit_elo": 1500.6,
+        "dealshare_elo": 1502.7
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_f02bb7",
+        "profit_elo": 1504.5,
+        "credit_elo": 1500.6,
+        "dealshare_elo": 1502.7
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_fe7c71",
+        "profit_elo": 1504.5,
+        "credit_elo": 1500.6,
+        "dealshare_elo": 1502.7
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_2b9886",
+        "profit_elo": 1504.5,
+        "credit_elo": 1500.6,
+        "dealshare_elo": 1502.7
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_52f37f",
+        "profit_elo": 1504.5,
+        "credit_elo": 1500.6,
+        "dealshare_elo": 1502.7
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_700774",
+        "profit_elo": 1504.5,
+        "credit_elo": 1500.6,
+        "dealshare_elo": 1502.7
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_796943",
+        "profit_elo": 1504.5,
+        "credit_elo": 1500.6,
+        "dealshare_elo": 1502.7
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_82c48f",
+        "profit_elo": 1504.5,
+        "credit_elo": 1500.6,
+        "dealshare_elo": 1502.7
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_951ad7",
+        "profit_elo": 1504.5,
+        "credit_elo": 1500.6,
+        "dealshare_elo": 1502.7
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_a55073",
+        "profit_elo": 1504.5,
+        "credit_elo": 1500.6,
+        "dealshare_elo": 1502.7
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_b99930",
+        "profit_elo": 1504.5,
+        "credit_elo": 1500.6,
+        "dealshare_elo": 1502.7
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_e258de",
+        "profit_elo": 1504.5,
+        "credit_elo": 1500.6,
+        "dealshare_elo": 1502.7
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_f2d0fd",
+        "profit_elo": 1504.5,
+        "credit_elo": 1500.6,
+        "dealshare_elo": 1502.7
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_ff2b22",
         "profit_elo": 1504.5,
         "credit_elo": 1500.6,
         "dealshare_elo": 1502.7
@@ -1622,6 +3626,234 @@
         "profit_elo": 1500.1,
         "credit_elo": 1499.7,
         "dealshare_elo": 1500.1
+      },
+      {
+        "match_id": "2026-02-26T15-25-46_66984f",
+        "profit_elo": 1500.1,
+        "credit_elo": 1499.7,
+        "dealshare_elo": 1500.1
+      },
+      {
+        "match_id": "2026-02-26T15-25-46_ab3b24",
+        "profit_elo": 1500.1,
+        "credit_elo": 1499.7,
+        "dealshare_elo": 1500.1
+      },
+      {
+        "match_id": "2026-02-26T15-25-46_c33fb5",
+        "profit_elo": 1500.1,
+        "credit_elo": 1499.7,
+        "dealshare_elo": 1500.1
+      },
+      {
+        "match_id": "2026-02-26T15-25-46_cd2ddc",
+        "profit_elo": 1500.1,
+        "credit_elo": 1499.7,
+        "dealshare_elo": 1500.1
+      },
+      {
+        "match_id": "2026-02-26T15-25-46_f1d5b7",
+        "profit_elo": 1500.1,
+        "credit_elo": 1499.7,
+        "dealshare_elo": 1500.1
+      },
+      {
+        "match_id": "2026-02-26T15-25-46_fb664c",
+        "profit_elo": 1500.1,
+        "credit_elo": 1499.7,
+        "dealshare_elo": 1500.1
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_092608",
+        "profit_elo": 1500.1,
+        "credit_elo": 1499.7,
+        "dealshare_elo": 1500.1
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_3d48ca",
+        "profit_elo": 1500.1,
+        "credit_elo": 1499.7,
+        "dealshare_elo": 1500.1
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_4e0851",
+        "profit_elo": 1500.1,
+        "credit_elo": 1499.7,
+        "dealshare_elo": 1500.1
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_7ef1f1",
+        "profit_elo": 1500.1,
+        "credit_elo": 1499.7,
+        "dealshare_elo": 1500.1
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_940c60",
+        "profit_elo": 1500.1,
+        "credit_elo": 1499.7,
+        "dealshare_elo": 1500.1
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_d3045d",
+        "profit_elo": 1500.1,
+        "credit_elo": 1499.7,
+        "dealshare_elo": 1500.1
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_dc6779",
+        "profit_elo": 1500.1,
+        "credit_elo": 1499.7,
+        "dealshare_elo": 1500.1
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_e75289",
+        "profit_elo": 1500.1,
+        "credit_elo": 1499.7,
+        "dealshare_elo": 1500.1
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_f4260b",
+        "profit_elo": 1500.1,
+        "credit_elo": 1499.7,
+        "dealshare_elo": 1500.1
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_30a39d",
+        "profit_elo": 1500.1,
+        "credit_elo": 1499.7,
+        "dealshare_elo": 1500.1
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_366b1d",
+        "profit_elo": 1500.1,
+        "credit_elo": 1499.7,
+        "dealshare_elo": 1500.1
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_43bd71",
+        "profit_elo": 1500.1,
+        "credit_elo": 1499.7,
+        "dealshare_elo": 1500.1
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_50cb8e",
+        "profit_elo": 1500.1,
+        "credit_elo": 1499.7,
+        "dealshare_elo": 1500.1
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_71639d",
+        "profit_elo": 1500.1,
+        "credit_elo": 1499.7,
+        "dealshare_elo": 1500.1
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_793635",
+        "profit_elo": 1500.1,
+        "credit_elo": 1499.7,
+        "dealshare_elo": 1500.1
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_be14ae",
+        "profit_elo": 1500.1,
+        "credit_elo": 1499.7,
+        "dealshare_elo": 1500.1
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_bfbfb5",
+        "profit_elo": 1500.1,
+        "credit_elo": 1499.7,
+        "dealshare_elo": 1500.1
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_ceff51",
+        "profit_elo": 1500.1,
+        "credit_elo": 1499.7,
+        "dealshare_elo": 1500.1
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_dd346b",
+        "profit_elo": 1500.1,
+        "credit_elo": 1499.7,
+        "dealshare_elo": 1500.1
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_f02bb7",
+        "profit_elo": 1500.1,
+        "credit_elo": 1499.7,
+        "dealshare_elo": 1500.1
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_fe7c71",
+        "profit_elo": 1500.1,
+        "credit_elo": 1499.7,
+        "dealshare_elo": 1500.1
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_2b9886",
+        "profit_elo": 1500.1,
+        "credit_elo": 1499.7,
+        "dealshare_elo": 1500.1
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_52f37f",
+        "profit_elo": 1500.1,
+        "credit_elo": 1499.7,
+        "dealshare_elo": 1500.1
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_700774",
+        "profit_elo": 1500.1,
+        "credit_elo": 1499.7,
+        "dealshare_elo": 1500.1
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_796943",
+        "profit_elo": 1500.1,
+        "credit_elo": 1499.7,
+        "dealshare_elo": 1500.1
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_82c48f",
+        "profit_elo": 1500.1,
+        "credit_elo": 1499.7,
+        "dealshare_elo": 1500.1
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_951ad7",
+        "profit_elo": 1500.1,
+        "credit_elo": 1499.7,
+        "dealshare_elo": 1500.1
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_a55073",
+        "profit_elo": 1500.1,
+        "credit_elo": 1499.7,
+        "dealshare_elo": 1500.1
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_b99930",
+        "profit_elo": 1500.1,
+        "credit_elo": 1499.7,
+        "dealshare_elo": 1500.1
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_e258de",
+        "profit_elo": 1500.1,
+        "credit_elo": 1499.7,
+        "dealshare_elo": 1500.1
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_f2d0fd",
+        "profit_elo": 1500.1,
+        "credit_elo": 1499.7,
+        "dealshare_elo": 1500.1
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_ff2b22",
+        "profit_elo": 1500.1,
+        "credit_elo": 1499.7,
+        "dealshare_elo": 1500.1
       }
     ],
     "qwen/qwen3-next-80b-a3b-instruct": [
@@ -1699,6 +3931,234 @@
       },
       {
         "match_id": "2026-02-26T14-10-54_f51407",
+        "profit_elo": 1505.4,
+        "credit_elo": 1507.7,
+        "dealshare_elo": 1506.4
+      },
+      {
+        "match_id": "2026-02-26T15-25-46_66984f",
+        "profit_elo": 1505.4,
+        "credit_elo": 1507.7,
+        "dealshare_elo": 1506.4
+      },
+      {
+        "match_id": "2026-02-26T15-25-46_ab3b24",
+        "profit_elo": 1505.4,
+        "credit_elo": 1507.7,
+        "dealshare_elo": 1506.4
+      },
+      {
+        "match_id": "2026-02-26T15-25-46_c33fb5",
+        "profit_elo": 1505.4,
+        "credit_elo": 1507.7,
+        "dealshare_elo": 1506.4
+      },
+      {
+        "match_id": "2026-02-26T15-25-46_cd2ddc",
+        "profit_elo": 1505.4,
+        "credit_elo": 1507.7,
+        "dealshare_elo": 1506.4
+      },
+      {
+        "match_id": "2026-02-26T15-25-46_f1d5b7",
+        "profit_elo": 1505.4,
+        "credit_elo": 1507.7,
+        "dealshare_elo": 1506.4
+      },
+      {
+        "match_id": "2026-02-26T15-25-46_fb664c",
+        "profit_elo": 1505.4,
+        "credit_elo": 1507.7,
+        "dealshare_elo": 1506.4
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_092608",
+        "profit_elo": 1505.4,
+        "credit_elo": 1507.7,
+        "dealshare_elo": 1506.4
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_3d48ca",
+        "profit_elo": 1505.4,
+        "credit_elo": 1507.7,
+        "dealshare_elo": 1506.4
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_4e0851",
+        "profit_elo": 1505.4,
+        "credit_elo": 1507.7,
+        "dealshare_elo": 1506.4
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_7ef1f1",
+        "profit_elo": 1505.4,
+        "credit_elo": 1507.7,
+        "dealshare_elo": 1506.4
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_940c60",
+        "profit_elo": 1505.4,
+        "credit_elo": 1507.7,
+        "dealshare_elo": 1506.4
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_d3045d",
+        "profit_elo": 1505.4,
+        "credit_elo": 1507.7,
+        "dealshare_elo": 1506.4
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_dc6779",
+        "profit_elo": 1505.4,
+        "credit_elo": 1507.7,
+        "dealshare_elo": 1506.4
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_e75289",
+        "profit_elo": 1505.4,
+        "credit_elo": 1507.7,
+        "dealshare_elo": 1506.4
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_f4260b",
+        "profit_elo": 1505.4,
+        "credit_elo": 1507.7,
+        "dealshare_elo": 1506.4
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_30a39d",
+        "profit_elo": 1505.4,
+        "credit_elo": 1507.7,
+        "dealshare_elo": 1506.4
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_366b1d",
+        "profit_elo": 1505.4,
+        "credit_elo": 1507.7,
+        "dealshare_elo": 1506.4
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_43bd71",
+        "profit_elo": 1505.4,
+        "credit_elo": 1507.7,
+        "dealshare_elo": 1506.4
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_50cb8e",
+        "profit_elo": 1505.4,
+        "credit_elo": 1507.7,
+        "dealshare_elo": 1506.4
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_71639d",
+        "profit_elo": 1505.4,
+        "credit_elo": 1507.7,
+        "dealshare_elo": 1506.4
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_793635",
+        "profit_elo": 1505.4,
+        "credit_elo": 1507.7,
+        "dealshare_elo": 1506.4
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_be14ae",
+        "profit_elo": 1505.4,
+        "credit_elo": 1507.7,
+        "dealshare_elo": 1506.4
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_bfbfb5",
+        "profit_elo": 1505.4,
+        "credit_elo": 1507.7,
+        "dealshare_elo": 1506.4
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_ceff51",
+        "profit_elo": 1505.4,
+        "credit_elo": 1507.7,
+        "dealshare_elo": 1506.4
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_dd346b",
+        "profit_elo": 1505.4,
+        "credit_elo": 1507.7,
+        "dealshare_elo": 1506.4
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_f02bb7",
+        "profit_elo": 1505.4,
+        "credit_elo": 1507.7,
+        "dealshare_elo": 1506.4
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_fe7c71",
+        "profit_elo": 1505.4,
+        "credit_elo": 1507.7,
+        "dealshare_elo": 1506.4
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_2b9886",
+        "profit_elo": 1505.4,
+        "credit_elo": 1507.7,
+        "dealshare_elo": 1506.4
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_52f37f",
+        "profit_elo": 1505.4,
+        "credit_elo": 1507.7,
+        "dealshare_elo": 1506.4
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_700774",
+        "profit_elo": 1505.4,
+        "credit_elo": 1507.7,
+        "dealshare_elo": 1506.4
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_796943",
+        "profit_elo": 1505.4,
+        "credit_elo": 1507.7,
+        "dealshare_elo": 1506.4
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_82c48f",
+        "profit_elo": 1505.4,
+        "credit_elo": 1507.7,
+        "dealshare_elo": 1506.4
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_951ad7",
+        "profit_elo": 1505.4,
+        "credit_elo": 1507.7,
+        "dealshare_elo": 1506.4
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_a55073",
+        "profit_elo": 1505.4,
+        "credit_elo": 1507.7,
+        "dealshare_elo": 1506.4
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_b99930",
+        "profit_elo": 1505.4,
+        "credit_elo": 1507.7,
+        "dealshare_elo": 1506.4
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_e258de",
+        "profit_elo": 1505.4,
+        "credit_elo": 1507.7,
+        "dealshare_elo": 1506.4
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_f2d0fd",
+        "profit_elo": 1505.4,
+        "credit_elo": 1507.7,
+        "dealshare_elo": 1506.4
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_ff2b22",
         "profit_elo": 1505.4,
         "credit_elo": 1507.7,
         "dealshare_elo": 1506.4
@@ -1782,6 +4242,234 @@
         "profit_elo": 1504.0,
         "credit_elo": 1496.0,
         "dealshare_elo": 1503.5
+      },
+      {
+        "match_id": "2026-02-26T15-25-46_66984f",
+        "profit_elo": 1504.0,
+        "credit_elo": 1496.0,
+        "dealshare_elo": 1503.5
+      },
+      {
+        "match_id": "2026-02-26T15-25-46_ab3b24",
+        "profit_elo": 1504.0,
+        "credit_elo": 1496.0,
+        "dealshare_elo": 1503.5
+      },
+      {
+        "match_id": "2026-02-26T15-25-46_c33fb5",
+        "profit_elo": 1504.0,
+        "credit_elo": 1496.0,
+        "dealshare_elo": 1503.5
+      },
+      {
+        "match_id": "2026-02-26T15-25-46_cd2ddc",
+        "profit_elo": 1504.0,
+        "credit_elo": 1496.0,
+        "dealshare_elo": 1503.5
+      },
+      {
+        "match_id": "2026-02-26T15-25-46_f1d5b7",
+        "profit_elo": 1504.0,
+        "credit_elo": 1496.0,
+        "dealshare_elo": 1503.5
+      },
+      {
+        "match_id": "2026-02-26T15-25-46_fb664c",
+        "profit_elo": 1504.0,
+        "credit_elo": 1496.0,
+        "dealshare_elo": 1503.5
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_092608",
+        "profit_elo": 1504.0,
+        "credit_elo": 1496.0,
+        "dealshare_elo": 1503.5
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_3d48ca",
+        "profit_elo": 1504.0,
+        "credit_elo": 1496.0,
+        "dealshare_elo": 1503.5
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_4e0851",
+        "profit_elo": 1504.0,
+        "credit_elo": 1496.0,
+        "dealshare_elo": 1503.5
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_7ef1f1",
+        "profit_elo": 1504.0,
+        "credit_elo": 1496.0,
+        "dealshare_elo": 1503.5
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_940c60",
+        "profit_elo": 1504.0,
+        "credit_elo": 1496.0,
+        "dealshare_elo": 1503.5
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_d3045d",
+        "profit_elo": 1504.0,
+        "credit_elo": 1496.0,
+        "dealshare_elo": 1503.5
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_dc6779",
+        "profit_elo": 1504.0,
+        "credit_elo": 1496.0,
+        "dealshare_elo": 1503.5
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_e75289",
+        "profit_elo": 1504.0,
+        "credit_elo": 1496.0,
+        "dealshare_elo": 1503.5
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_f4260b",
+        "profit_elo": 1504.0,
+        "credit_elo": 1496.0,
+        "dealshare_elo": 1503.5
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_30a39d",
+        "profit_elo": 1504.0,
+        "credit_elo": 1496.0,
+        "dealshare_elo": 1503.5
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_366b1d",
+        "profit_elo": 1504.0,
+        "credit_elo": 1496.0,
+        "dealshare_elo": 1503.5
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_43bd71",
+        "profit_elo": 1504.0,
+        "credit_elo": 1496.0,
+        "dealshare_elo": 1503.5
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_50cb8e",
+        "profit_elo": 1504.0,
+        "credit_elo": 1496.0,
+        "dealshare_elo": 1503.5
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_71639d",
+        "profit_elo": 1504.0,
+        "credit_elo": 1496.0,
+        "dealshare_elo": 1503.5
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_793635",
+        "profit_elo": 1504.0,
+        "credit_elo": 1496.0,
+        "dealshare_elo": 1503.5
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_be14ae",
+        "profit_elo": 1504.0,
+        "credit_elo": 1496.0,
+        "dealshare_elo": 1503.5
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_bfbfb5",
+        "profit_elo": 1504.0,
+        "credit_elo": 1496.0,
+        "dealshare_elo": 1503.5
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_ceff51",
+        "profit_elo": 1504.0,
+        "credit_elo": 1496.0,
+        "dealshare_elo": 1503.5
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_dd346b",
+        "profit_elo": 1504.0,
+        "credit_elo": 1496.0,
+        "dealshare_elo": 1503.5
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_f02bb7",
+        "profit_elo": 1504.0,
+        "credit_elo": 1496.0,
+        "dealshare_elo": 1503.5
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_fe7c71",
+        "profit_elo": 1504.0,
+        "credit_elo": 1496.0,
+        "dealshare_elo": 1503.5
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_2b9886",
+        "profit_elo": 1504.0,
+        "credit_elo": 1496.0,
+        "dealshare_elo": 1503.5
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_52f37f",
+        "profit_elo": 1504.0,
+        "credit_elo": 1496.0,
+        "dealshare_elo": 1503.5
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_700774",
+        "profit_elo": 1504.0,
+        "credit_elo": 1496.0,
+        "dealshare_elo": 1503.5
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_796943",
+        "profit_elo": 1504.0,
+        "credit_elo": 1496.0,
+        "dealshare_elo": 1503.5
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_82c48f",
+        "profit_elo": 1504.0,
+        "credit_elo": 1496.0,
+        "dealshare_elo": 1503.5
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_951ad7",
+        "profit_elo": 1504.0,
+        "credit_elo": 1496.0,
+        "dealshare_elo": 1503.5
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_a55073",
+        "profit_elo": 1504.0,
+        "credit_elo": 1496.0,
+        "dealshare_elo": 1503.5
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_b99930",
+        "profit_elo": 1504.0,
+        "credit_elo": 1496.0,
+        "dealshare_elo": 1503.5
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_e258de",
+        "profit_elo": 1504.0,
+        "credit_elo": 1496.0,
+        "dealshare_elo": 1503.5
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_f2d0fd",
+        "profit_elo": 1504.0,
+        "credit_elo": 1496.0,
+        "dealshare_elo": 1503.5
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_ff2b22",
+        "profit_elo": 1504.0,
+        "credit_elo": 1496.0,
+        "dealshare_elo": 1503.5
       }
     ],
     "minimax/minimax-01": [
@@ -1859,6 +4547,234 @@
       },
       {
         "match_id": "2026-02-26T14-10-54_f51407",
+        "profit_elo": 1496.3,
+        "credit_elo": 1492.9,
+        "dealshare_elo": 1495.1
+      },
+      {
+        "match_id": "2026-02-26T15-25-46_66984f",
+        "profit_elo": 1496.3,
+        "credit_elo": 1492.9,
+        "dealshare_elo": 1495.1
+      },
+      {
+        "match_id": "2026-02-26T15-25-46_ab3b24",
+        "profit_elo": 1496.3,
+        "credit_elo": 1492.9,
+        "dealshare_elo": 1495.1
+      },
+      {
+        "match_id": "2026-02-26T15-25-46_c33fb5",
+        "profit_elo": 1496.3,
+        "credit_elo": 1492.9,
+        "dealshare_elo": 1495.1
+      },
+      {
+        "match_id": "2026-02-26T15-25-46_cd2ddc",
+        "profit_elo": 1496.3,
+        "credit_elo": 1492.9,
+        "dealshare_elo": 1495.1
+      },
+      {
+        "match_id": "2026-02-26T15-25-46_f1d5b7",
+        "profit_elo": 1496.3,
+        "credit_elo": 1492.9,
+        "dealshare_elo": 1495.1
+      },
+      {
+        "match_id": "2026-02-26T15-25-46_fb664c",
+        "profit_elo": 1496.3,
+        "credit_elo": 1492.9,
+        "dealshare_elo": 1495.1
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_092608",
+        "profit_elo": 1496.3,
+        "credit_elo": 1492.9,
+        "dealshare_elo": 1495.1
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_3d48ca",
+        "profit_elo": 1496.3,
+        "credit_elo": 1492.9,
+        "dealshare_elo": 1495.1
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_4e0851",
+        "profit_elo": 1496.3,
+        "credit_elo": 1492.9,
+        "dealshare_elo": 1495.1
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_7ef1f1",
+        "profit_elo": 1496.3,
+        "credit_elo": 1492.9,
+        "dealshare_elo": 1495.1
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_940c60",
+        "profit_elo": 1496.3,
+        "credit_elo": 1492.9,
+        "dealshare_elo": 1495.1
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_d3045d",
+        "profit_elo": 1496.3,
+        "credit_elo": 1492.9,
+        "dealshare_elo": 1495.1
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_dc6779",
+        "profit_elo": 1496.3,
+        "credit_elo": 1492.9,
+        "dealshare_elo": 1495.1
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_e75289",
+        "profit_elo": 1496.3,
+        "credit_elo": 1492.9,
+        "dealshare_elo": 1495.1
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_f4260b",
+        "profit_elo": 1496.3,
+        "credit_elo": 1492.9,
+        "dealshare_elo": 1495.1
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_30a39d",
+        "profit_elo": 1496.3,
+        "credit_elo": 1492.9,
+        "dealshare_elo": 1495.1
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_366b1d",
+        "profit_elo": 1496.3,
+        "credit_elo": 1492.9,
+        "dealshare_elo": 1495.1
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_43bd71",
+        "profit_elo": 1496.3,
+        "credit_elo": 1492.9,
+        "dealshare_elo": 1495.1
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_50cb8e",
+        "profit_elo": 1496.3,
+        "credit_elo": 1492.9,
+        "dealshare_elo": 1495.1
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_71639d",
+        "profit_elo": 1496.3,
+        "credit_elo": 1492.9,
+        "dealshare_elo": 1495.1
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_793635",
+        "profit_elo": 1496.3,
+        "credit_elo": 1492.9,
+        "dealshare_elo": 1495.1
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_be14ae",
+        "profit_elo": 1496.3,
+        "credit_elo": 1492.9,
+        "dealshare_elo": 1495.1
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_bfbfb5",
+        "profit_elo": 1496.3,
+        "credit_elo": 1492.9,
+        "dealshare_elo": 1495.1
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_ceff51",
+        "profit_elo": 1496.3,
+        "credit_elo": 1492.9,
+        "dealshare_elo": 1495.1
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_dd346b",
+        "profit_elo": 1496.3,
+        "credit_elo": 1492.9,
+        "dealshare_elo": 1495.1
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_f02bb7",
+        "profit_elo": 1496.3,
+        "credit_elo": 1492.9,
+        "dealshare_elo": 1495.1
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_fe7c71",
+        "profit_elo": 1496.3,
+        "credit_elo": 1492.9,
+        "dealshare_elo": 1495.1
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_2b9886",
+        "profit_elo": 1496.3,
+        "credit_elo": 1492.9,
+        "dealshare_elo": 1495.1
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_52f37f",
+        "profit_elo": 1496.3,
+        "credit_elo": 1492.9,
+        "dealshare_elo": 1495.1
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_700774",
+        "profit_elo": 1496.3,
+        "credit_elo": 1492.9,
+        "dealshare_elo": 1495.1
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_796943",
+        "profit_elo": 1496.3,
+        "credit_elo": 1492.9,
+        "dealshare_elo": 1495.1
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_82c48f",
+        "profit_elo": 1496.3,
+        "credit_elo": 1492.9,
+        "dealshare_elo": 1495.1
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_951ad7",
+        "profit_elo": 1496.3,
+        "credit_elo": 1492.9,
+        "dealshare_elo": 1495.1
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_a55073",
+        "profit_elo": 1496.3,
+        "credit_elo": 1492.9,
+        "dealshare_elo": 1495.1
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_b99930",
+        "profit_elo": 1496.3,
+        "credit_elo": 1492.9,
+        "dealshare_elo": 1495.1
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_e258de",
+        "profit_elo": 1496.3,
+        "credit_elo": 1492.9,
+        "dealshare_elo": 1495.1
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_f2d0fd",
+        "profit_elo": 1496.3,
+        "credit_elo": 1492.9,
+        "dealshare_elo": 1495.1
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_ff2b22",
         "profit_elo": 1496.3,
         "credit_elo": 1492.9,
         "dealshare_elo": 1495.1
@@ -1942,6 +4858,234 @@
         "profit_elo": 1497.5,
         "credit_elo": 1500.4,
         "dealshare_elo": 1499.5
+      },
+      {
+        "match_id": "2026-02-26T15-25-46_66984f",
+        "profit_elo": 1497.5,
+        "credit_elo": 1500.4,
+        "dealshare_elo": 1499.5
+      },
+      {
+        "match_id": "2026-02-26T15-25-46_ab3b24",
+        "profit_elo": 1497.5,
+        "credit_elo": 1500.4,
+        "dealshare_elo": 1499.5
+      },
+      {
+        "match_id": "2026-02-26T15-25-46_c33fb5",
+        "profit_elo": 1497.5,
+        "credit_elo": 1500.4,
+        "dealshare_elo": 1499.5
+      },
+      {
+        "match_id": "2026-02-26T15-25-46_cd2ddc",
+        "profit_elo": 1497.5,
+        "credit_elo": 1500.4,
+        "dealshare_elo": 1499.5
+      },
+      {
+        "match_id": "2026-02-26T15-25-46_f1d5b7",
+        "profit_elo": 1497.5,
+        "credit_elo": 1500.4,
+        "dealshare_elo": 1499.5
+      },
+      {
+        "match_id": "2026-02-26T15-25-46_fb664c",
+        "profit_elo": 1497.5,
+        "credit_elo": 1500.4,
+        "dealshare_elo": 1499.5
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_092608",
+        "profit_elo": 1497.5,
+        "credit_elo": 1500.4,
+        "dealshare_elo": 1499.5
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_3d48ca",
+        "profit_elo": 1497.5,
+        "credit_elo": 1500.4,
+        "dealshare_elo": 1499.5
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_4e0851",
+        "profit_elo": 1497.5,
+        "credit_elo": 1500.4,
+        "dealshare_elo": 1499.5
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_7ef1f1",
+        "profit_elo": 1497.5,
+        "credit_elo": 1500.4,
+        "dealshare_elo": 1499.5
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_940c60",
+        "profit_elo": 1497.5,
+        "credit_elo": 1500.4,
+        "dealshare_elo": 1499.5
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_d3045d",
+        "profit_elo": 1497.5,
+        "credit_elo": 1500.4,
+        "dealshare_elo": 1499.5
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_dc6779",
+        "profit_elo": 1497.5,
+        "credit_elo": 1500.4,
+        "dealshare_elo": 1499.5
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_e75289",
+        "profit_elo": 1497.5,
+        "credit_elo": 1500.4,
+        "dealshare_elo": 1499.5
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_f4260b",
+        "profit_elo": 1497.5,
+        "credit_elo": 1500.4,
+        "dealshare_elo": 1499.5
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_30a39d",
+        "profit_elo": 1497.5,
+        "credit_elo": 1500.4,
+        "dealshare_elo": 1499.5
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_366b1d",
+        "profit_elo": 1497.5,
+        "credit_elo": 1500.4,
+        "dealshare_elo": 1499.5
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_43bd71",
+        "profit_elo": 1497.5,
+        "credit_elo": 1500.4,
+        "dealshare_elo": 1499.5
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_50cb8e",
+        "profit_elo": 1497.5,
+        "credit_elo": 1500.4,
+        "dealshare_elo": 1499.5
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_71639d",
+        "profit_elo": 1497.5,
+        "credit_elo": 1500.4,
+        "dealshare_elo": 1499.5
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_793635",
+        "profit_elo": 1497.5,
+        "credit_elo": 1500.4,
+        "dealshare_elo": 1499.5
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_be14ae",
+        "profit_elo": 1497.5,
+        "credit_elo": 1500.4,
+        "dealshare_elo": 1499.5
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_bfbfb5",
+        "profit_elo": 1497.5,
+        "credit_elo": 1500.4,
+        "dealshare_elo": 1499.5
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_ceff51",
+        "profit_elo": 1497.5,
+        "credit_elo": 1500.4,
+        "dealshare_elo": 1499.5
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_dd346b",
+        "profit_elo": 1497.5,
+        "credit_elo": 1500.4,
+        "dealshare_elo": 1499.5
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_f02bb7",
+        "profit_elo": 1497.5,
+        "credit_elo": 1500.4,
+        "dealshare_elo": 1499.5
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_fe7c71",
+        "profit_elo": 1497.5,
+        "credit_elo": 1500.4,
+        "dealshare_elo": 1499.5
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_2b9886",
+        "profit_elo": 1497.5,
+        "credit_elo": 1500.4,
+        "dealshare_elo": 1499.5
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_52f37f",
+        "profit_elo": 1497.5,
+        "credit_elo": 1500.4,
+        "dealshare_elo": 1499.5
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_700774",
+        "profit_elo": 1497.5,
+        "credit_elo": 1500.4,
+        "dealshare_elo": 1499.5
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_796943",
+        "profit_elo": 1497.5,
+        "credit_elo": 1500.4,
+        "dealshare_elo": 1499.5
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_82c48f",
+        "profit_elo": 1497.5,
+        "credit_elo": 1500.4,
+        "dealshare_elo": 1499.5
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_951ad7",
+        "profit_elo": 1497.5,
+        "credit_elo": 1500.4,
+        "dealshare_elo": 1499.5
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_a55073",
+        "profit_elo": 1497.5,
+        "credit_elo": 1500.4,
+        "dealshare_elo": 1499.5
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_b99930",
+        "profit_elo": 1497.5,
+        "credit_elo": 1500.4,
+        "dealshare_elo": 1499.5
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_e258de",
+        "profit_elo": 1497.5,
+        "credit_elo": 1500.4,
+        "dealshare_elo": 1499.5
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_f2d0fd",
+        "profit_elo": 1497.5,
+        "credit_elo": 1500.4,
+        "dealshare_elo": 1499.5
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_ff2b22",
+        "profit_elo": 1497.5,
+        "credit_elo": 1500.4,
+        "dealshare_elo": 1499.5
       }
     ],
     "nvidia/llama-3.3-nemotron-super-49b-v1.5::LND-002": [
@@ -2019,6 +5163,234 @@
       },
       {
         "match_id": "2026-02-26T14-10-54_f51407",
+        "profit_elo": 1497.0,
+        "credit_elo": 1498.7,
+        "dealshare_elo": 1503.0
+      },
+      {
+        "match_id": "2026-02-26T15-25-46_66984f",
+        "profit_elo": 1497.0,
+        "credit_elo": 1498.7,
+        "dealshare_elo": 1503.0
+      },
+      {
+        "match_id": "2026-02-26T15-25-46_ab3b24",
+        "profit_elo": 1497.0,
+        "credit_elo": 1498.7,
+        "dealshare_elo": 1503.0
+      },
+      {
+        "match_id": "2026-02-26T15-25-46_c33fb5",
+        "profit_elo": 1497.0,
+        "credit_elo": 1498.7,
+        "dealshare_elo": 1503.0
+      },
+      {
+        "match_id": "2026-02-26T15-25-46_cd2ddc",
+        "profit_elo": 1497.0,
+        "credit_elo": 1498.7,
+        "dealshare_elo": 1503.0
+      },
+      {
+        "match_id": "2026-02-26T15-25-46_f1d5b7",
+        "profit_elo": 1497.0,
+        "credit_elo": 1498.7,
+        "dealshare_elo": 1503.0
+      },
+      {
+        "match_id": "2026-02-26T15-25-46_fb664c",
+        "profit_elo": 1497.0,
+        "credit_elo": 1498.7,
+        "dealshare_elo": 1503.0
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_092608",
+        "profit_elo": 1497.0,
+        "credit_elo": 1498.7,
+        "dealshare_elo": 1503.0
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_3d48ca",
+        "profit_elo": 1497.0,
+        "credit_elo": 1498.7,
+        "dealshare_elo": 1503.0
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_4e0851",
+        "profit_elo": 1497.0,
+        "credit_elo": 1498.7,
+        "dealshare_elo": 1503.0
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_7ef1f1",
+        "profit_elo": 1497.0,
+        "credit_elo": 1498.7,
+        "dealshare_elo": 1503.0
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_940c60",
+        "profit_elo": 1497.0,
+        "credit_elo": 1498.7,
+        "dealshare_elo": 1503.0
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_d3045d",
+        "profit_elo": 1497.0,
+        "credit_elo": 1498.7,
+        "dealshare_elo": 1503.0
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_dc6779",
+        "profit_elo": 1497.0,
+        "credit_elo": 1498.7,
+        "dealshare_elo": 1503.0
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_e75289",
+        "profit_elo": 1497.0,
+        "credit_elo": 1498.7,
+        "dealshare_elo": 1503.0
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_f4260b",
+        "profit_elo": 1497.0,
+        "credit_elo": 1498.7,
+        "dealshare_elo": 1503.0
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_30a39d",
+        "profit_elo": 1497.0,
+        "credit_elo": 1498.7,
+        "dealshare_elo": 1503.0
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_366b1d",
+        "profit_elo": 1497.0,
+        "credit_elo": 1498.7,
+        "dealshare_elo": 1503.0
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_43bd71",
+        "profit_elo": 1497.0,
+        "credit_elo": 1498.7,
+        "dealshare_elo": 1503.0
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_50cb8e",
+        "profit_elo": 1497.0,
+        "credit_elo": 1498.7,
+        "dealshare_elo": 1503.0
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_71639d",
+        "profit_elo": 1497.0,
+        "credit_elo": 1498.7,
+        "dealshare_elo": 1503.0
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_793635",
+        "profit_elo": 1497.0,
+        "credit_elo": 1498.7,
+        "dealshare_elo": 1503.0
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_be14ae",
+        "profit_elo": 1497.0,
+        "credit_elo": 1498.7,
+        "dealshare_elo": 1503.0
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_bfbfb5",
+        "profit_elo": 1497.0,
+        "credit_elo": 1498.7,
+        "dealshare_elo": 1503.0
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_ceff51",
+        "profit_elo": 1497.0,
+        "credit_elo": 1498.7,
+        "dealshare_elo": 1503.0
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_dd346b",
+        "profit_elo": 1497.0,
+        "credit_elo": 1498.7,
+        "dealshare_elo": 1503.0
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_f02bb7",
+        "profit_elo": 1497.0,
+        "credit_elo": 1498.7,
+        "dealshare_elo": 1503.0
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_fe7c71",
+        "profit_elo": 1497.0,
+        "credit_elo": 1498.7,
+        "dealshare_elo": 1503.0
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_2b9886",
+        "profit_elo": 1497.0,
+        "credit_elo": 1498.7,
+        "dealshare_elo": 1503.0
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_52f37f",
+        "profit_elo": 1497.0,
+        "credit_elo": 1498.7,
+        "dealshare_elo": 1503.0
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_700774",
+        "profit_elo": 1497.0,
+        "credit_elo": 1498.7,
+        "dealshare_elo": 1503.0
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_796943",
+        "profit_elo": 1497.0,
+        "credit_elo": 1498.7,
+        "dealshare_elo": 1503.0
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_82c48f",
+        "profit_elo": 1497.0,
+        "credit_elo": 1498.7,
+        "dealshare_elo": 1503.0
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_951ad7",
+        "profit_elo": 1497.0,
+        "credit_elo": 1498.7,
+        "dealshare_elo": 1503.0
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_a55073",
+        "profit_elo": 1497.0,
+        "credit_elo": 1498.7,
+        "dealshare_elo": 1503.0
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_b99930",
+        "profit_elo": 1497.0,
+        "credit_elo": 1498.7,
+        "dealshare_elo": 1503.0
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_e258de",
+        "profit_elo": 1497.0,
+        "credit_elo": 1498.7,
+        "dealshare_elo": 1503.0
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_f2d0fd",
+        "profit_elo": 1497.0,
+        "credit_elo": 1498.7,
+        "dealshare_elo": 1503.0
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_ff2b22",
         "profit_elo": 1497.0,
         "credit_elo": 1498.7,
         "dealshare_elo": 1503.0
@@ -2102,6 +5474,234 @@
         "profit_elo": 1501.5,
         "credit_elo": 1500.6,
         "dealshare_elo": 1498.5
+      },
+      {
+        "match_id": "2026-02-26T15-25-46_66984f",
+        "profit_elo": 1501.5,
+        "credit_elo": 1500.6,
+        "dealshare_elo": 1498.5
+      },
+      {
+        "match_id": "2026-02-26T15-25-46_ab3b24",
+        "profit_elo": 1501.5,
+        "credit_elo": 1500.6,
+        "dealshare_elo": 1498.5
+      },
+      {
+        "match_id": "2026-02-26T15-25-46_c33fb5",
+        "profit_elo": 1501.5,
+        "credit_elo": 1500.6,
+        "dealshare_elo": 1498.5
+      },
+      {
+        "match_id": "2026-02-26T15-25-46_cd2ddc",
+        "profit_elo": 1501.5,
+        "credit_elo": 1500.6,
+        "dealshare_elo": 1498.5
+      },
+      {
+        "match_id": "2026-02-26T15-25-46_f1d5b7",
+        "profit_elo": 1501.5,
+        "credit_elo": 1500.6,
+        "dealshare_elo": 1498.5
+      },
+      {
+        "match_id": "2026-02-26T15-25-46_fb664c",
+        "profit_elo": 1501.5,
+        "credit_elo": 1500.6,
+        "dealshare_elo": 1498.5
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_092608",
+        "profit_elo": 1501.5,
+        "credit_elo": 1500.6,
+        "dealshare_elo": 1498.5
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_3d48ca",
+        "profit_elo": 1501.5,
+        "credit_elo": 1500.6,
+        "dealshare_elo": 1498.5
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_4e0851",
+        "profit_elo": 1501.5,
+        "credit_elo": 1500.6,
+        "dealshare_elo": 1498.5
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_7ef1f1",
+        "profit_elo": 1501.5,
+        "credit_elo": 1500.6,
+        "dealshare_elo": 1498.5
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_940c60",
+        "profit_elo": 1501.5,
+        "credit_elo": 1500.6,
+        "dealshare_elo": 1498.5
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_d3045d",
+        "profit_elo": 1501.5,
+        "credit_elo": 1500.6,
+        "dealshare_elo": 1498.5
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_dc6779",
+        "profit_elo": 1501.5,
+        "credit_elo": 1500.6,
+        "dealshare_elo": 1498.5
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_e75289",
+        "profit_elo": 1501.5,
+        "credit_elo": 1500.6,
+        "dealshare_elo": 1498.5
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_f4260b",
+        "profit_elo": 1501.5,
+        "credit_elo": 1500.6,
+        "dealshare_elo": 1498.5
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_30a39d",
+        "profit_elo": 1501.5,
+        "credit_elo": 1500.6,
+        "dealshare_elo": 1498.5
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_366b1d",
+        "profit_elo": 1501.5,
+        "credit_elo": 1500.6,
+        "dealshare_elo": 1498.5
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_43bd71",
+        "profit_elo": 1501.5,
+        "credit_elo": 1500.6,
+        "dealshare_elo": 1498.5
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_50cb8e",
+        "profit_elo": 1501.5,
+        "credit_elo": 1500.6,
+        "dealshare_elo": 1498.5
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_71639d",
+        "profit_elo": 1501.5,
+        "credit_elo": 1500.6,
+        "dealshare_elo": 1498.5
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_793635",
+        "profit_elo": 1501.5,
+        "credit_elo": 1500.6,
+        "dealshare_elo": 1498.5
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_be14ae",
+        "profit_elo": 1501.5,
+        "credit_elo": 1500.6,
+        "dealshare_elo": 1498.5
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_bfbfb5",
+        "profit_elo": 1501.5,
+        "credit_elo": 1500.6,
+        "dealshare_elo": 1498.5
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_ceff51",
+        "profit_elo": 1501.5,
+        "credit_elo": 1500.6,
+        "dealshare_elo": 1498.5
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_dd346b",
+        "profit_elo": 1501.5,
+        "credit_elo": 1500.6,
+        "dealshare_elo": 1498.5
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_f02bb7",
+        "profit_elo": 1501.5,
+        "credit_elo": 1500.6,
+        "dealshare_elo": 1498.5
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_fe7c71",
+        "profit_elo": 1501.5,
+        "credit_elo": 1500.6,
+        "dealshare_elo": 1498.5
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_2b9886",
+        "profit_elo": 1501.5,
+        "credit_elo": 1500.6,
+        "dealshare_elo": 1498.5
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_52f37f",
+        "profit_elo": 1501.5,
+        "credit_elo": 1500.6,
+        "dealshare_elo": 1498.5
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_700774",
+        "profit_elo": 1501.5,
+        "credit_elo": 1500.6,
+        "dealshare_elo": 1498.5
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_796943",
+        "profit_elo": 1501.5,
+        "credit_elo": 1500.6,
+        "dealshare_elo": 1498.5
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_82c48f",
+        "profit_elo": 1501.5,
+        "credit_elo": 1500.6,
+        "dealshare_elo": 1498.5
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_951ad7",
+        "profit_elo": 1501.5,
+        "credit_elo": 1500.6,
+        "dealshare_elo": 1498.5
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_a55073",
+        "profit_elo": 1501.5,
+        "credit_elo": 1500.6,
+        "dealshare_elo": 1498.5
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_b99930",
+        "profit_elo": 1501.5,
+        "credit_elo": 1500.6,
+        "dealshare_elo": 1498.5
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_e258de",
+        "profit_elo": 1501.5,
+        "credit_elo": 1500.6,
+        "dealshare_elo": 1498.5
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_f2d0fd",
+        "profit_elo": 1501.5,
+        "credit_elo": 1500.6,
+        "dealshare_elo": 1498.5
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_ff2b22",
+        "profit_elo": 1501.5,
+        "credit_elo": 1500.6,
+        "dealshare_elo": 1498.5
       }
     ],
     "google/gemini-2.5-flash::LND-004": [
@@ -2179,6 +5779,234 @@
       },
       {
         "match_id": "2026-02-26T14-10-54_f51407",
+        "profit_elo": 1501.5,
+        "credit_elo": 1500.7,
+        "dealshare_elo": 1498.5
+      },
+      {
+        "match_id": "2026-02-26T15-25-46_66984f",
+        "profit_elo": 1501.5,
+        "credit_elo": 1500.7,
+        "dealshare_elo": 1498.5
+      },
+      {
+        "match_id": "2026-02-26T15-25-46_ab3b24",
+        "profit_elo": 1501.5,
+        "credit_elo": 1500.7,
+        "dealshare_elo": 1498.5
+      },
+      {
+        "match_id": "2026-02-26T15-25-46_c33fb5",
+        "profit_elo": 1501.5,
+        "credit_elo": 1500.7,
+        "dealshare_elo": 1498.5
+      },
+      {
+        "match_id": "2026-02-26T15-25-46_cd2ddc",
+        "profit_elo": 1501.5,
+        "credit_elo": 1500.7,
+        "dealshare_elo": 1498.5
+      },
+      {
+        "match_id": "2026-02-26T15-25-46_f1d5b7",
+        "profit_elo": 1501.5,
+        "credit_elo": 1500.7,
+        "dealshare_elo": 1498.5
+      },
+      {
+        "match_id": "2026-02-26T15-25-46_fb664c",
+        "profit_elo": 1501.5,
+        "credit_elo": 1500.7,
+        "dealshare_elo": 1498.5
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_092608",
+        "profit_elo": 1501.5,
+        "credit_elo": 1500.7,
+        "dealshare_elo": 1498.5
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_3d48ca",
+        "profit_elo": 1501.5,
+        "credit_elo": 1500.7,
+        "dealshare_elo": 1498.5
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_4e0851",
+        "profit_elo": 1501.5,
+        "credit_elo": 1500.7,
+        "dealshare_elo": 1498.5
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_7ef1f1",
+        "profit_elo": 1501.5,
+        "credit_elo": 1500.7,
+        "dealshare_elo": 1498.5
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_940c60",
+        "profit_elo": 1501.5,
+        "credit_elo": 1500.7,
+        "dealshare_elo": 1498.5
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_d3045d",
+        "profit_elo": 1501.5,
+        "credit_elo": 1500.7,
+        "dealshare_elo": 1498.5
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_dc6779",
+        "profit_elo": 1501.5,
+        "credit_elo": 1500.7,
+        "dealshare_elo": 1498.5
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_e75289",
+        "profit_elo": 1501.5,
+        "credit_elo": 1500.7,
+        "dealshare_elo": 1498.5
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_f4260b",
+        "profit_elo": 1501.5,
+        "credit_elo": 1500.7,
+        "dealshare_elo": 1498.5
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_30a39d",
+        "profit_elo": 1501.5,
+        "credit_elo": 1500.7,
+        "dealshare_elo": 1498.5
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_366b1d",
+        "profit_elo": 1501.5,
+        "credit_elo": 1500.7,
+        "dealshare_elo": 1498.5
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_43bd71",
+        "profit_elo": 1501.5,
+        "credit_elo": 1500.7,
+        "dealshare_elo": 1498.5
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_50cb8e",
+        "profit_elo": 1501.5,
+        "credit_elo": 1500.7,
+        "dealshare_elo": 1498.5
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_71639d",
+        "profit_elo": 1501.5,
+        "credit_elo": 1500.7,
+        "dealshare_elo": 1498.5
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_793635",
+        "profit_elo": 1501.5,
+        "credit_elo": 1500.7,
+        "dealshare_elo": 1498.5
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_be14ae",
+        "profit_elo": 1501.5,
+        "credit_elo": 1500.7,
+        "dealshare_elo": 1498.5
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_bfbfb5",
+        "profit_elo": 1501.5,
+        "credit_elo": 1500.7,
+        "dealshare_elo": 1498.5
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_ceff51",
+        "profit_elo": 1501.5,
+        "credit_elo": 1500.7,
+        "dealshare_elo": 1498.5
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_dd346b",
+        "profit_elo": 1501.5,
+        "credit_elo": 1500.7,
+        "dealshare_elo": 1498.5
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_f02bb7",
+        "profit_elo": 1501.5,
+        "credit_elo": 1500.7,
+        "dealshare_elo": 1498.5
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_fe7c71",
+        "profit_elo": 1501.5,
+        "credit_elo": 1500.7,
+        "dealshare_elo": 1498.5
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_2b9886",
+        "profit_elo": 1501.5,
+        "credit_elo": 1500.7,
+        "dealshare_elo": 1498.5
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_52f37f",
+        "profit_elo": 1501.5,
+        "credit_elo": 1500.7,
+        "dealshare_elo": 1498.5
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_700774",
+        "profit_elo": 1501.5,
+        "credit_elo": 1500.7,
+        "dealshare_elo": 1498.5
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_796943",
+        "profit_elo": 1501.5,
+        "credit_elo": 1500.7,
+        "dealshare_elo": 1498.5
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_82c48f",
+        "profit_elo": 1501.5,
+        "credit_elo": 1500.7,
+        "dealshare_elo": 1498.5
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_951ad7",
+        "profit_elo": 1501.5,
+        "credit_elo": 1500.7,
+        "dealshare_elo": 1498.5
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_a55073",
+        "profit_elo": 1501.5,
+        "credit_elo": 1500.7,
+        "dealshare_elo": 1498.5
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_b99930",
+        "profit_elo": 1501.5,
+        "credit_elo": 1500.7,
+        "dealshare_elo": 1498.5
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_e258de",
+        "profit_elo": 1501.5,
+        "credit_elo": 1500.7,
+        "dealshare_elo": 1498.5
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_f2d0fd",
+        "profit_elo": 1501.5,
+        "credit_elo": 1500.7,
+        "dealshare_elo": 1498.5
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_ff2b22",
         "profit_elo": 1501.5,
         "credit_elo": 1500.7,
         "dealshare_elo": 1498.5
@@ -2262,6 +6090,234 @@
         "profit_elo": 1496.1,
         "credit_elo": 1499.7,
         "dealshare_elo": 1503.9
+      },
+      {
+        "match_id": "2026-02-26T15-25-46_66984f",
+        "profit_elo": 1496.1,
+        "credit_elo": 1499.7,
+        "dealshare_elo": 1503.9
+      },
+      {
+        "match_id": "2026-02-26T15-25-46_ab3b24",
+        "profit_elo": 1496.1,
+        "credit_elo": 1499.7,
+        "dealshare_elo": 1503.9
+      },
+      {
+        "match_id": "2026-02-26T15-25-46_c33fb5",
+        "profit_elo": 1496.1,
+        "credit_elo": 1499.7,
+        "dealshare_elo": 1503.9
+      },
+      {
+        "match_id": "2026-02-26T15-25-46_cd2ddc",
+        "profit_elo": 1496.1,
+        "credit_elo": 1499.7,
+        "dealshare_elo": 1503.9
+      },
+      {
+        "match_id": "2026-02-26T15-25-46_f1d5b7",
+        "profit_elo": 1496.1,
+        "credit_elo": 1499.7,
+        "dealshare_elo": 1503.9
+      },
+      {
+        "match_id": "2026-02-26T15-25-46_fb664c",
+        "profit_elo": 1496.1,
+        "credit_elo": 1499.7,
+        "dealshare_elo": 1503.9
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_092608",
+        "profit_elo": 1496.1,
+        "credit_elo": 1499.7,
+        "dealshare_elo": 1503.9
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_3d48ca",
+        "profit_elo": 1496.1,
+        "credit_elo": 1499.7,
+        "dealshare_elo": 1503.9
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_4e0851",
+        "profit_elo": 1496.1,
+        "credit_elo": 1499.7,
+        "dealshare_elo": 1503.9
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_7ef1f1",
+        "profit_elo": 1496.1,
+        "credit_elo": 1499.7,
+        "dealshare_elo": 1503.9
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_940c60",
+        "profit_elo": 1496.1,
+        "credit_elo": 1499.7,
+        "dealshare_elo": 1503.9
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_d3045d",
+        "profit_elo": 1496.1,
+        "credit_elo": 1499.7,
+        "dealshare_elo": 1503.9
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_dc6779",
+        "profit_elo": 1496.1,
+        "credit_elo": 1499.7,
+        "dealshare_elo": 1503.9
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_e75289",
+        "profit_elo": 1496.1,
+        "credit_elo": 1499.7,
+        "dealshare_elo": 1503.9
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_f4260b",
+        "profit_elo": 1496.1,
+        "credit_elo": 1499.7,
+        "dealshare_elo": 1503.9
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_30a39d",
+        "profit_elo": 1496.1,
+        "credit_elo": 1499.7,
+        "dealshare_elo": 1503.9
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_366b1d",
+        "profit_elo": 1496.1,
+        "credit_elo": 1499.7,
+        "dealshare_elo": 1503.9
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_43bd71",
+        "profit_elo": 1496.1,
+        "credit_elo": 1499.7,
+        "dealshare_elo": 1503.9
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_50cb8e",
+        "profit_elo": 1496.1,
+        "credit_elo": 1499.7,
+        "dealshare_elo": 1503.9
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_71639d",
+        "profit_elo": 1496.1,
+        "credit_elo": 1499.7,
+        "dealshare_elo": 1503.9
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_793635",
+        "profit_elo": 1496.1,
+        "credit_elo": 1499.7,
+        "dealshare_elo": 1503.9
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_be14ae",
+        "profit_elo": 1496.1,
+        "credit_elo": 1499.7,
+        "dealshare_elo": 1503.9
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_bfbfb5",
+        "profit_elo": 1496.1,
+        "credit_elo": 1499.7,
+        "dealshare_elo": 1503.9
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_ceff51",
+        "profit_elo": 1496.1,
+        "credit_elo": 1499.7,
+        "dealshare_elo": 1503.9
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_dd346b",
+        "profit_elo": 1496.1,
+        "credit_elo": 1499.7,
+        "dealshare_elo": 1503.9
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_f02bb7",
+        "profit_elo": 1496.1,
+        "credit_elo": 1499.7,
+        "dealshare_elo": 1503.9
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_fe7c71",
+        "profit_elo": 1496.1,
+        "credit_elo": 1499.7,
+        "dealshare_elo": 1503.9
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_2b9886",
+        "profit_elo": 1496.1,
+        "credit_elo": 1499.7,
+        "dealshare_elo": 1503.9
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_52f37f",
+        "profit_elo": 1496.1,
+        "credit_elo": 1499.7,
+        "dealshare_elo": 1503.9
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_700774",
+        "profit_elo": 1496.1,
+        "credit_elo": 1499.7,
+        "dealshare_elo": 1503.9
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_796943",
+        "profit_elo": 1496.1,
+        "credit_elo": 1499.7,
+        "dealshare_elo": 1503.9
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_82c48f",
+        "profit_elo": 1496.1,
+        "credit_elo": 1499.7,
+        "dealshare_elo": 1503.9
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_951ad7",
+        "profit_elo": 1496.1,
+        "credit_elo": 1499.7,
+        "dealshare_elo": 1503.9
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_a55073",
+        "profit_elo": 1496.1,
+        "credit_elo": 1499.7,
+        "dealshare_elo": 1503.9
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_b99930",
+        "profit_elo": 1496.1,
+        "credit_elo": 1499.7,
+        "dealshare_elo": 1503.9
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_e258de",
+        "profit_elo": 1496.1,
+        "credit_elo": 1499.7,
+        "dealshare_elo": 1503.9
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_f2d0fd",
+        "profit_elo": 1496.1,
+        "credit_elo": 1499.7,
+        "dealshare_elo": 1503.9
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_ff2b22",
+        "profit_elo": 1496.1,
+        "credit_elo": 1499.7,
+        "dealshare_elo": 1503.9
       }
     ],
     "moonshotai/kimi-k2::LND-003": [
@@ -2339,6 +6395,234 @@
       },
       {
         "match_id": "2026-02-26T14-10-54_f51407",
+        "profit_elo": 1499.6,
+        "credit_elo": 1499.7,
+        "dealshare_elo": 1500.4
+      },
+      {
+        "match_id": "2026-02-26T15-25-46_66984f",
+        "profit_elo": 1499.6,
+        "credit_elo": 1499.7,
+        "dealshare_elo": 1500.4
+      },
+      {
+        "match_id": "2026-02-26T15-25-46_ab3b24",
+        "profit_elo": 1499.6,
+        "credit_elo": 1499.7,
+        "dealshare_elo": 1500.4
+      },
+      {
+        "match_id": "2026-02-26T15-25-46_c33fb5",
+        "profit_elo": 1499.6,
+        "credit_elo": 1499.7,
+        "dealshare_elo": 1500.4
+      },
+      {
+        "match_id": "2026-02-26T15-25-46_cd2ddc",
+        "profit_elo": 1499.6,
+        "credit_elo": 1499.7,
+        "dealshare_elo": 1500.4
+      },
+      {
+        "match_id": "2026-02-26T15-25-46_f1d5b7",
+        "profit_elo": 1499.6,
+        "credit_elo": 1499.7,
+        "dealshare_elo": 1500.4
+      },
+      {
+        "match_id": "2026-02-26T15-25-46_fb664c",
+        "profit_elo": 1499.6,
+        "credit_elo": 1499.7,
+        "dealshare_elo": 1500.4
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_092608",
+        "profit_elo": 1499.6,
+        "credit_elo": 1499.7,
+        "dealshare_elo": 1500.4
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_3d48ca",
+        "profit_elo": 1499.6,
+        "credit_elo": 1499.7,
+        "dealshare_elo": 1500.4
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_4e0851",
+        "profit_elo": 1499.6,
+        "credit_elo": 1499.7,
+        "dealshare_elo": 1500.4
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_7ef1f1",
+        "profit_elo": 1499.6,
+        "credit_elo": 1499.7,
+        "dealshare_elo": 1500.4
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_940c60",
+        "profit_elo": 1499.6,
+        "credit_elo": 1499.7,
+        "dealshare_elo": 1500.4
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_d3045d",
+        "profit_elo": 1499.6,
+        "credit_elo": 1499.7,
+        "dealshare_elo": 1500.4
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_dc6779",
+        "profit_elo": 1499.6,
+        "credit_elo": 1499.7,
+        "dealshare_elo": 1500.4
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_e75289",
+        "profit_elo": 1499.6,
+        "credit_elo": 1499.7,
+        "dealshare_elo": 1500.4
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_f4260b",
+        "profit_elo": 1499.6,
+        "credit_elo": 1499.7,
+        "dealshare_elo": 1500.4
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_30a39d",
+        "profit_elo": 1499.6,
+        "credit_elo": 1499.7,
+        "dealshare_elo": 1500.4
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_366b1d",
+        "profit_elo": 1499.6,
+        "credit_elo": 1499.7,
+        "dealshare_elo": 1500.4
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_43bd71",
+        "profit_elo": 1499.6,
+        "credit_elo": 1499.7,
+        "dealshare_elo": 1500.4
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_50cb8e",
+        "profit_elo": 1499.6,
+        "credit_elo": 1499.7,
+        "dealshare_elo": 1500.4
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_71639d",
+        "profit_elo": 1499.6,
+        "credit_elo": 1499.7,
+        "dealshare_elo": 1500.4
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_793635",
+        "profit_elo": 1499.6,
+        "credit_elo": 1499.7,
+        "dealshare_elo": 1500.4
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_be14ae",
+        "profit_elo": 1499.6,
+        "credit_elo": 1499.7,
+        "dealshare_elo": 1500.4
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_bfbfb5",
+        "profit_elo": 1499.6,
+        "credit_elo": 1499.7,
+        "dealshare_elo": 1500.4
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_ceff51",
+        "profit_elo": 1499.6,
+        "credit_elo": 1499.7,
+        "dealshare_elo": 1500.4
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_dd346b",
+        "profit_elo": 1499.6,
+        "credit_elo": 1499.7,
+        "dealshare_elo": 1500.4
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_f02bb7",
+        "profit_elo": 1499.6,
+        "credit_elo": 1499.7,
+        "dealshare_elo": 1500.4
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_fe7c71",
+        "profit_elo": 1499.6,
+        "credit_elo": 1499.7,
+        "dealshare_elo": 1500.4
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_2b9886",
+        "profit_elo": 1499.6,
+        "credit_elo": 1499.7,
+        "dealshare_elo": 1500.4
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_52f37f",
+        "profit_elo": 1499.6,
+        "credit_elo": 1499.7,
+        "dealshare_elo": 1500.4
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_700774",
+        "profit_elo": 1499.6,
+        "credit_elo": 1499.7,
+        "dealshare_elo": 1500.4
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_796943",
+        "profit_elo": 1499.6,
+        "credit_elo": 1499.7,
+        "dealshare_elo": 1500.4
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_82c48f",
+        "profit_elo": 1499.6,
+        "credit_elo": 1499.7,
+        "dealshare_elo": 1500.4
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_951ad7",
+        "profit_elo": 1499.6,
+        "credit_elo": 1499.7,
+        "dealshare_elo": 1500.4
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_a55073",
+        "profit_elo": 1499.6,
+        "credit_elo": 1499.7,
+        "dealshare_elo": 1500.4
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_b99930",
+        "profit_elo": 1499.6,
+        "credit_elo": 1499.7,
+        "dealshare_elo": 1500.4
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_e258de",
+        "profit_elo": 1499.6,
+        "credit_elo": 1499.7,
+        "dealshare_elo": 1500.4
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_f2d0fd",
+        "profit_elo": 1499.6,
+        "credit_elo": 1499.7,
+        "dealshare_elo": 1500.4
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_ff2b22",
         "profit_elo": 1499.6,
         "credit_elo": 1499.7,
         "dealshare_elo": 1500.4
@@ -2422,6 +6706,542 @@
         "profit_elo": 1504.3,
         "credit_elo": 1500.6,
         "dealshare_elo": 1495.7
+      },
+      {
+        "match_id": "2026-02-26T15-25-46_66984f",
+        "profit_elo": 1504.3,
+        "credit_elo": 1500.6,
+        "dealshare_elo": 1495.7
+      },
+      {
+        "match_id": "2026-02-26T15-25-46_ab3b24",
+        "profit_elo": 1504.3,
+        "credit_elo": 1500.6,
+        "dealshare_elo": 1495.7
+      },
+      {
+        "match_id": "2026-02-26T15-25-46_c33fb5",
+        "profit_elo": 1504.3,
+        "credit_elo": 1500.6,
+        "dealshare_elo": 1495.7
+      },
+      {
+        "match_id": "2026-02-26T15-25-46_cd2ddc",
+        "profit_elo": 1504.3,
+        "credit_elo": 1500.6,
+        "dealshare_elo": 1495.7
+      },
+      {
+        "match_id": "2026-02-26T15-25-46_f1d5b7",
+        "profit_elo": 1504.3,
+        "credit_elo": 1500.6,
+        "dealshare_elo": 1495.7
+      },
+      {
+        "match_id": "2026-02-26T15-25-46_fb664c",
+        "profit_elo": 1504.3,
+        "credit_elo": 1500.6,
+        "dealshare_elo": 1495.7
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_092608",
+        "profit_elo": 1504.3,
+        "credit_elo": 1500.6,
+        "dealshare_elo": 1495.7
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_3d48ca",
+        "profit_elo": 1504.3,
+        "credit_elo": 1500.6,
+        "dealshare_elo": 1495.7
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_4e0851",
+        "profit_elo": 1504.3,
+        "credit_elo": 1500.6,
+        "dealshare_elo": 1495.7
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_7ef1f1",
+        "profit_elo": 1504.3,
+        "credit_elo": 1500.6,
+        "dealshare_elo": 1495.7
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_940c60",
+        "profit_elo": 1504.3,
+        "credit_elo": 1500.6,
+        "dealshare_elo": 1495.7
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_d3045d",
+        "profit_elo": 1504.3,
+        "credit_elo": 1500.6,
+        "dealshare_elo": 1495.7
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_dc6779",
+        "profit_elo": 1504.3,
+        "credit_elo": 1500.6,
+        "dealshare_elo": 1495.7
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_e75289",
+        "profit_elo": 1504.3,
+        "credit_elo": 1500.6,
+        "dealshare_elo": 1495.7
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_f4260b",
+        "profit_elo": 1504.3,
+        "credit_elo": 1500.6,
+        "dealshare_elo": 1495.7
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_30a39d",
+        "profit_elo": 1504.3,
+        "credit_elo": 1500.6,
+        "dealshare_elo": 1495.7
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_366b1d",
+        "profit_elo": 1504.3,
+        "credit_elo": 1500.6,
+        "dealshare_elo": 1495.7
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_43bd71",
+        "profit_elo": 1504.3,
+        "credit_elo": 1500.6,
+        "dealshare_elo": 1495.7
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_50cb8e",
+        "profit_elo": 1504.3,
+        "credit_elo": 1500.6,
+        "dealshare_elo": 1495.7
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_71639d",
+        "profit_elo": 1504.3,
+        "credit_elo": 1500.6,
+        "dealshare_elo": 1495.7
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_793635",
+        "profit_elo": 1504.3,
+        "credit_elo": 1500.6,
+        "dealshare_elo": 1495.7
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_be14ae",
+        "profit_elo": 1504.3,
+        "credit_elo": 1500.6,
+        "dealshare_elo": 1495.7
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_bfbfb5",
+        "profit_elo": 1504.3,
+        "credit_elo": 1500.6,
+        "dealshare_elo": 1495.7
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_ceff51",
+        "profit_elo": 1504.3,
+        "credit_elo": 1500.6,
+        "dealshare_elo": 1495.7
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_dd346b",
+        "profit_elo": 1504.3,
+        "credit_elo": 1500.6,
+        "dealshare_elo": 1495.7
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_f02bb7",
+        "profit_elo": 1504.3,
+        "credit_elo": 1500.6,
+        "dealshare_elo": 1495.7
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_fe7c71",
+        "profit_elo": 1504.3,
+        "credit_elo": 1500.6,
+        "dealshare_elo": 1495.7
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_2b9886",
+        "profit_elo": 1504.3,
+        "credit_elo": 1500.6,
+        "dealshare_elo": 1495.7
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_52f37f",
+        "profit_elo": 1504.3,
+        "credit_elo": 1500.6,
+        "dealshare_elo": 1495.7
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_700774",
+        "profit_elo": 1504.3,
+        "credit_elo": 1500.6,
+        "dealshare_elo": 1495.7
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_796943",
+        "profit_elo": 1504.3,
+        "credit_elo": 1500.6,
+        "dealshare_elo": 1495.7
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_82c48f",
+        "profit_elo": 1504.3,
+        "credit_elo": 1500.6,
+        "dealshare_elo": 1495.7
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_951ad7",
+        "profit_elo": 1504.3,
+        "credit_elo": 1500.6,
+        "dealshare_elo": 1495.7
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_a55073",
+        "profit_elo": 1504.3,
+        "credit_elo": 1500.6,
+        "dealshare_elo": 1495.7
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_b99930",
+        "profit_elo": 1504.3,
+        "credit_elo": 1500.6,
+        "dealshare_elo": 1495.7
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_e258de",
+        "profit_elo": 1504.3,
+        "credit_elo": 1500.6,
+        "dealshare_elo": 1495.7
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_f2d0fd",
+        "profit_elo": 1504.3,
+        "credit_elo": 1500.6,
+        "dealshare_elo": 1495.7
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_ff2b22",
+        "profit_elo": 1504.3,
+        "credit_elo": 1500.6,
+        "dealshare_elo": 1495.7
+      }
+    ],
+    "nvidia/nemotron-nano-9b-v2": [
+      {
+        "match_id": "2026-02-25T07-44-42_6b6d78",
+        "profit_elo": 1500.0,
+        "credit_elo": 1500.0,
+        "dealshare_elo": 1500.0
+      },
+      {
+        "match_id": "2026-02-25T07-44-55_c002ce",
+        "profit_elo": 1500.0,
+        "credit_elo": 1500.0,
+        "dealshare_elo": 1500.0
+      },
+      {
+        "match_id": "2026-02-25T08-03-50_bae019",
+        "profit_elo": 1500.0,
+        "credit_elo": 1500.0,
+        "dealshare_elo": 1500.0
+      },
+      {
+        "match_id": "2026-02-25T08-05-53_f6dc61",
+        "profit_elo": 1500.0,
+        "credit_elo": 1500.0,
+        "dealshare_elo": 1500.0
+      },
+      {
+        "match_id": "2026-02-25T14-50-03_1bd434",
+        "profit_elo": 1500.0,
+        "credit_elo": 1500.0,
+        "dealshare_elo": 1500.0
+      },
+      {
+        "match_id": "2026-02-25T14-54-22_cabc6d",
+        "profit_elo": 1500.0,
+        "credit_elo": 1500.0,
+        "dealshare_elo": 1500.0
+      },
+      {
+        "match_id": "2026-02-25T16-17-07_c09879",
+        "profit_elo": 1500.0,
+        "credit_elo": 1500.0,
+        "dealshare_elo": 1500.0
+      },
+      {
+        "match_id": "2026-02-25T16-32-42_e95d7e",
+        "profit_elo": 1500.0,
+        "credit_elo": 1500.0,
+        "dealshare_elo": 1500.0
+      },
+      {
+        "match_id": "2026-02-25T18-02-04_36f033",
+        "profit_elo": 1500.0,
+        "credit_elo": 1500.0,
+        "dealshare_elo": 1500.0
+      },
+      {
+        "match_id": "2026-02-25T19-17-24_3a51a5",
+        "profit_elo": 1500.0,
+        "credit_elo": 1500.0,
+        "dealshare_elo": 1500.0
+      },
+      {
+        "match_id": "2026-02-25T19-30-47_343dac",
+        "profit_elo": 1500.0,
+        "credit_elo": 1500.0,
+        "dealshare_elo": 1500.0
+      },
+      {
+        "match_id": "2026-02-26T14-10-54_f1b9b5",
+        "profit_elo": 1500.0,
+        "credit_elo": 1500.0,
+        "dealshare_elo": 1500.0
+      },
+      {
+        "match_id": "2026-02-26T14-10-54_f51407",
+        "profit_elo": 1500.0,
+        "credit_elo": 1500.0,
+        "dealshare_elo": 1500.0
+      },
+      {
+        "match_id": "2026-02-26T15-25-46_66984f",
+        "profit_elo": 1506.9,
+        "credit_elo": 1499.6,
+        "dealshare_elo": 1492.8
+      },
+      {
+        "match_id": "2026-02-26T15-25-46_ab3b24",
+        "profit_elo": 1504.8,
+        "credit_elo": 1498.8,
+        "dealshare_elo": 1493.6
+      },
+      {
+        "match_id": "2026-02-26T15-25-46_c33fb5",
+        "profit_elo": 1494.6,
+        "credit_elo": 1497.8,
+        "dealshare_elo": 1503.9
+      },
+      {
+        "match_id": "2026-02-26T15-25-46_cd2ddc",
+        "profit_elo": 1491.4,
+        "credit_elo": 1490.9,
+        "dealshare_elo": 1498.1
+      },
+      {
+        "match_id": "2026-02-26T15-25-46_f1d5b7",
+        "profit_elo": 1497.3,
+        "credit_elo": 1491.1,
+        "dealshare_elo": 1492.7
+      },
+      {
+        "match_id": "2026-02-26T15-25-46_fb664c",
+        "profit_elo": 1488.9,
+        "credit_elo": 1491.2,
+        "dealshare_elo": 1501.4
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_092608",
+        "profit_elo": 1487.5,
+        "credit_elo": 1489.1,
+        "dealshare_elo": 1501.5
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_3d48ca",
+        "profit_elo": 1487.4,
+        "credit_elo": 1488.9,
+        "dealshare_elo": 1502.0
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_4e0851",
+        "profit_elo": 1486.4,
+        "credit_elo": 1487.7,
+        "dealshare_elo": 1502.4
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_7ef1f1",
+        "profit_elo": 1485.3,
+        "credit_elo": 1485.0,
+        "dealshare_elo": 1502.9
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_940c60",
+        "profit_elo": 1483.3,
+        "credit_elo": 1485.5,
+        "dealshare_elo": 1502.2
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_d3045d",
+        "profit_elo": 1482.5,
+        "credit_elo": 1485.5,
+        "dealshare_elo": 1502.7
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_dc6779",
+        "profit_elo": 1483.8,
+        "credit_elo": 1485.3,
+        "dealshare_elo": 1502.7
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_e75289",
+        "profit_elo": 1485.0,
+        "credit_elo": 1484.1,
+        "dealshare_elo": 1502.7
+      },
+      {
+        "match_id": "2026-02-26T15-39-33_f4260b",
+        "profit_elo": 1484.3,
+        "credit_elo": 1483.4,
+        "dealshare_elo": 1503.1
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_30a39d",
+        "profit_elo": 1483.7,
+        "credit_elo": 1485.7,
+        "dealshare_elo": 1504.3
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_366b1d",
+        "profit_elo": 1481.8,
+        "credit_elo": 1484.7,
+        "dealshare_elo": 1504.2
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_43bd71",
+        "profit_elo": 1472.9,
+        "credit_elo": 1487.6,
+        "dealshare_elo": 1510.6
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_50cb8e",
+        "profit_elo": 1473.0,
+        "credit_elo": 1485.7,
+        "dealshare_elo": 1512.0
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_71639d",
+        "profit_elo": 1471.6,
+        "credit_elo": 1484.7,
+        "dealshare_elo": 1512.6
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_793635",
+        "profit_elo": 1475.2,
+        "credit_elo": 1488.7,
+        "dealshare_elo": 1510.6
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_be14ae",
+        "profit_elo": 1474.3,
+        "credit_elo": 1488.3,
+        "dealshare_elo": 1508.9
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_bfbfb5",
+        "profit_elo": 1482.9,
+        "credit_elo": 1487.9,
+        "dealshare_elo": 1502.0
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_ceff51",
+        "profit_elo": 1482.9,
+        "credit_elo": 1487.1,
+        "dealshare_elo": 1503.4
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_dd346b",
+        "profit_elo": 1482.5,
+        "credit_elo": 1486.8,
+        "dealshare_elo": 1504.1
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_f02bb7",
+        "profit_elo": 1482.7,
+        "credit_elo": 1485.6,
+        "dealshare_elo": 1504.5
+      },
+      {
+        "match_id": "2026-02-26T15-55-16_fe7c71",
+        "profit_elo": 1481.4,
+        "credit_elo": 1481.4,
+        "dealshare_elo": 1506.4
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_2b9886",
+        "profit_elo": 1481.4,
+        "credit_elo": 1482.5,
+        "dealshare_elo": 1507.5
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_52f37f",
+        "profit_elo": 1482.9,
+        "credit_elo": 1480.3,
+        "dealshare_elo": 1507.2
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_700774",
+        "profit_elo": 1481.2,
+        "credit_elo": 1481.5,
+        "dealshare_elo": 1509.9
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_796943",
+        "profit_elo": 1481.8,
+        "credit_elo": 1481.5,
+        "dealshare_elo": 1510.1
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_82c48f",
+        "profit_elo": 1484.8,
+        "credit_elo": 1476.3,
+        "dealshare_elo": 1508.0
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_951ad7",
+        "profit_elo": 1482.6,
+        "credit_elo": 1477.5,
+        "dealshare_elo": 1510.4
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_a55073",
+        "profit_elo": 1482.4,
+        "credit_elo": 1475.9,
+        "dealshare_elo": 1511.3
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_b99930",
+        "profit_elo": 1484.9,
+        "credit_elo": 1477.0,
+        "dealshare_elo": 1508.8
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_e258de",
+        "profit_elo": 1487.3,
+        "credit_elo": 1478.1,
+        "dealshare_elo": 1506.5
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_f2d0fd",
+        "profit_elo": 1490.0,
+        "credit_elo": 1479.5,
+        "dealshare_elo": 1504.4
+      },
+      {
+        "match_id": "2026-02-26T16-14-52_ff2b22",
+        "profit_elo": 1491.0,
+        "credit_elo": 1480.7,
+        "dealshare_elo": 1504.0
       }
     ]
   }
