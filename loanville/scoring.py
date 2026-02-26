@@ -1196,8 +1196,12 @@ def score_season(
         efficiency = _score_efficiency(state)
         final = credit * 0.70 + portfolio * 0.20 + efficiency * 0.10
 
-        net_pnl = (state.cumulative_interest + state.cumulative_fees
-                   - state.cumulative_losses)
+        net_pnl = (
+            state.cumulative_interest
+            + state.cumulative_fees
+            - state.cumulative_losses
+            - state.cumulative_workout_cost
+        )
 
         avg_util = (
             sum(state.weekly_utilization) / len(state.weekly_utilization)

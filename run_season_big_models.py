@@ -142,7 +142,12 @@ print("  PER-LENDER DETAIL")
 print("=" * 70)
 
 for state, score in zip(season.lender_states.values(), season_scores):
-    net = state.cumulative_interest + state.cumulative_fees - state.cumulative_losses
+    net = (
+        state.cumulative_interest
+        + state.cumulative_fees
+        - state.cumulative_losses
+        - state.cumulative_workout_cost
+    )
     frauds = sum(1 for loan in state.resolved_loans if loan.was_fraud and loan.defaulted)
     defaults = sum(1 for loan in state.resolved_loans if loan.defaulted and not loan.was_fraud)
     good_repaid = sum(1 for loan in state.resolved_loans if not loan.defaulted)
@@ -167,7 +172,12 @@ for state, score in sorted(
 ):
     frauds = sum(1 for loan in state.resolved_loans if loan.was_fraud and loan.defaulted)
     defaults = sum(1 for loan in state.resolved_loans if loan.defaulted)
-    net = state.cumulative_interest + state.cumulative_fees - state.cumulative_losses
+    net = (
+        state.cumulative_interest
+        + state.cumulative_fees
+        - state.cumulative_losses
+        - state.cumulative_workout_cost
+    )
     short = state.model.split("/")[-1]
     print(f"  {short:<35s} {score.final_score:>7.1f} {state.deals_won:>5} "
           f"{state.deals_rejected:>5} {defaults:>5} {frauds:>6} ${net:>+10,.0f}")

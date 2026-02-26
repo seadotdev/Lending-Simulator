@@ -305,6 +305,7 @@ class SeasonLenderState:
     cumulative_interest: float = 0.0
     cumulative_losses: float = 0.0
     cumulative_fees: float = 0.0
+    cumulative_workout_cost: float = 0.0
     total_tool_calls: int = 0
     total_evaluations: int = 0
     deals_won: int = 0
