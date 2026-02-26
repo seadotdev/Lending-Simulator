@@ -349,6 +349,7 @@ def run_match(
     engine = SimulationEngine(
         borrowers, lenders, mock=False,
         underwrite_only=True,
+        max_concurrent_per_lender=3,
     )
 
     # Suppress the engine's verbose phase-by-phase output
@@ -364,7 +365,19 @@ def run_match(
         borrowers=borrowers,
     )
 
-    costs = get_cost_summary()
+    # Extract per-model costs from LOS run traces
+    costs: dict[str, float] = {}
+    for lender, (model_id, _) in zip(lenders, models):
+        lender_cost = 0.0
+        for run in engine.runs:
+            lid = (run.policy.params or {}).get("_lender_id", "")
+            if not lid:
+                pid = run.policy.policy_id or ""
+                parts = pid.split("_", 2)
+                lid = parts[1] if len(parts) >= 2 and parts[0] == "p" else pid
+            if lid == lender.id and run.trace and run.trace.cost:
+                lender_cost += run.trace.cost.estimated_cost_usd
+        costs[model_id] = lender_cost
 
     # Compute per-applicant payoffs for pairwise Elo
     per_applicant = _compute_per_applicant_payoffs(

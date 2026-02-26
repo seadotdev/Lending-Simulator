@@ -560,18 +560,23 @@ async def evaluate_all_via_los(
     mode: str = "rules_only",
     underwrite_only: bool = False,
     los_model: str | None = None,
+    timeout: float | None = None,
 ) -> tuple[list[LenderDecision], list[UnderwritingRun]]:
     """Evaluate all borrowers for a single lender via LOS.
 
     Returns (decisions, runs) for compatibility with the engine.
     """
+    # Default timeout: 180s for underwrite-only (LLM calls), 60s for rules
+    if timeout is None:
+        timeout = 180.0 if underwrite_only else 60.0
+
     semaphore = asyncio.Semaphore(max_concurrent)
 
     async def _eval(borrower: Borrower) -> UnderwritingRun:
         async with semaphore:
             return await evaluate_via_los(
                 borrower, lender, los_url,
-                provider=provider, mode=mode,
+                provider=provider, mode=mode, timeout=timeout,
                 underwrite_only=underwrite_only,
                 los_model=los_model,
             )
