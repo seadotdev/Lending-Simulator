@@ -35,6 +35,7 @@ from .models import (
     LenderDecision,
     TermSheet,
 )
+from .llm import _record_call_trace, _record_usage
 from .run_schema import (
     DecisionRationale,
     DecisionTerms,
@@ -450,6 +451,37 @@ def _map_los_response(
             tokens_out=los_trace.get("cost", {}).get("tokens_out", 0),
             estimated_cost_usd=los_trace.get("cost", {}).get("estimated_cost_usd", 0.0),
         ),
+    )
+
+    # Backward-compatible usage/trace counters for legacy diagnostics.
+    _record_usage(
+        lender.model,
+        tokens_in=run.trace.cost.tokens_in,
+        tokens_out=run.trace.cost.tokens_out,
+    )
+    _record_call_trace(
+        {
+            "model": lender.model,
+            "borrower_id": borrower.id,
+            "policy_id": run.policy.policy_id,
+            "decision": run.decision.action,
+            "trace": {
+                "steps": [
+                    {
+                        "type": s.type,
+                        "name": s.name,
+                        "args": s.args,
+                        "result": s.result,
+                    }
+                    for s in run.trace.steps
+                ],
+                "cost": {
+                    "tokens_in": run.trace.cost.tokens_in,
+                    "tokens_out": run.trace.cost.tokens_out,
+                    "estimated_cost_usd": run.trace.cost.estimated_cost_usd,
+                },
+            },
+        }
     )
 
     # Labels: ground truth from borrower (hidden in production)

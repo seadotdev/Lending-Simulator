@@ -51,7 +51,7 @@ TEST_MODELS = [
 
 def run_sim(borrowers, lenders, api_key="", mock=False, data_mode="full"):
     """Run a simulation and return (scores, engine, decisions_detail)."""
-    engine = SimulationEngine(borrowers, lenders, api_key, mock=mock, data_mode=data_mode)
+    engine = SimulationEngine(borrowers, lenders, mock=mock, data_mode=data_mode)
     asyncio.run(engine.run())
     scores = score_lenders(
         lenders, engine.all_decisions, engine.booked_loans,
