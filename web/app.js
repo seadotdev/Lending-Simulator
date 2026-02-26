@@ -79,7 +79,7 @@ class App {
         this._reset();
         this.season = data;
         const name = url.split('/').pop();
-        this._logEvent('system', `Loaded ${name}: ${data.config.weeks} weeks, ${data.lenders.length} lenders`);
+        this._logEvent('system', `Loaded ${name}: ${data.weeks.length} timeline steps, ${data.lenders.length} lenders`);
         this.dom.dropOverlay.hidden = true;
         await this._initTown();
         this.dom.controlsGroup.hidden = false;
@@ -188,7 +188,7 @@ class App {
         const data = JSON.parse(await file.text());
         if (data.type === 'season') {
           this.season = data;
-          this._logEvent('system', `Loaded season: ${data.config.weeks} weeks, ${data.lenders.length} lenders`);
+          this._logEvent('system', `Loaded season: ${data.weeks.length} timeline steps, ${data.lenders.length} lenders`);
         } else if (Array.isArray(data)) {
           for (const t of data) { t._file = file.name; this._assignColor(t.lender_name); }
           this.traces.push(...data);
@@ -340,6 +340,37 @@ class App {
     const week = this.season.weeks[this.currentWeek];
     const lenders = this.season.lenders;
 
+    // Final resolution is exported as a dedicated timeline step.
+    if (week.final_resolution) {
+      this._setPhase('FINAL RESOLUTION');
+      this.dom.weekLabel.textContent = 'Final Resolution';
+      this._updateProgress();
+      this._highlightTimelineDot(this.currentWeek);
+      this._logEvent('system', '--- Final Resolution ---');
+      for (const evt of week.events) {
+        this._logEvent(this._eventTypeForMessage(evt), evt);
+      }
+      await this._wait(800);
+      this._renderLeaderboard(this.currentWeek);
+
+      for (let i = 0; i < lenders.length; i++) {
+        const snap = week.lender_snapshots[lenders[i].id];
+        if (snap) {
+          const totalDec = (snap.deals_won || 0) + (snap.deals_rejected || 0) + (snap.deals_lost || 0);
+          const approvalRate = totalDec > 0 ? ((snap.deals_won || 0) / totalDec) * 100 : null;
+          this.townScene?.updateSignpost(i, snap.name, approvalRate, snap.net_pnl);
+        }
+      }
+
+      this._logEvent('system', 'Final resolution complete');
+      await this._wait(600);
+      this.stepping = false;
+      if (this.playing) {
+        this.phaseTimer = setTimeout(() => this._stepWeek(), 200);
+      }
+      return;
+    }
+
     // ---- WEEK INTRO ----
     this._setPhase('WEEK INTRO');
     this.dom.weekLabel.textContent = `Week ${week.week}`;
@@ -349,8 +380,7 @@ class App {
 
     // Show loan resolution events from this week
     for (const evt of week.events) {
-      const type = evt.startsWith('DEFAULT') ? 'error' : evt.startsWith('REPAID') || evt.startsWith('PREPAID') ? 'payment' : 'loan';
-      this._logEvent(type, evt);
+      this._logEvent(this._eventTypeForMessage(evt), evt);
     }
     await this._wait(800);
 
@@ -359,12 +389,23 @@ class App {
     this.townScene?.clearBorrowers();
 
     const totalBorrowers = week.borrowers.length;
+    const spawnPos = this.layout?.spawnPoint || { x: 0, z: -10 };
     const borrowerSpawns = week.borrowers.map((b, i) =>
-      this.townScene?.addBorrower(b.id, this.assetLoader, { name: b.name, amount: b.amount }, i, totalBorrowers)
+      this.townScene?.addBorrower(b.id, this.assetLoader, { name: b.name, amount: b.amount }, i, totalBorrowers, spawnPos)
     );
     await Promise.all(borrowerSpawns.filter(Boolean));
     this._logEvent('loan', `${week.borrowers.length} borrowers arrived: ${week.borrowers.map(b => b.name).join(', ')}`);
-    await this._wait(600);
+    await this._wait(400);
+
+    // ---- TRAVEL (residential → junction) ----
+    this._setPhase('TRAVEL');
+    const junction = { x: 0, z: 0 };
+    const travelWalks = week.borrowers.map((b, i) => {
+      const spread = (i - (totalBorrowers - 1) / 2) * 0.6;
+      return this.townScene?.animateBorrowerWalk(b.id, { x: junction.x + spread, z: junction.z }, 1.0 / SPEED_LEVELS[this.speedIndex]);
+    });
+    await Promise.all(travelWalks.filter(Boolean));
+    await this._wait(200);
 
     // ---- EVALUATION ----
     this._setPhase('EVALUATION');
@@ -394,27 +435,28 @@ class App {
     const lenderQueues = {};  // lenderIndex → count
     const allocWalks = [];
 
+    const rejectTarget = this.layout?.spawnPoint || { x: 0, z: -10 };
     for (const b of week.borrowers) {
       const loan = week.booked_loans.find(l => l.borrower_id === b.id);
       if (loan) {
-        // Funded — walk to winning lender's building
+        // Funded — walk from junction along +X to winning lender's building
         const lenderIdx = lenders.findIndex(l => l.id === loan.lender_id);
         if (lenderIdx >= 0 && this.townScene?.layout?.buildings?.[lenderIdx]) {
           const bld = this.townScene.layout.buildings[lenderIdx];
           const queueCount = lenderQueues[lenderIdx] || 0;
           lenderQueues[lenderIdx] = queueCount + 1;
-          const sign = Math.sign(bld.x) || 1;
-          const queueX = sign * (2.0 - queueCount * 0.6);
+          const sign = Math.sign(bld.z) || 1;
+          const queueZ = sign * (Math.abs(bld.z) - queueCount * 0.6);
           allocWalks.push(
-            this.townScene.animateBorrowerWalk(b.id, { x: queueX, z: bld.z }, 0.8 / SPEED_LEVELS[this.speedIndex])
+            this.townScene.animateBorrowerWalk(b.id, { x: bld.x, z: queueZ }, 0.8 / SPEED_LEVELS[this.speedIndex])
           );
         }
         const lender = lenders.find(l => l.id === loan.lender_id);
-        this._logEvent('loan', `BOOKED: ${b.name} \u2192 ${lender?.name || loan.lender_id} ($${fmtNum(loan.principal)} @ ${(loan.interest_rate * 100).toFixed(1)}%)`);
+        this._logEvent('loan', `BOOKED: ${b.name} \u2192 ${lender?.name || loan.lender_id} ($${fmtNum(loan.principal)} @ ${loan.interest_rate.toFixed(1)}%)`);
       } else {
-        // Rejected — walk off-screen then fade
+        // Rejected — walk back toward residential zone and fade
         if (this.townScene) {
-          const walkOff = this.townScene.animateBorrowerWalk(b.id, { x: 0, z: -4 }, 0.6 / SPEED_LEVELS[this.speedIndex])
+          const walkOff = this.townScene.animateBorrowerWalk(b.id, rejectTarget, 0.6 / SPEED_LEVELS[this.speedIndex])
             .then(() => this.townScene.fadeBorrower(b.id, 400 / SPEED_LEVELS[this.speedIndex]));
           allocWalks.push(walkOff);
         }
@@ -428,12 +470,13 @@ class App {
     this.townScene?.resetBuildings();
     this._renderLeaderboard(this.currentWeek);
 
-    // Update building labels
+    // Update bank signposts with approval rate + P&L
     for (let i = 0; i < lenders.length; i++) {
       const snap = week.lender_snapshots[lenders[i].id];
       if (snap) {
-        const pnl = snap.net_pnl >= 0 ? `+$${fmtNum(snap.net_pnl)}` : `-$${fmtNum(Math.abs(snap.net_pnl))}`;
-        this.townScene?.updateLabel(i, `${snap.name}\n${pnl}`);
+        const totalDec = (snap.deals_won || 0) + (snap.deals_rejected || 0) + (snap.deals_lost || 0);
+        const approvalRate = totalDec > 0 ? ((snap.deals_won || 0) / totalDec) * 100 : null;
+        this.townScene?.updateSignpost(i, snap.name, approvalRate, snap.net_pnl);
       }
     }
 
@@ -482,10 +525,10 @@ class App {
     this.dom.eventLogBody.innerHTML = '';
     this.dom.detailPanel.innerHTML = '<div class="detail-placeholder">Click a building to inspect</div>';
 
-    // Reset building labels
+    // Reset bank signposts
     if (this.season && this.townScene) {
       for (let i = 0; i < this.season.lenders.length; i++) {
-        this.townScene.updateLabel(i, this.season.lenders[i].name);
+        this.townScene.updateSignpost(i, this.season.lenders[i].name, null, null);
       }
     }
   }
@@ -509,9 +552,10 @@ class App {
     this.dom.timeline.innerHTML = '';
     if (!this.season) return;
     for (let i = 0; i < this.season.weeks.length; i++) {
+      const week = this.season.weeks[i];
       const dot = document.createElement('div');
       dot.className = 'timeline-dot';
-      dot.title = `Week ${i + 1}`;
+      dot.title = week.final_resolution ? 'Final Resolution' : `Week ${week.week}`;
       dot.addEventListener('click', () => {
         if (!this.playing && !this.stepping) {
           this.currentWeek = i - 1;
@@ -686,6 +730,12 @@ class App {
     entry.innerHTML = `<span class="event-time">${time}</span> <span class="event-msg">${esc(message)}</span>`;
     this.dom.eventLogBody.appendChild(entry);
     this.dom.eventLogBody.scrollTop = this.dom.eventLogBody.scrollHeight;
+  }
+
+  _eventTypeForMessage(evt) {
+    if (evt.includes('DEFAULT')) return 'error';
+    if (evt.startsWith('REPAID') || evt.startsWith('PREPAID') || evt.startsWith('PAYMENT')) return 'payment';
+    return 'loan';
   }
 
   // ==== Season End ====
