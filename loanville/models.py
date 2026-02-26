@@ -322,6 +322,7 @@ class SeasonLenderState:
     deals_won: int = 0
     deals_lost: int = 0
     deals_rejected: int = 0
+    deals_errored: int = 0
     # Portfolio management tracking
     weekly_utilization: list[float] = field(default_factory=list)
     weeks_with_concentration_violations: int = 0
@@ -384,6 +385,7 @@ class SeasonScore:
     total_losses: float
     deals_won: int
     deals_rejected: int
+    deals_errored: int = 0
 
 
 @dataclass
@@ -421,6 +423,7 @@ class LenderScore:
     concentration_penalty_pct: float
     fraud_penalty_pct: float
     final_adjusted_score: float
+    deals_errored: int = 0
     perfect_score: float = 0.0  # Theoretical max if lender had perfect foresight
     # --- RAROC / funding cost ---
     funding_cost: float = 0.0           # Cost of funds on deployed capital

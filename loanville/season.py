@@ -878,14 +878,18 @@ class SeasonEngine:
             state.cumulative_cost_usd += lc.get("cost_usd", 0.0)
             for d in decisions:
                 state.total_evaluations += 1
-                bandwidth_limited = d.reasoning.startswith("[BANDWIDTH_LIMIT]")
+                bandwidth_limited = (
+                    d.reasoning and d.reasoning.startswith("[BANDWIDTH_LIMIT]")
+                )
                 if bandwidth_limited:
                     state.deep_uw_deferred += 1
                     decision_tool_calls = 0
                 else:
                     decision_tool_calls = tool_counts.get((lender.id, d.borrower_id), 0)
                 state.total_tool_calls += decision_tool_calls
-                if d.decision != "APPROVE":
+                if d.reasoning and d.reasoning.startswith("[LLM_ERROR]"):
+                    state.deals_errored += 1
+                elif d.decision != "APPROVE":
                     state.deals_rejected += 1
                 elif d.borrower_id in booked_bids:
                     # Check if this lender won or lost

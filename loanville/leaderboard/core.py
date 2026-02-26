@@ -437,7 +437,7 @@ def emit_match_record_from_season(
             "raroc_score": score.final_score if score else 0.0,
             "deals_won": state.deals_won,
             "deals_rejected": state.deals_rejected,
-            "deals_errored": 0,
+            "deals_errored": getattr(state, 'deals_errored', 0),
             "frauds_funded": frauds_funded,
             "defaults": defaults,
             "deployed": state.deployed_capital,

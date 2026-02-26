@@ -462,6 +462,9 @@ def compute_confusion_matrix(
         b = borrower_map.get(d.borrower_id)
         if not b:
             continue
+        # Skip LLM errors — they are infrastructure failures, not credit decisions
+        if d.reasoning and d.reasoning.startswith("[LLM_ERROR]"):
+            continue
         outcome = b.true_outcome
         if d.decision == "APPROVE":
             matrix[outcome]["approved"] += 1
@@ -724,7 +727,15 @@ def score_lenders(
 
         # Basic counts
         deals_won = len(lender_loans)
-        deals_rejected = sum(1 for d in lender_decisions if d.decision == "REJECT")
+        deals_errored = sum(
+            1 for d in lender_decisions
+            if d.reasoning and d.reasoning.startswith("[LLM_ERROR]")
+        )
+        deals_rejected = sum(
+            1 for d in lender_decisions
+            if d.decision != "APPROVE"
+            and not (d.reasoning and d.reasoning.startswith("[LLM_ERROR]"))
+        )
         n_decisions = len(lender_decisions)
         approval_rate = (n_decisions - deals_rejected) / n_decisions if n_decisions > 0 else 0.0
 
@@ -923,6 +934,7 @@ def score_lenders(
             deals_won=deals_won,
             deals_lost=deals_lost,
             deals_rejected=deals_rejected,
+            deals_errored=deals_errored,
             frauds_funded=frauds_funded,
             defaults_count=defaults_count,
             concentration_violations=violations,
@@ -1251,6 +1263,7 @@ def score_season(
             total_losses=round(state.cumulative_losses, 2),
             deals_won=state.deals_won,
             deals_rejected=state.deals_rejected,
+            deals_errored=state.deals_errored,
         ))
 
     return sorted(scores, key=lambda s: -s.final_score)
