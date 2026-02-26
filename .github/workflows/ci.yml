@@ -27,6 +27,9 @@ jobs:
       - name: Static and import sanity
         run: python -m compileall loanville
 
+      - name: Tier-2 regression tests
+        run: python -m unittest tests.test_tier2_regressions -v
+
       - name: Deterministic mock simulation smoke
         run: python -m loanville --mock --mix fraud --data-mode lite --seed 42
 

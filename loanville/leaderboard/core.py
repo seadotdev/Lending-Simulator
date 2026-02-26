@@ -37,16 +37,18 @@ CONFIG_FILE = LEADERBOARD_DIR / "config.json"
 
 def load_config() -> dict:
     """Load leaderboard config (Elo constants, validation thresholds)."""
-    if CONFIG_FILE.exists():
-        with open(CONFIG_FILE) as f:
-            return json.load(f)
-    return {
+    defaults = {
         "k": DEFAULT_K,
         "initial_elo": INITIAL_ELO,
         "utility_epsilon": UTILITY_EPSILON,
         "min_borrowers": 6,
+        "min_borrowers_season": 5,
         "max_error_rate": 0.25,
     }
+    if CONFIG_FILE.exists():
+        with open(CONFIG_FILE) as f:
+            return {**defaults, **json.load(f)}
+    return defaults
 
 
 # ---------------------------------------------------------------------------
@@ -62,7 +64,13 @@ def validate_match(match_data: dict, config: dict | None = None) -> dict:
         config = load_config()
 
     errors = []
-    min_borrowers = config.get("min_borrowers", 6)
+    mix_name = str(match_data.get("mix", ""))
+    is_season_match = mix_name.startswith("season-")
+    min_borrowers = (
+        config.get("min_borrowers_season", config.get("min_borrowers", 6))
+        if is_season_match
+        else config.get("min_borrowers", 6)
+    )
     max_error_rate = config.get("max_error_rate", 0.25)
 
     # Check basic structure
@@ -178,6 +186,11 @@ def build_match_record(
     record["validation"] = validation
 
     return record
+
+
+def _lender_model_id(lender) -> str:
+    """Stable unique model key per lender slot (avoids duplicate model IDs)."""
+    return f"{lender.model}::{lender.id}"
 
 
 # ---------------------------------------------------------------------------
@@ -347,7 +360,7 @@ def emit_match_record_from_season(
     from ..scoring import compute_confusion_matrix, compute_loan_payoff
 
     models_info = [
-        {"model_id": l.model, "display_name": l.name}
+        {"model_id": _lender_model_id(l), "display_name": l.name}
         for l in lenders
     ]
 
@@ -420,7 +433,7 @@ def emit_match_record_from_season(
         net_pnl = state.cumulative_interest + state.cumulative_fees - state.cumulative_losses
 
         result = {
-            "model_id": lender.model,
+            "model_id": _lender_model_id(lender),
             "raroc_score": score.final_score if score else 0.0,
             "deals_won": state.deals_won,
             "deals_rejected": state.deals_rejected,
@@ -445,6 +458,164 @@ def emit_match_record_from_season(
     )
 
     return record
+
+
+def season_week_to_match_record(
+    week_data: dict,
+    lenders,
+    mix: str,
+    economics,
+) -> dict:
+    """Convert one completed season week into a leaderboard match record."""
+    from ..scoring import compute_confusion_matrix, compute_loan_payoff
+
+    week = int(week_data.get("week", 0))
+    borrowers = list(week_data.get("borrowers", []))
+    all_decisions = dict(week_data.get("all_decisions", {}) or {})
+    booked_loans = list(week_data.get("booked_loans", []))
+    deal_results = dict(week_data.get("deal_results", {}) or {})
+    runs = list(week_data.get("runs", []))
+
+    models_info = [{"model_id": _lender_model_id(l), "display_name": l.name} for l in lenders]
+    benchmark_rate_per_dollar = economics.risk_free_rate * (economics.sim_horizon_months / 12.0)
+
+    winner_by_bid = {
+        bid: deal.get("winner")
+        for bid, deal in deal_results.items()
+        if isinstance(deal, dict) and deal.get("outcome") == "booked"
+    }
+
+    booked_by_lender: dict[str, list] = {}
+    for loan in booked_loans:
+        booked_by_lender.setdefault(loan.lender_id, []).append(loan)
+
+    weekly_costs: dict[str, dict] = {}
+    for run in runs:
+        lid = (run.policy.params or {}).get("_lender_id", "")
+        if not lid:
+            pid = run.policy.policy_id or ""
+            parts = pid.split("_", 2)
+            lid = parts[1] if len(parts) >= 2 and parts[0] == "p" else pid
+        if lid and run.trace and run.trace.cost:
+            c = weekly_costs.setdefault(lid, {"tokens_in": 0, "tokens_out": 0, "cost_usd": 0.0})
+            c["tokens_in"] += run.trace.cost.tokens_in
+            c["tokens_out"] += run.trace.cost.tokens_out
+            c["cost_usd"] += run.trace.cost.estimated_cost_usd
+
+    results = []
+    for lender in lenders:
+        decisions = list(all_decisions.get(lender.id, []))
+        decision_map = {d.borrower_id: d for d in decisions}
+        cm = compute_confusion_matrix(decisions, borrowers)
+
+        per_borrower = {}
+        for b in borrowers:
+            d = decision_map.get(b.id)
+            if d is None:
+                continue
+
+            if d.decision != "APPROVE":
+                decision_state = "declined"
+            elif winner_by_bid.get(b.id) == lender.id:
+                decision_state = "won"
+            else:
+                decision_state = "lost"
+
+            rate_offered = None
+            utility = b.dossier.loan_request_amount * benchmark_rate_per_dollar
+            if d.term_sheet:
+                rate_offered = d.term_sheet.interest_rate
+                if decision_state == "won":
+                    payoff = compute_loan_payoff(
+                        principal=d.term_sheet.loan_amount,
+                        interest_rate=d.term_sheet.interest_rate,
+                        term_months=d.term_sheet.term_months,
+                        true_outcome=b.true_outcome,
+                        months_before_default=b.months_before_default,
+                        economics=economics,
+                    )
+                    utility = payoff["net_profit"]
+                elif decision_state == "lost":
+                    utility = d.term_sheet.loan_amount * benchmark_rate_per_dollar
+
+            per_borrower[b.id] = {
+                "decision_state": decision_state,
+                "ground_truth": b.true_outcome,
+                "utility": utility,
+                "rate_offered": rate_offered,
+            }
+
+        won_loans = booked_by_lender.get(lender.id, [])
+        deployed = sum(loan.principal for loan in won_loans)
+        net_pnl = 0.0
+        frauds_funded = 0
+        defaults = 0
+        for loan in won_loans:
+            payoff = compute_loan_payoff(
+                principal=loan.principal,
+                interest_rate=loan.interest_rate,
+                term_months=loan.term_months,
+                true_outcome=loan.true_outcome,
+                months_before_default=loan.months_before_default,
+                economics=economics,
+            )
+            net_pnl += payoff["net_profit"]
+            if loan.true_outcome == "fraud":
+                frauds_funded += 1
+            if loan.true_outcome in ("bad", "fraud"):
+                defaults += 1
+
+        deals_errored = sum(
+            1 for d in decisions
+            if (d.reasoning or "").startswith("[LLM_ERROR]")
+        )
+        decisions_rejected = sum(1 for d in decisions if d.decision != "APPROVE")
+
+        # Per-week profitability proxy to preserve "score" semantics in Elo updates.
+        raroc_like = (net_pnl / deployed * 100.0) if deployed > 0 else 0.0
+        week_cost = weekly_costs.get(lender.id, {})
+
+        results.append({
+            "model_id": _lender_model_id(lender),
+            "raroc_score": raroc_like,
+            "deals_won": len(won_loans),
+            "deals_rejected": max(0, decisions_rejected - deals_errored),
+            "deals_errored": deals_errored,
+            "frauds_funded": frauds_funded,
+            "defaults": defaults,
+            "deployed": deployed,
+            "net_pnl": net_pnl,
+            "confusion_matrix": cm,
+            "per_borrower": per_borrower,
+            "tokens_in": week_cost.get("tokens_in", 0),
+            "tokens_out": week_cost.get("tokens_out", 0),
+            "cost_usd": round(week_cost.get("cost_usd", 0.0), 4),
+        })
+
+    record = build_match_record(
+        models=models_info,
+        results=results,
+        mix=f"season-{mix}-week-{week:02d}",
+        n_borrowers=len(borrowers),
+    )
+    record["season_week"] = week
+    record["season_match_type"] = "weekly"
+    return record
+
+
+def emit_match_records_from_season_weeks(season_engine, lenders, mix: str) -> list[dict]:
+    """Build one leaderboard match record per completed season week."""
+    records = []
+    for week_data in getattr(season_engine, "weekly_match_data", []):
+        records.append(
+            season_week_to_match_record(
+                week_data=week_data,
+                lenders=lenders,
+                mix=mix,
+                economics=season_engine.config.economics,
+            )
+        )
+    return records
 
 
 def emit_match_record_from_elo(
@@ -582,7 +753,11 @@ def compute_leaderboard(matches: list[dict] | None = None, config: dict | None =
         for m in match.get("models", []):
             mid = m["model_id"]
             if mid not in all_models:
-                all_models[mid] = mid.split("/")[-1]
+                if "::" in mid:
+                    base, lender_slot = mid.split("::", 1)
+                    all_models[mid] = f"{base.split('/')[-1]}:{lender_slot}"
+                else:
+                    all_models[mid] = mid.split("/")[-1]
 
     # Init ratings
     profit_ratings = {mid: float(initial_elo) for mid in all_models}

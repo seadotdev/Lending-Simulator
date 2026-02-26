@@ -100,6 +100,7 @@ class SeasonEngine:
         self.all_decisions: dict[str, list] = {}   # lender_id -> [LenderDecision, ...]
         self.all_borrowers: list = []               # all borrowers across all weeks
         self.all_deal_results: dict[str, dict] = {} # borrower_id -> deal result
+        self.weekly_match_data: list[dict] = []     # one entry per completed week
 
         # Pass-through kwargs for SimulationEngine
         self.engine_kwargs = dict(
@@ -294,6 +295,7 @@ class SeasonEngine:
 
             # 8b. Capture per-week detail for JSON export
             self._capture_week_detail(week, cohort, engine, events)
+            self._capture_week_match_data(week, engine)
 
             # 9. Snapshot utilization + weekly analytics
             self._snapshot_utilization()
@@ -533,6 +535,16 @@ class SeasonEngine:
     # Week lender construction
     # ------------------------------------------------------------------
 
+    def _build_tool_context(self, lender_id: str) -> str:
+        """Render custom tool context to prepend to lender persona."""
+        toolkit = self.toolkits.get(lender_id)
+        if not toolkit or not toolkit.tools:
+            return ""
+        lines = ["Available custom underwriting tools (call by tool name when useful):"]
+        for tool in toolkit.tools:
+            lines.append(f"- {tool.name}: {tool.description}")
+        return "\n".join(lines)
+
     def _build_week_lenders(self, briefings: dict[str, str]) -> list[LenderConfig]:
         """Create LenderConfig copies with briefing prepended to persona and
         existing_portfolio reflecting active season loans."""
@@ -540,6 +552,17 @@ class SeasonEngine:
         for lender in self.base_lenders:
             state = self.lender_states[lender.id]
             briefing = briefings.get(lender.id, "")
+            tool_context = self._build_tool_context(lender.id)
+            toolkit = self.toolkits[lender.id]
+            tool_definitions = toolkit.get_tool_definitions()
+
+            persona_sections = []
+            if briefing:
+                persona_sections.append(briefing)
+            if tool_context:
+                persona_sections.append(tool_context)
+            persona_sections.append(lender.persona)
+            persona = "\n\n".join(persona_sections)
 
             # Build existing_portfolio from static base book + active season loans
             existing = copy.deepcopy(lender.existing_portfolio)
@@ -557,13 +580,14 @@ class SeasonEngine:
             week_lender = LenderConfig(
                 id=lender.id,
                 name=lender.name,
-                persona=briefing + "\n\n" + lender.persona,
+                persona=persona,
                 model=lender.model,
                 target_yield_pct=lender.target_yield_pct,
                 max_single_loan=lender.max_single_loan,
                 total_capital=state.total_capital,
                 sector_limits=lender.sector_limits,
                 existing_portfolio=existing,
+                custom_tools=tool_definitions,
             )
             week_lenders.append(week_lender)
         return week_lenders
@@ -708,6 +732,21 @@ class SeasonEngine:
                 c["tokens_in"] += run.trace.cost.tokens_in
                 c["tokens_out"] += run.trace.cost.tokens_out
                 c["cost_usd"] += run.trace.cost.estimated_cost_usd
+
+            # Reflect live tool-call traces back into per-lender toolkit state.
+            toolkit = self.toolkits.get(lid)
+            if toolkit and run.trace and run.trace.steps:
+                for step in run.trace.steps:
+                    if getattr(step, "type", "") != "tool_call":
+                        continue
+                    args = getattr(step, "args", {}) or {}
+                    tool_name = (
+                        getattr(step, "name", "")
+                        or (args.get("tool") if isinstance(args, dict) else "")
+                        or (args.get("name") if isinstance(args, dict) else "")
+                    )
+                    if tool_name:
+                        toolkit.record_usage(tool_name)
 
         # Count rejections and losses for each lender
         booked_bids = {loan.borrower_id for loan in engine.booked_loans}
@@ -944,6 +983,17 @@ class SeasonEngine:
     # ------------------------------------------------------------------
     # Per-week detail capture (for JSON export)
     # ------------------------------------------------------------------
+
+    def _capture_week_match_data(self, week: int, engine: SimulationEngine) -> None:
+        """Capture per-week raw artifacts for leaderboard match emission."""
+        self.weekly_match_data.append({
+            "week": week,
+            "borrowers": copy.deepcopy(engine.borrowers),
+            "all_decisions": copy.deepcopy(engine.all_decisions),
+            "booked_loans": copy.deepcopy(engine.booked_loans),
+            "deal_results": copy.deepcopy(engine.deal_results),
+            "runs": copy.deepcopy(engine.runs),
+        })
 
     def _capture_week_detail(self, week: int, cohort, engine, events: list[str]) -> None:
         """Capture JSON-serializable per-week detail for the web viewer."""

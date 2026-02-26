@@ -905,6 +905,12 @@ def run_tournament(
     # Track latest match results per model for inter-match feedback
     # model_id -> most recent results dict (score, confusion_matrix, deals_won, etc.)
     latest_results: dict[str, dict] = {}
+    if inter_match_feedback and match_log:
+        for entry in match_log:
+            for result in entry.get("results", []) or []:
+                mid = result.get("model")
+                if mid:
+                    latest_results[mid] = result
 
     print(f"\n{'='*70}")
     print(f"  LOANVILLE ELO TOURNAMENT (3-Rating System)")

@@ -71,9 +71,14 @@ async def check_los_health(los_url: str = DEFAULT_LOS_URL, timeout: float = 5.0)
         )
 
 
-def serialize_dossier(borrower: Borrower) -> dict:
-    """Serialize a Borrower's dossier into the LOS FinancialDossier format."""
-    d = borrower.dossier
+def serialize_dossier(borrower: Borrower, borrower_view: Borrower | None = None) -> dict:
+    """Serialize a Borrower's dossier into the LOS FinancialDossier format.
+
+    If borrower_view is provided, serialize that lender-specific view instead
+    (used by info_asymmetry modes where each lender sees filtered data).
+    """
+    source = borrower_view or borrower
+    d = source.dossier
     dossier: dict = {
         "company_name": d.company_name,
         "sector": d.sector,
@@ -122,10 +127,25 @@ def serialize_dossier(borrower: Borrower) -> dict:
 
 def serialize_policy(lender: LenderConfig) -> dict:
     """Serialize a LenderConfig into the LOS UnderwritePolicy format."""
+    persona = lender.persona
+    if lender.custom_tools:
+        tool_lines = [
+            "Custom tools available for this lender (use when relevant):",
+        ]
+        for t in lender.custom_tools:
+            fn = (t or {}).get("function", {}) if isinstance(t, dict) else {}
+            name = fn.get("name", "unnamed_tool")
+            desc = fn.get("description", "")
+            if desc:
+                tool_lines.append(f"- {name}: {desc}")
+            else:
+                tool_lines.append(f"- {name}")
+        persona = f"{persona}\n\n" + "\n".join(tool_lines)
+
     policy: dict = {
         "policy_id": f"p_{lender.id}_{lender.model.replace('/', '_')}",
         "model": lender.model,
-        "persona": lender.persona,
+        "persona": persona,
         "target_yield_pct": lender.target_yield_pct,
         "max_single_loan": lender.max_single_loan,
         "total_capital": lender.total_capital,
