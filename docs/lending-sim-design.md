@@ -201,6 +201,25 @@ Core deliverable: portfolio transfer with auditability:
 
 Later add lender-to-lender negotiation and coordination scaffolding (commitments, acknowledgements, checklists), informed by multi-agent coordination benchmarks (e.g., CooperBench).
 
+### 6.3 Missing detail to enable direct lender-borrower negotiation
+
+To make negotiation measurable (not just free-form chat), define explicit protocol objects and outcome rules:
+
+- **Negotiation primitives:** offer, counteroffer, accept, reject, withdraw, expire, escalate.
+- **Term vector schema:** amount, APR/rate type, tenor, amortization, collateral, guarantor scope, covenants, reporting cadence, fees.
+- **Constraint model:** lender hard limits (concentration, policy caps, minimum DSCR) and borrower hard limits (max payment, required liquidity buffer).
+- **Evidence linkage:** each proposed term change must include cited evidence (financial metric, bank pattern, covenant rationale).
+- **Round mechanics:** bounded turns, response SLA, and timeout/default behavior to avoid infinite bargaining.
+- **Commitment semantics:** signed intent vs binding commitment, with explicit revocation/penalty rules.
+- **Escalation path:** committee review, risk override, and final adjudicator actions with audit reasons.
+- **Scoring dimensions:** close rate, time-to-close, concession efficiency, post-close performance, and negotiation harm (overly coercive or unsupported terms).
+
+Borrowed patterns to use:
+
+- From social deduction benchmarks: bounded rounds + explicit vote/decision transitions.
+- From auction/market benchmarks: standardized bid/ask objects and expiry windows.
+- From Skirmish-style environments: deterministic state transitions, replay logs, and strict action APIs.
+
 ---
 
 ## 7) CLI tools as product surface and roadmap lever
@@ -228,6 +247,8 @@ These tools simultaneously serve:
 - `los servicing` — DPD, schedule, task lists under stress
 - `los portfolio` — cohort reporting + stress reports
 - `los transfer` + `los audit` — book purchase import/reconcile/audit pack
+- `los consortium publish/query` — anonymized fraud and application signal exchange
+- `los borrower graph` — cross-lender entity-link and request-spam detection
 
 ### 7.3 Most valuable business-side CLI tools
 
@@ -283,6 +304,76 @@ These tools simultaneously serve:
 - Book purchase multi-tenant ⇄ transfer import/reconcile + audit pack
 - Coordination/negotiation layer (later)
 - Shrewd operator gameplay (last)
+
+### 8.1 Precedent-driven extensions (social benchmarks)
+
+Use social benchmark precedents (for example Among AIs-style runs in web-native deterministic environments) to add a new evaluation axis: social decision quality under uncertainty, not just single-agent credit accuracy.
+
+| Precedent Pattern | Why It Matters | Loanville Adaptation | Gate / Release |
+|---|---|---|---|
+| Deterministic fixed-timestep environment + standardized actions | Makes runs replayable and auditable while preserving multi-agent dynamics | Add phase-based lender committee loop with explicit actions (`propose`, `challenge`, `request_evidence`, `vote`, `skip`) | Release 2.5 |
+| Partial observability ("fog of war") | Prevents trivial omniscient policies and exposes trust calibration failures | Restrict each lender to scoped evidence windows; require explicit evidence fetches to expand context | Release 2.5 |
+| Bounded discussion rounds before vote | Pressure-tests persuasion, coordination, and decision discipline | Add capped underwriting committee meetings (e.g., 3 turns) before approve/decline/escalate | Release 2.5 |
+| Accuracy and harm tracked separately | Avoids rewarding loud but unsafe agents | Split metrics into decision accuracy vs social harm (wrongful declines, wrongful approvals, scapegoating) | Release 3 |
+| Leadership vs bandwagoning signatures | Surfaces stable style differences across models | Track initiative rate, herding rate, vote-switch rate, and skip rate by model and role | Release 3 |
+| Role-conditioned behavior ("chameleon" shifts) | Detects strategic behavior changes when incentives flip | Run lender, reviewer, and adversarial borrower roles; measure delta in proactivity and harm by role | Release 3.5 |
+| Highlight/replay artifacts | Enables qualitative review and debugging of failures | Auto-export per-episode meeting transcripts, event timeline, and key replay clips | Release 3.5 |
+
+### Release 2.5 — Committee Protocol Pack (new)
+
+- Add a structured committee phase to underwriting episodes: discuss -> vote -> action.
+- Benchmark Pack D: committee baseline vs independent underwriter baseline.
+- Publish role-scoped action logs and deterministic replay for each episode.
+
+### Release 3.5 — Adversarial Social Robustness Pack (new)
+
+- Add adversarial borrower and noisy-witness behaviors to induce disagreement and deception pressure.
+- Score persuasion quality with safety constraints: evidence-backed influence > confidence-only influence.
+- Add guardrail ablations: evidence thresholding, veto rights, and minimum quorum before adverse actions.
+
+### Release 4.5 — Consortium Collaboration Pack (new)
+
+- Add lender collaboration channels:
+  - anonymized suspected-fraud signal sharing
+  - anonymized application fingerprint sharing to detect multi-lender spam
+- Add a privacy-preserving signal schema with confidence, evidence class, TTL, and revocation.
+- Benchmark Pack E: isolated underwriting vs consortium-enabled underwriting (measure fraud catch uplift, false-positive spillover, and latency impact).
+- Add anti-collusion and anti-poisoning controls (source reputation, quorum thresholds, and delayed influence weighting).
+
+### 8.2 Scaling methodology for collaboration at larger network size
+
+Current methodology is small-N and episode-centric; consortium behavior requires network-scale evaluation.
+
+| Current Method | Scaling Risk | Scale Upgrade |
+|---|---|---|
+| Triplet lender matches | Too few counterparties to test network effects | Move to many-lender cohorts (e.g., 25, 50, 100+) with partitioned communication graphs |
+| Per-episode local state | Misses repeated spam/fraud campaigns | Persist borrower/application identity graph across episodes and seasons |
+| Raw transcript-heavy logging | Costly and hard to aggregate at high volume | Event-sourced compact logs + sampled transcript retention |
+| Single-run metrics | Fails to capture propagation delays | Add time-series metrics: alert precision@time, spread velocity, and downstream decision impact |
+| Uniform trust across agents | Vulnerable to poisoning | Add source trust scores and adversarial signal injection tests |
+
+Scale targets to stage:
+
+- Stage A: 25 lenders, 10k applications, 1 season.
+- Stage B: 100 lenders, 100k applications, repeated borrower identities.
+- Stage C: 250+ lenders, 1M application events, mixed honest/adversarial signal providers.
+
+### Release 5 — Policy Code Arena (Skirmish-inspired, new)
+
+- Allow agents to submit executable policy code modules (pricing, fraud triage, negotiation policy) rather than only one-shot text decisions.
+- Run policies in a deterministic sandbox with strict limits (CPU/memory/time/network-off) and stable tool APIs.
+- Add iterative rounds: policy -> run -> diagnostics -> policy revision (Skirmish-style strategy loop).
+- Benchmark Pack F: prompt-only agents vs code-policy agents under equal data and budget constraints.
+- Score policy quality across utility, safety, robustness, and operational efficiency (runtime + token spend).
+
+### 8.3 Code-policy detail required before rollout
+
+- **Policy API contract:** exact observation schema, action schema, and allowed state persistence.
+- **Sandbox model:** language/runtime choices, dependency policy, deterministic randomness handling.
+- **Review and safety gates:** static checks, banned operations, and reproducibility requirements before execution.
+- **Version governance:** signed policy artifacts, rollback support, and lineage tracking per run.
+- **Fairness constraints:** equal compute budget and equal information access across policy and prompt baselines.
+- **Failure handling:** timeouts, runtime exceptions, and fallback behavior to keep tournaments progressing.
 
 ---
 
