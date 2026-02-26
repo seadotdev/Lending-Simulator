@@ -305,6 +305,7 @@ class SeasonLenderState:
     cumulative_interest: float = 0.0
     cumulative_losses: float = 0.0
     cumulative_fees: float = 0.0
+    cumulative_workout_cost: float = 0.0
     total_tool_calls: int = 0
     total_evaluations: int = 0
     deals_won: int = 0
@@ -325,6 +326,10 @@ class SeasonLenderState:
     eliminated_week: int = 0
     # Capital time-value decay accumulator
     cumulative_decay: float = 0.0
+    # Token / cost tracking (from LOS traces)
+    cumulative_tokens_in: int = 0
+    cumulative_tokens_out: int = 0
+    cumulative_cost_usd: float = 0.0
 
 
 @dataclass

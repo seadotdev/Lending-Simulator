@@ -9,6 +9,8 @@
 import { AssetLoader } from './asset-loader.js';
 import { TownScene } from './town-scene.js';
 import { generateLayout } from './town-layout.js';
+import { renderStats } from './stats-dashboard.js';
+import { Dashboard2D } from './dashboard-2d.js';
 
 // ---- Constants ----
 
@@ -42,6 +44,9 @@ class App {
     // Trace viewer state
     this.lenderColorMap = {};
     this.nextColor = 0;
+
+    // 2D Dashboard
+    this.dashboard2d = null;
 
     this.dom = {};
     this._initDOM();
@@ -79,13 +84,15 @@ class App {
         this._reset();
         this.season = data;
         const name = url.split('/').pop();
-        this._logEvent('system', `Loaded ${name}: ${data.config.weeks} weeks, ${data.lenders.length} lenders`);
+        this._logEvent('system', `Loaded ${name}: ${data.weeks.length} timeline steps, ${data.lenders.length} lenders`);
         this.dom.dropOverlay.hidden = true;
+        this.dashboard2d = null;
         await this._initTown();
         this.dom.controlsGroup.hidden = false;
         this.dom.packSelector.hidden = false;
         this._buildTimeline();
         this._renderLeaderboard(-1);
+        this._extractSeasonTraces();
         this._switchTab('game');
       }
     } catch (e) {
@@ -99,9 +106,15 @@ class App {
       dropOverlay: $('drop-overlay'),
       fileInput: $('file-input'),
       tabGame: $('tab-game'),
+      tabDashboard: $('tab-dashboard'),
+      tabStats: $('tab-stats'),
       tabTrace: $('tab-trace'),
       pageGame: $('page-game'),
+      pageDashboard: $('page-dashboard'),
+      pageStats: $('page-stats'),
       pageTrace: $('page-trace'),
+      dashboardContent: $('dashboard-content'),
+      statsContent: $('stats-content'),
       townContainer: $('town-container'),
       btnPlay: $('btn-play'),
       btnSpeed: $('btn-speed'),
@@ -156,6 +169,8 @@ class App {
 
     // Tabs
     this.dom.tabGame.addEventListener('click', () => this._switchTab('game'));
+    this.dom.tabDashboard.addEventListener('click', () => this._switchTab('dashboard'));
+    this.dom.tabStats.addEventListener('click', () => this._switchTab('stats'));
     this.dom.tabTrace.addEventListener('click', () => this._switchTab('trace'));
 
     // Playback
@@ -188,7 +203,7 @@ class App {
         const data = JSON.parse(await file.text());
         if (data.type === 'season') {
           this.season = data;
-          this._logEvent('system', `Loaded season: ${data.config.weeks} weeks, ${data.lenders.length} lenders`);
+          this._logEvent('system', `Loaded season: ${data.weeks.length} timeline steps, ${data.lenders.length} lenders`);
         } else if (Array.isArray(data)) {
           for (const t of data) { t._file = file.name; this._assignColor(t.lender_name); }
           this.traces.push(...data);
@@ -205,11 +220,13 @@ class App {
     this.dom.dropOverlay.hidden = true;
 
     if (this.season) {
+      this.dashboard2d = null;
       await this._initTown();
       this.dom.controlsGroup.hidden = false;
       this.dom.packSelector.hidden = false;
       this._buildTimeline();
       this._renderLeaderboard(-1);
+      this._extractSeasonTraces();
       this._switchTab('game');
     }
     if (this.traces.length) {
@@ -340,6 +357,37 @@ class App {
     const week = this.season.weeks[this.currentWeek];
     const lenders = this.season.lenders;
 
+    // Final resolution is exported as a dedicated timeline step.
+    if (week.final_resolution) {
+      this._setPhase('FINAL RESOLUTION');
+      this.dom.weekLabel.textContent = 'Final Resolution';
+      this._updateProgress();
+      this._highlightTimelineDot(this.currentWeek);
+      this._logEvent('system', '--- Final Resolution ---');
+      for (const evt of week.events) {
+        this._logEvent(this._eventTypeForMessage(evt), evt);
+      }
+      await this._wait(800);
+      this._renderLeaderboard(this.currentWeek);
+
+      for (let i = 0; i < lenders.length; i++) {
+        const snap = week.lender_snapshots[lenders[i].id];
+        if (snap) {
+          const totalDec = (snap.deals_won || 0) + (snap.deals_rejected || 0) + (snap.deals_lost || 0);
+          const approvalRate = totalDec > 0 ? ((snap.deals_won || 0) / totalDec) * 100 : null;
+          this.townScene?.updateSignpost(i, snap.name, approvalRate, snap.net_pnl);
+        }
+      }
+
+      this._logEvent('system', 'Final resolution complete');
+      await this._wait(600);
+      this.stepping = false;
+      if (this.playing) {
+        this.phaseTimer = setTimeout(() => this._stepWeek(), 200);
+      }
+      return;
+    }
+
     // ---- WEEK INTRO ----
     this._setPhase('WEEK INTRO');
     this.dom.weekLabel.textContent = `Week ${week.week}`;
@@ -349,8 +397,7 @@ class App {
 
     // Show loan resolution events from this week
     for (const evt of week.events) {
-      const type = evt.startsWith('DEFAULT') ? 'error' : evt.startsWith('REPAID') || evt.startsWith('PREPAID') ? 'payment' : 'loan';
-      this._logEvent(type, evt);
+      this._logEvent(this._eventTypeForMessage(evt), evt);
     }
     await this._wait(800);
 
@@ -359,12 +406,23 @@ class App {
     this.townScene?.clearBorrowers();
 
     const totalBorrowers = week.borrowers.length;
+    const spawnPos = this.layout?.spawnPoint || { x: 0, z: -10 };
     const borrowerSpawns = week.borrowers.map((b, i) =>
-      this.townScene?.addBorrower(b.id, this.assetLoader, { name: b.name, amount: b.amount }, i, totalBorrowers)
+      this.townScene?.addBorrower(b.id, this.assetLoader, { name: b.name, amount: b.amount }, i, totalBorrowers, spawnPos)
     );
     await Promise.all(borrowerSpawns.filter(Boolean));
     this._logEvent('loan', `${week.borrowers.length} borrowers arrived: ${week.borrowers.map(b => b.name).join(', ')}`);
-    await this._wait(600);
+    await this._wait(400);
+
+    // ---- TRAVEL (residential → junction) ----
+    this._setPhase('TRAVEL');
+    const junction = { x: 0, z: 0 };
+    const travelWalks = week.borrowers.map((b, i) => {
+      const spread = (i - (totalBorrowers - 1) / 2) * 0.6;
+      return this.townScene?.animateBorrowerWalk(b.id, { x: junction.x + spread, z: junction.z }, 1.0 / SPEED_LEVELS[this.speedIndex]);
+    });
+    await Promise.all(travelWalks.filter(Boolean));
+    await this._wait(200);
 
     // ---- EVALUATION ----
     this._setPhase('EVALUATION');
@@ -394,27 +452,28 @@ class App {
     const lenderQueues = {};  // lenderIndex → count
     const allocWalks = [];
 
+    const rejectTarget = this.layout?.spawnPoint || { x: 0, z: -10 };
     for (const b of week.borrowers) {
       const loan = week.booked_loans.find(l => l.borrower_id === b.id);
       if (loan) {
-        // Funded — walk to winning lender's building
+        // Funded — walk from junction along +X to winning lender's building
         const lenderIdx = lenders.findIndex(l => l.id === loan.lender_id);
         if (lenderIdx >= 0 && this.townScene?.layout?.buildings?.[lenderIdx]) {
           const bld = this.townScene.layout.buildings[lenderIdx];
           const queueCount = lenderQueues[lenderIdx] || 0;
           lenderQueues[lenderIdx] = queueCount + 1;
-          const sign = Math.sign(bld.x) || 1;
-          const queueX = sign * (2.0 - queueCount * 0.6);
+          const sign = Math.sign(bld.z) || 1;
+          const queueZ = sign * (Math.abs(bld.z) - queueCount * 0.6);
           allocWalks.push(
-            this.townScene.animateBorrowerWalk(b.id, { x: queueX, z: bld.z }, 0.8 / SPEED_LEVELS[this.speedIndex])
+            this.townScene.animateBorrowerWalk(b.id, { x: bld.x, z: queueZ }, 0.8 / SPEED_LEVELS[this.speedIndex])
           );
         }
         const lender = lenders.find(l => l.id === loan.lender_id);
-        this._logEvent('loan', `BOOKED: ${b.name} \u2192 ${lender?.name || loan.lender_id} ($${fmtNum(loan.principal)} @ ${(loan.interest_rate * 100).toFixed(1)}%)`);
+        this._logEvent('loan', `BOOKED: ${b.name} \u2192 ${lender?.name || loan.lender_id} ($${fmtNum(loan.principal)} @ ${loan.interest_rate.toFixed(1)}%)`);
       } else {
-        // Rejected — walk off-screen then fade
+        // Rejected — walk back toward residential zone and fade
         if (this.townScene) {
-          const walkOff = this.townScene.animateBorrowerWalk(b.id, { x: 0, z: -4 }, 0.6 / SPEED_LEVELS[this.speedIndex])
+          const walkOff = this.townScene.animateBorrowerWalk(b.id, rejectTarget, 0.6 / SPEED_LEVELS[this.speedIndex])
             .then(() => this.townScene.fadeBorrower(b.id, 400 / SPEED_LEVELS[this.speedIndex]));
           allocWalks.push(walkOff);
         }
@@ -428,16 +487,21 @@ class App {
     this.townScene?.resetBuildings();
     this._renderLeaderboard(this.currentWeek);
 
-    // Update building labels
+    // Update bank signposts with approval rate + P&L
     for (let i = 0; i < lenders.length; i++) {
       const snap = week.lender_snapshots[lenders[i].id];
       if (snap) {
-        const pnl = snap.net_pnl >= 0 ? `+$${fmtNum(snap.net_pnl)}` : `-$${fmtNum(Math.abs(snap.net_pnl))}`;
-        this.townScene?.updateLabel(i, `${snap.name}\n${pnl}`);
+        const totalDec = (snap.deals_won || 0) + (snap.deals_rejected || 0) + (snap.deals_lost || 0);
+        const approvalRate = totalDec > 0 ? ((snap.deals_won || 0) / totalDec) * 100 : null;
+        this.townScene?.updateSignpost(i, snap.name, approvalRate, snap.net_pnl);
       }
     }
 
     this._logEvent('system', `Week ${week.week} complete: ${week.booked_loans.length} loans booked`);
+
+    // Sync 2D dashboard if it exists
+    if (this.dashboard2d) this.dashboard2d.setWeek(this.currentWeek);
+
     await this._wait(600);
 
     this.stepping = false;
@@ -482,10 +546,10 @@ class App {
     this.dom.eventLogBody.innerHTML = '';
     this.dom.detailPanel.innerHTML = '<div class="detail-placeholder">Click a building to inspect</div>';
 
-    // Reset building labels
+    // Reset bank signposts
     if (this.season && this.townScene) {
       for (let i = 0; i < this.season.lenders.length; i++) {
-        this.townScene.updateLabel(i, this.season.lenders[i].name);
+        this.townScene.updateSignpost(i, this.season.lenders[i].name, null, null);
       }
     }
   }
@@ -497,21 +561,27 @@ class App {
   // ==== UI ====
 
   _switchTab(tab) {
-    const isGame = tab === 'game';
-    this.dom.tabGame.classList.toggle('active', isGame);
-    this.dom.tabTrace.classList.toggle('active', !isGame);
-    this.dom.pageGame.hidden = !isGame;
-    this.dom.pageTrace.hidden = isGame;
-    if (isGame && this.townScene) this.townScene._onResize();
+    this.dom.tabGame.classList.toggle('active', tab === 'game');
+    this.dom.tabDashboard.classList.toggle('active', tab === 'dashboard');
+    this.dom.tabStats.classList.toggle('active', tab === 'stats');
+    this.dom.tabTrace.classList.toggle('active', tab === 'trace');
+    this.dom.pageGame.hidden = tab !== 'game';
+    this.dom.pageDashboard.hidden = tab !== 'dashboard';
+    this.dom.pageStats.hidden = tab !== 'stats';
+    this.dom.pageTrace.hidden = tab !== 'trace';
+    if (tab === 'game' && this.townScene) this.townScene._onResize();
+    if (tab === 'stats' && this.season) renderStats(this.dom.statsContent, this.season);
+    if (tab === 'dashboard') this._updateDashboard2d();
   }
 
   _buildTimeline() {
     this.dom.timeline.innerHTML = '';
     if (!this.season) return;
     for (let i = 0; i < this.season.weeks.length; i++) {
+      const week = this.season.weeks[i];
       const dot = document.createElement('div');
       dot.className = 'timeline-dot';
-      dot.title = `Week ${i + 1}`;
+      dot.title = week.final_resolution ? 'Final Resolution' : `Week ${week.week}`;
       dot.addEventListener('click', () => {
         if (!this.playing && !this.stepping) {
           this.currentWeek = i - 1;
@@ -577,6 +647,8 @@ class App {
       const deployed = s.deployed || 0;
       const raroc = deployed > 0 ? ((s.net_pnl / deployed) * 100).toFixed(1) : '0.0';
 
+      const costStr = s.cost_usd > 0 ? `$${s.cost_usd.toFixed(2)}` : '';
+
       card.innerHTML = `
         <div class="lb-rank">#${rank + 1}</div>
         <div class="lb-info">
@@ -587,6 +659,7 @@ class App {
           <span class="lb-pnl ${pnlClass}">${pnlStr}</span>
           <span class="lb-raroc">RAROC ${raroc}%</span>
           <span class="lb-deals">${s.deals_won}W / ${s.deals_rejected}R</span>
+          ${costStr ? `<span class="lb-cost">${costStr}</span>` : ''}
         </div>
       `;
       this.dom.leaderboard.appendChild(card);
@@ -634,6 +707,11 @@ class App {
         <div class="detail-stat"><span class="detail-stat-label">Interest</span><span class="detail-stat-value positive">$${fmtNum(s.cumulative_interest || 0)}</span></div>
         <div class="detail-stat"><span class="detail-stat-label">Losses</span><span class="detail-stat-value negative">$${fmtNum(s.cumulative_losses || 0)}</span></div>
         <div class="detail-stat"><span class="detail-stat-label">Active Loans</span><span class="detail-stat-value">${s.active_loans || 0}</span></div>
+        ${s.cost_usd > 0 ? `
+        <div class="detail-stat"><span class="detail-stat-label">API Cost</span><span class="detail-stat-value">$${(s.cost_usd || 0).toFixed(2)}</span></div>
+        <div class="detail-stat"><span class="detail-stat-label">Tokens In</span><span class="detail-stat-value">${fmtNum(s.tokens_in || 0)}</span></div>
+        <div class="detail-stat"><span class="detail-stat-label">Tokens Out</span><span class="detail-stat-value">${fmtNum(s.tokens_out || 0)}</span></div>
+        ` : ''}
       </div>
     `;
 
@@ -680,6 +758,12 @@ class App {
     this.dom.eventLogBody.scrollTop = this.dom.eventLogBody.scrollHeight;
   }
 
+  _eventTypeForMessage(evt) {
+    if (evt.includes('DEFAULT')) return 'error';
+    if (evt.startsWith('REPAID') || evt.startsWith('PREPAID') || evt.startsWith('PAYMENT')) return 'payment';
+    return 'loan';
+  }
+
   // ==== Season End ====
 
   _showSeasonEnd() {
@@ -719,7 +803,61 @@ class App {
     });
   }
 
+  // ==== 2D Dashboard ====
+
+  _updateDashboard2d() {
+    if (!this.season) return;
+    if (!this.dashboard2d) {
+      this.dashboard2d = new Dashboard2D(this.dom.dashboardContent);
+      this.dashboard2d.setSeason(this.season);
+    }
+    this.dashboard2d.setWeek(this.currentWeek);
+  }
+
   // ==== Trace Viewer ====
+
+  /**
+   * Extract decision data from season JSON into the trace array,
+   * enriched with cost and chain-of-thought data when available.
+   */
+  _extractSeasonTraces() {
+    if (!this.season) return;
+    // Remove any previous season-derived traces
+    this.traces = this.traces.filter(t => t._source !== 'season');
+
+    for (const week of this.season.weeks) {
+      if (!week.decisions) continue;
+      for (const dec of week.decisions) {
+        const lender = this.season.lenders.find(l => l.id === dec.lender_id);
+        const borrower = week.borrowers?.find(b => b.id === dec.borrower_id);
+        this.traces.push({
+          _source: 'season',
+          _file: `Season Week ${week.week}`,
+          _week: week.week,
+          lender_name: lender?.name || dec.lender_id,
+          lender_id: dec.lender_id,
+          model: lender?.model || '',
+          borrower_id: dec.borrower_id,
+          borrower_name: borrower?.name || dec.borrower_id,
+          decision: dec.decision,
+          reasoning: dec.reasoning || '',
+          term_sheet: dec.term_sheet,
+          tokens_in: dec.tokens_in || 0,
+          tokens_out: dec.tokens_out || 0,
+          cost_usd: dec.cost_usd || 0,
+          tool_calls_count: dec.tool_calls || 0,
+          chain_of_thought: dec.chain_of_thought || '',
+          true_outcome: borrower?.true_outcome || 'unknown',
+        });
+        this._assignColor(lender?.name);
+      }
+    }
+
+    if (this.traces.length) {
+      this._updateTraceFilters();
+      this._renderTraces();
+    }
+  }
 
   _updateTraceFilters() {
     const lenders = new Set();
@@ -808,6 +946,22 @@ class App {
     const decisionClass = trace.error ? 'error' : (trace.decision || '').toLowerCase();
     const decisionLabel = trace.error ? 'ERROR' : (trace.decision || '?');
 
+    // Cost badge
+    let costBadge = '';
+    if (trace.cost_usd > 0) {
+      costBadge += `<span class="trace-card-cost">$${trace.cost_usd.toFixed(4)}</span>`;
+    }
+    if (trace.tokens_in > 0 || trace.tokens_out > 0) {
+      costBadge += `<span class="trace-card-tokens">${fmtNum(trace.tokens_in + trace.tokens_out)} tok</span>`;
+    }
+
+    // True outcome badge for season traces
+    let outcomeBadge = '';
+    if (trace.true_outcome && trace.true_outcome !== 'unknown') {
+      const outcomeClass = `outcome-${trace.true_outcome}`;
+      outcomeBadge = `<span class="trace-card-outcome ${outcomeClass}">${trace.true_outcome}</span>`;
+    }
+
     const header = document.createElement('div');
     header.className = 'trace-card-header';
     header.innerHTML = `
@@ -816,7 +970,9 @@ class App {
       <span class="trace-card-lender">${esc(trace.lender_name || trace.lender_id)}</span>
       <span class="trace-card-model">${esc(trace.model || '')}</span>
       <span class="trace-card-borrower">${esc(trace.borrower_name || trace.borrower_id)}</span>
+      ${outcomeBadge}
       <span class="trace-card-decision ${decisionClass}">${decisionLabel}</span>
+      ${costBadge}
     `;
     header.addEventListener('click', () => card.classList.toggle('expanded'));
     card.appendChild(header);
@@ -824,6 +980,53 @@ class App {
     const body = document.createElement('div');
     body.className = 'trace-card-body';
 
+    // Chain-of-thought (show prominently if available)
+    if (trace.chain_of_thought) {
+      body.appendChild(this._makeSection('Chain of Thought', () => {
+        const el = document.createElement('div');
+        el.className = 'trace-cot';
+        el.innerHTML = `<div class="trace-cot-content">${esc(trace.chain_of_thought)}</div>`;
+        return el;
+      }, true));
+    }
+
+    // Reasoning summary
+    if (trace.reasoning) {
+      body.appendChild(this._makeSection('Reasoning', () => pre(trace.reasoning), true));
+    }
+
+    // Term sheet
+    if (trace.term_sheet) {
+      body.appendChild(this._makeSection('Term Sheet', () => {
+        const el = document.createElement('div');
+        el.className = 'detail-grid';
+        const rate = trace.term_sheet.rate != null ? trace.term_sheet.rate : trace.term_sheet.interest_rate;
+        const rateStr = rate != null ? (rate > 1 ? rate.toFixed(1) : (rate * 100).toFixed(1)) : '—';
+        el.innerHTML = `
+          <div class="detail-stat"><span class="detail-stat-label">Amount</span><span class="detail-stat-value">$${fmtNum(trace.term_sheet.amount || trace.term_sheet.principal || 0)}</span></div>
+          <div class="detail-stat"><span class="detail-stat-label">Rate</span><span class="detail-stat-value">${rateStr}%</span></div>
+          <div class="detail-stat"><span class="detail-stat-label">Term</span><span class="detail-stat-value">${trace.term_sheet.term_months || '—'}mo</span></div>
+        `;
+        return el;
+      }, true));
+    }
+
+    // Cost details
+    if (trace.tokens_in > 0 || trace.cost_usd > 0) {
+      body.appendChild(this._makeSection('Cost & Tokens', () => {
+        const el = document.createElement('div');
+        el.className = 'detail-grid';
+        el.innerHTML = `
+          <div class="detail-stat"><span class="detail-stat-label">Cost</span><span class="detail-stat-value">$${(trace.cost_usd || 0).toFixed(4)}</span></div>
+          <div class="detail-stat"><span class="detail-stat-label">Tokens In</span><span class="detail-stat-value">${fmtNum(trace.tokens_in || 0)}</span></div>
+          <div class="detail-stat"><span class="detail-stat-label">Tokens Out</span><span class="detail-stat-value">${fmtNum(trace.tokens_out || 0)}</span></div>
+          <div class="detail-stat"><span class="detail-stat-label">Tool Calls</span><span class="detail-stat-value">${trace.tool_calls_count || 0}</span></div>
+        `;
+        return el;
+      }, false));
+    }
+
+    // Original trace data (from file-based traces)
     if (trace.system_prompt) body.appendChild(this._makeSection('System Prompt', () => pre(trace.system_prompt), false));
     if (trace.user_prompt) body.appendChild(this._makeSection('User Prompt', () => pre(trace.user_prompt), false));
     if (trace.tool_calls?.length) {

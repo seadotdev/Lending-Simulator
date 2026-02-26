@@ -87,6 +87,7 @@ season = SeasonEngine(
     lenders=lenders,
     mock=False,
     data_mode="lite",
+    los_mode="full",
 )
 asyncio.run(season.run_season())
 
@@ -95,6 +96,7 @@ elapsed = time.time() - t0
 # ── Score ─────────────────────────────────────────────────────────────────
 season_scores = score_season(season.lender_states, config)
 print_season_report(season_scores)
+scores_by_id = {s.lender_id: s for s in season_scores}
 
 # ── Leaderboard ──────────────────────────────────────────────────────────
 from loanville.leaderboard import emit_match_record_from_season, emit_and_update
@@ -143,8 +145,16 @@ print("\n" + "=" * 70)
 print("  PER-LENDER DETAIL")
 print("=" * 70)
 
-for state, score in zip(season.lender_states.values(), season_scores):
-    net = state.cumulative_interest + state.cumulative_fees - state.cumulative_losses
+for state in season.lender_states.values():
+    score = scores_by_id.get(state.lender_id)
+    if score is None:
+        continue
+    net = (
+        state.cumulative_interest
+        + state.cumulative_fees
+        - state.cumulative_losses
+        - state.cumulative_workout_cost
+    )
     frauds = sum(1 for loan in state.resolved_loans if loan.was_fraud and loan.defaulted)
     defaults = sum(1 for loan in state.resolved_loans if loan.defaulted and not loan.was_fraud)
     good_repaid = sum(1 for loan in state.resolved_loans if not loan.defaulted)
@@ -153,8 +163,11 @@ for state, score in zip(season.lender_states.values(), season_scores):
           f"Portfolio: {score.portfolio_mgmt_score:.1f}, Efficiency: {score.efficiency_score:.1f})")
     print(f"    Deals: {state.deals_won} won, {state.deals_lost} lost, {state.deals_rejected} rejected")
     print(f"    Outcomes: {good_repaid} repaid, {defaults} defaults, {frauds} fraud defaults")
-    print(f"    P&L: ${net:>+,.0f} (interest: ${state.cumulative_interest:,.0f}, "
-          f"fees: ${state.cumulative_fees:,.0f}, losses: -${state.cumulative_losses:,.0f})")
+    print(
+        f"    P&L: ${net:>+,.0f} (interest: ${state.cumulative_interest:,.0f}, "
+        f"fees: ${state.cumulative_fees:,.0f}, losses: -${state.cumulative_losses:,.0f}, "
+        f"workout: -${state.cumulative_workout_cost:,.0f})"
+    )
 
 # ── Model comparison summary ──────────────────────────────────────────────
 print("\n" + "=" * 70)
@@ -163,13 +176,18 @@ print("=" * 70)
 
 print(f"\n  {'Model':<35s} {'Score':>8} {'Won':>5} {'Rej':>5} {'Dflt':>5} {'Fraud':>6} {'Net P&L':>12}")
 print(f"  {'─'*76}")
-for state, score in sorted(
-    zip(season.lender_states.values(), season_scores),
-    key=lambda x: -x[1].final_score,
-):
+for score in season_scores:
+    state = season.lender_states.get(score.lender_id)
+    if state is None:
+        continue
     frauds = sum(1 for loan in state.resolved_loans if loan.was_fraud and loan.defaulted)
     defaults = sum(1 for loan in state.resolved_loans if loan.defaulted)
-    net = state.cumulative_interest + state.cumulative_fees - state.cumulative_losses
+    net = (
+        state.cumulative_interest
+        + state.cumulative_fees
+        - state.cumulative_losses
+        - state.cumulative_workout_cost
+    )
     short = state.model.split("/")[-1]
     print(f"  {short:<35s} {score.final_score:>7.1f} {state.deals_won:>5} "
           f"{state.deals_rejected:>5} {defaults:>5} {frauds:>6} ${net:>+10,.0f}")

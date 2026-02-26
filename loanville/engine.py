@@ -821,26 +821,22 @@ class SimulationEngine:
                 outcome_map[(loan.lender_id, loan.borrower_id)] = outcome
 
         for run in self.runs:
-            key = (
-                run.policy.params.get("_lender_id", ""),
-                run.case.case_id,
-            )
-            # Try to match by iterating outcomes
-            for (lid, bid), outcome in outcome_map.items():
-                if bid == run.case.case_id and lid in run.policy.policy_id:
-                    run.labels.outcome = {
-                        "defaulted": outcome.defaulted,
-                        "was_fraud": outcome.was_fraud,
-                        "months_paid": outcome.months_paid,
-                        "interest_paid": outcome.total_interest_paid,
-                        "fees_paid": outcome.total_fees_paid,
-                        "principal_lost": outcome.principal_lost,
-                        "principal_recovered": outcome.principal_recovered,
-                        "recovery_amount": outcome.recovery_amount,
-                        "workout_cost": outcome.workout_cost,
-                        "prepaid": outcome.prepaid,
-                    }
-                    break
+            key = (_run_lender_id(run), run.case.case_id)
+            outcome = outcome_map.get(key)
+            if outcome is None:
+                continue
+            run.labels.outcome = {
+                "defaulted": outcome.defaulted,
+                "was_fraud": outcome.was_fraud,
+                "months_paid": outcome.months_paid,
+                "interest_paid": outcome.total_interest_paid,
+                "fees_paid": outcome.total_fees_paid,
+                "principal_lost": outcome.principal_lost,
+                "principal_recovered": outcome.principal_recovered,
+                "recovery_amount": outcome.recovery_amount,
+                "workout_cost": outcome.workout_cost,
+                "prepaid": outcome.prepaid,
+            }
 
         # Log runs if logger is configured
         if self.run_logger:

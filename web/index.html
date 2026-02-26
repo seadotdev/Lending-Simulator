@@ -60,6 +60,8 @@
     <!-- Page Tabs -->
     <div class="page-tabs">
       <button id="tab-game" class="tab-btn active">Game</button>
+      <button id="tab-dashboard" class="tab-btn">Dashboard</button>
+      <button id="tab-stats" class="tab-btn">Stats</button>
       <button id="tab-trace" class="tab-btn">LLM Trace</button>
     </div>
   </header>
@@ -108,6 +110,16 @@
         </div>
       </aside>
     </div>
+  </div>
+
+  <!-- Dashboard Page (2D) -->
+  <div id="page-dashboard" class="page-dashboard" hidden>
+    <div id="dashboard-content" class="dashboard-content"></div>
+  </div>
+
+  <!-- Stats Page -->
+  <div id="page-stats" class="page-stats" hidden>
+    <div id="stats-content" class="stats-content"></div>
   </div>
 
   <!-- Trace Page -->

@@ -54,11 +54,11 @@ export class TownScene {
     // Scene
     this.scene = new THREE.Scene();
     this.scene.background = new THREE.Color(0x0f1520);
-    this.scene.fog = new THREE.Fog(0x0f1520, 20, 50);
+    this.scene.fog = new THREE.Fog(0x0f1520, 30, 70);
 
     // Camera (isometric-ish)
-    this.camera = new THREE.PerspectiveCamera(45, w / h, 0.1, 100);
-    this.camera.position.set(8, 10, 12);
+    this.camera = new THREE.PerspectiveCamera(45, w / h, 0.1, 150);
+    this.camera.position.set(12, 14, 8);
 
     // Controls
     this.controls = new OrbitControls(this.camera, this.renderer.domElement);
@@ -88,7 +88,7 @@ export class TownScene {
     this.scene.add(dir);
 
     // Ground plane with grid texture
-    const groundGeo = new THREE.PlaneGeometry(60, 60);
+    const groundGeo = new THREE.PlaneGeometry(100, 100);
     const gridCanvas = document.createElement('canvas');
     gridCanvas.width = 512;
     gridCanvas.height = 512;
@@ -128,10 +128,13 @@ export class TownScene {
     const activePack = assetLoader.manifest.activePack;
     const packConfig = assetLoader.getActivePack();
 
-    // Center camera on town
-    const centerZ = layout.totalLength / 2;
-    this.controls.target.set(0, 0, centerZ);
-    this.camera.position.set(8, 10, centerZ + 8);
+    // Center camera to see both zones (financial along +X, residential along -Z)
+    const fc = layout.financialCenter || { x: 4, z: 0 };
+    const rc = layout.residentialCenter || { x: 0, z: -4 };
+    const cx = (fc.x + rc.x) / 2;
+    const cz = (fc.z + rc.z) / 2;
+    this.controls.target.set(cx, 0, cz);
+    this.camera.position.set(cx + 12, 14, cz + 12);
 
     // Roads
     for (const road of layout.roads) {
@@ -144,7 +147,7 @@ export class TownScene {
       } catch (e) { console.warn('Failed to load road:', e); }
     }
 
-    // Buildings
+    // Bank buildings (lender-indexed)
     for (const bld of layout.buildings) {
       try {
         const { scene: model } = await assetLoader.loadModel(activePack, bld.modelFile);
@@ -157,16 +160,49 @@ export class TownScene {
         this.buildingMeshes.set(bld.id, model);
         this.scene.add(model);
 
-        // Floating label
+        // Signpost label
         const name = lenderNames[bld.id] || `Lender ${bld.id}`;
         const labelDiv = document.createElement('div');
-        labelDiv.className = 'town-label';
-        labelDiv.textContent = name;
+        labelDiv.className = 'bank-signpost';
+        labelDiv.innerHTML =
+          `<div class="signpost-name">${name}</div>` +
+          `<div class="signpost-stats">` +
+          `<div class="signpost-stat"><div class="signpost-stat-label">Approve</div><div class="signpost-stat-value">—</div></div>` +
+          `<div class="signpost-stat"><div class="signpost-stat-label">P&L</div><div class="signpost-stat-value">—</div></div>` +
+          `</div>`;
         const label = new CSS2DObject(labelDiv);
         label.position.set(0, 2.5, 0);
         model.add(label);
         this.buildingLabels.set(bld.id, label);
       } catch (e) { console.warn('Failed to load building:', e); }
+    }
+
+    // Decorative town buildings (residential zone)
+    if (layout.townBuildings) {
+      for (const bld of layout.townBuildings) {
+        try {
+          const { scene: model } = await assetLoader.loadModel(activePack, bld.modelFile);
+          model.position.set(bld.x, 0, bld.z);
+          model.rotation.y = bld.rotation;
+          model.traverse(c => {
+            if (c.isMesh) { c.castShadow = true; c.receiveShadow = true; }
+          });
+          this.scene.add(model);
+        } catch (e) { /* skip missing town buildings */ }
+      }
+    }
+
+    // Vehicles (parked cars in residential zone)
+    if (layout.vehicles) {
+      for (const veh of layout.vehicles) {
+        try {
+          const { scene: model } = await assetLoader.loadModel(activePack, veh.modelFile);
+          model.position.set(veh.x, 0, veh.z);
+          model.rotation.y = veh.rotation;
+          model.traverse(c => { if (c.isMesh) { c.castShadow = true; } });
+          this.scene.add(model);
+        } catch (e) { /* skip missing vehicle models */ }
+      }
     }
 
     // Props
@@ -183,7 +219,7 @@ export class TownScene {
     }
   }
 
-  async addBorrower(borrowerId, assetLoader, borrowerInfo, spawnIndex, spawnTotal) {
+  async addBorrower(borrowerId, assetLoader, borrowerInfo, spawnIndex, spawnTotal, spawnPos) {
     if (!assetLoader?.manifest) return;
     const charPack = assetLoader.getCharacterPack();
     if (!charPack?.characters) return;
@@ -195,10 +231,15 @@ export class TownScene {
       const { scene: model, animations } = await assetLoader.loadModel(charPackName, charFile);
       model.scale.setScalar(0.35);
 
-      // Spawn along road center, evenly spaced by Z
-      const totalLength = this.layout?.totalLength || 10;
-      const spacing = totalLength / (spawnTotal + 1);
-      model.position.set(0, 0, spacing * (spawnIndex + 1));
+      // Spawn at explicit position, or fall back to residential road spread
+      if (spawnPos) {
+        const spread = (spawnIndex - (spawnTotal - 1) / 2) * 0.6;
+        model.position.set(spawnPos.x + spread, 0, spawnPos.z);
+      } else {
+        const totalLength = this.layout?.totalLength || 10;
+        const spacing = totalLength / (spawnTotal + 1);
+        model.position.set(0, 0, spacing * (spawnIndex + 1));
+      }
 
       model.userData.borrowerId = borrowerId;
       this.borrowerMeshes.set(borrowerId, model);
@@ -357,9 +398,32 @@ export class TownScene {
   }
 
   updateLabel(lenderIndex, text) {
+    // Legacy fallback — updates the signpost name only
     const label = this.buildingLabels.get(lenderIndex);
     if (label) {
-      label.element.textContent = text;
+      const nameEl = label.element.querySelector('.signpost-name');
+      if (nameEl) nameEl.textContent = text;
+      else label.element.textContent = text;
+    }
+  }
+
+  updateSignpost(lenderIndex, name, approvalRate, pnl) {
+    const label = this.buildingLabels.get(lenderIndex);
+    if (!label) return;
+    const el = label.element;
+
+    const nameEl = el.querySelector('.signpost-name');
+    if (nameEl) nameEl.textContent = name;
+
+    const values = el.querySelectorAll('.signpost-stat-value');
+    if (values.length >= 2) {
+      // Approval rate
+      values[0].textContent = approvalRate !== null ? `${Math.round(approvalRate)}%` : '—';
+
+      // P&L
+      const pnlStr = pnl >= 0 ? `+$${fmtK(pnl)}` : `-$${fmtK(Math.abs(pnl))}`;
+      values[1].textContent = pnl !== null ? pnlStr : '—';
+      values[1].className = 'signpost-stat-value ' + (pnl >= 0 ? 'positive' : 'negative');
     }
   }
 
@@ -483,4 +547,11 @@ function hashStr(str) {
     h = ((h << 5) - h + str.charCodeAt(i)) | 0;
   }
   return h;
+}
+
+function fmtK(n) {
+  const abs = Math.abs(n);
+  if (abs >= 1e6) return (n / 1e6).toFixed(1) + 'M';
+  if (abs >= 1e3) return (n / 1e3).toFixed(0) + 'K';
+  return Math.round(n).toString();
 }

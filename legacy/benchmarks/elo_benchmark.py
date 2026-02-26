@@ -349,6 +349,7 @@ def run_match(
     engine = SimulationEngine(
         borrowers, lenders, mock=False,
         underwrite_only=True,
+        max_concurrent_per_lender=3,
     )
 
     # Suppress the engine's verbose phase-by-phase output
@@ -364,7 +365,24 @@ def run_match(
         borrowers=borrowers,
     )
 
-    costs = get_cost_summary()
+    # Extract per-model token/cost from LOS run traces
+    costs: dict[str, float] = {}
+    tokens: dict[str, dict] = {}
+    for lender, (model_id, _) in zip(lenders, models):
+        lender_cost = 0.0
+        tin, tout = 0, 0
+        for run in engine.runs:
+            lid = (run.policy.params or {}).get("_lender_id", "")
+            if not lid:
+                pid = run.policy.policy_id or ""
+                parts = pid.split("_", 2)
+                lid = parts[1] if len(parts) >= 2 and parts[0] == "p" else pid
+            if lid == lender.id and run.trace and run.trace.cost:
+                lender_cost += run.trace.cost.estimated_cost_usd
+                tin += run.trace.cost.tokens_in
+                tout += run.trace.cost.tokens_out
+        costs[model_id] = lender_cost
+        tokens[model_id] = {"tokens_in": tin, "tokens_out": tout}
 
     # Compute per-applicant payoffs for pairwise Elo
     per_applicant = _compute_per_applicant_payoffs(
@@ -383,6 +401,7 @@ def run_match(
         decisions = engine.all_decisions.get(lender.id, [])
         approvals = sum(1 for d in decisions if d.decision == "APPROVE")
 
+        tok = tokens.get(model_id, {})
         results.append({
             "model": model_id,
             "display_name": display_name,
@@ -395,6 +414,9 @@ def run_match(
             "net_pnl": sc.net_return,
             "approvals": approvals,
             "cost": costs.get(model_id, 0.0),
+            "tokens_in": tok.get("tokens_in", 0),
+            "tokens_out": tok.get("tokens_out", 0),
+            "cost_usd": round(costs.get(model_id, 0.0), 4),
             "per_applicant_payoffs": per_applicant.get(model_id, {}),
             "confusion_matrix": confusion_matrices.get(model_id, {}),
             "n_borrowers": len(borrowers),

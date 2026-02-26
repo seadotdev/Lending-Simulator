@@ -285,6 +285,21 @@ def emit_match_record_from_sim(
                 "rate_offered": rates.get(bid),
             }
 
+        # Extract token/cost from engine runs for this lender
+        tokens_in = 0
+        tokens_out = 0
+        cost_usd = 0.0
+        for run in engine.runs:
+            lid = (run.policy.params or {}).get("_lender_id", "")
+            if not lid:
+                pid = run.policy.policy_id or ""
+                parts = pid.split("_", 2)
+                lid = parts[1] if len(parts) >= 2 and parts[0] == "p" else pid
+            if lid == lender.id and run.trace and run.trace.cost:
+                tokens_in += run.trace.cost.tokens_in
+                tokens_out += run.trace.cost.tokens_out
+                cost_usd += run.trace.cost.estimated_cost_usd
+
         result = {
             "model_id": model_id,
             "raroc_score": sc.raroc_score if sc else 0.0,
@@ -297,6 +312,9 @@ def emit_match_record_from_sim(
             "net_pnl": sc.net_return if sc else 0,
             "confusion_matrix": cm,
             "per_borrower": per_borrower,
+            "tokens_in": tokens_in,
+            "tokens_out": tokens_out,
+            "cost_usd": round(cost_usd, 4),
         }
         results.append(result)
 
@@ -413,6 +431,9 @@ def emit_match_record_from_season(
             "net_pnl": net_pnl,
             "confusion_matrix": cm,
             "per_borrower": per_borrower,
+            "tokens_in": state.cumulative_tokens_in,
+            "tokens_out": state.cumulative_tokens_out,
+            "cost_usd": round(state.cumulative_cost_usd, 4),
         }
         results.append(result)
 
@@ -480,6 +501,9 @@ def emit_match_record_from_elo(
             "net_pnl": r.get("net_pnl", 0),
             "confusion_matrix": r.get("confusion_matrix", {}),
             "per_borrower": per_borrower,
+            "tokens_in": r.get("tokens_in", 0),
+            "tokens_out": r.get("tokens_out", 0),
+            "cost_usd": r.get("cost_usd", 0.0),
         }
         results.append(result)
 
@@ -568,6 +592,10 @@ def compute_leaderboard(matches: list[dict] | None = None, config: dict | None =
     # Track per-model aggregates
     match_counts = {mid: 0 for mid in all_models}
     total_net_pnl = {mid: 0.0 for mid in all_models}
+    total_tokens_in = {mid: 0 for mid in all_models}
+    total_tokens_out = {mid: 0 for mid in all_models}
+    total_cost_usd = {mid: 0.0 for mid in all_models}
+    total_decisions = {mid: 0 for mid in all_models}
     agg_confusion = {}
     for mid in all_models:
         agg_confusion[mid] = {
@@ -608,6 +636,11 @@ def compute_leaderboard(matches: list[dict] | None = None, config: dict | None =
             mid = r["model_id"]
             match_counts[mid] = match_counts.get(mid, 0) + 1
             total_net_pnl[mid] = total_net_pnl.get(mid, 0.0) + r.get("net_pnl", 0.0)
+            total_tokens_in[mid] = total_tokens_in.get(mid, 0) + r.get("tokens_in", 0)
+            total_tokens_out[mid] = total_tokens_out.get(mid, 0) + r.get("tokens_out", 0)
+            total_cost_usd[mid] = total_cost_usd.get(mid, 0.0) + r.get("cost_usd", 0.0)
+            n_decisions = r.get("deals_won", 0) + r.get("deals_rejected", 0) + r.get("deals_errored", 0)
+            total_decisions[mid] = total_decisions.get(mid, 0) + n_decisions
 
             # Confusion matrix
             cm = r.get("confusion_matrix", {})
@@ -670,6 +703,13 @@ def compute_leaderboard(matches: list[dict] | None = None, config: dict | None =
                 "n_good_offers": len(good_rates),
                 "n_bad_offers": len(bad_rates),
             },
+            "total_tokens_in": total_tokens_in.get(mid, 0),
+            "total_tokens_out": total_tokens_out.get(mid, 0),
+            "total_cost_usd": round(total_cost_usd.get(mid, 0.0), 4),
+            "avg_cost_per_decision": (
+                round(total_cost_usd.get(mid, 0.0) / total_decisions[mid], 4)
+                if total_decisions.get(mid, 0) > 0 else 0.0
+            ),
         })
 
     # Sort by Composite Elo descending (single-number ranking)

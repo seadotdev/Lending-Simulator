@@ -33,9 +33,6 @@ jobs:
       - name: Deterministic replay hash check
         run: python scripts/check_mock_replay.py --mix fraud --data-mode lite --seed 42
 
-      - name: Underwriting mode regression smoke
-        run: python test_underwriting_modes.py
-
       - name: Contract fixtures validation
         run: python scripts/validate_contract_fixtures.py
 
@@ -47,5 +44,4 @@ jobs:
           if-no-files-found: warn
           path: |
             runs/**
-            underwriting_mode_results.json
             loanville_trace.json

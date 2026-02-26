@@ -135,13 +135,23 @@ class SeasonEngine:
 
     def _effective_capital(self, state: SeasonLenderState) -> float:
         """Capital base adjusted for cumulative P&L — interest and fees grow it,
-        losses shrink it, decay erodes idle capital."""
+        losses/workout costs shrink it, decay erodes idle capital."""
         return max(0.0,
                    state.total_capital
                    + state.cumulative_interest
                    + state.cumulative_fees
                    - state.cumulative_losses
+                   - state.cumulative_workout_cost
                    - state.cumulative_decay)
+
+    def _net_pnl(self, state: SeasonLenderState) -> float:
+        """Season-to-date net P&L including workout costs."""
+        return (
+            state.cumulative_interest
+            + state.cumulative_fees
+            - state.cumulative_losses
+            - state.cumulative_workout_cost
+        )
 
     def _recompute_available(self, state: SeasonLenderState) -> None:
         """Recompute available capital from effective capital minus deployed."""
@@ -290,7 +300,10 @@ class SeasonEngine:
             self._record_week_snapshots(week)
 
         # Final resolution — fast-forward remaining active loans
-        self._final_resolution()
+        final_events = self._final_resolution()
+        final_step = len(self.week_details) + 1
+        self._record_week_snapshots(final_step)
+        self._capture_final_resolution_detail(final_step, final_events)
         self._print_season_report()
 
     # ------------------------------------------------------------------
@@ -330,6 +343,7 @@ class SeasonEngine:
                     loan.status = "defaulted"
                     state.cumulative_interest += result.interest
                     state.cumulative_losses += result.principal_lost
+                    state.cumulative_workout_cost += result.workout_cost
                     principal_resolved = (
                         result.principal_repaid
                         + result.recovery_amount
@@ -472,13 +486,13 @@ class SeasonEngine:
                     lines.append(f"  {e}")
 
             # Season P&L summary
-            total_pnl = (state.cumulative_interest + state.cumulative_fees
-                         - state.cumulative_losses)
+            total_pnl = self._net_pnl(state)
             lines.append(
                 f"Season P&L: ${total_pnl:,.0f} "
                 f"(interest: ${state.cumulative_interest:,.0f}, "
                 f"fees: ${state.cumulative_fees:,.0f}, "
-                f"losses: -${state.cumulative_losses:,.0f})"
+                f"losses: -${state.cumulative_losses:,.0f}, "
+                f"workout: -${state.cumulative_workout_cost:,.0f})"
             )
 
             # Competition feedback from last week
@@ -608,6 +622,9 @@ class SeasonEngine:
                 # evaluation round.  Actual LLM call deferred to origination.
                 pass
 
+            # Keep season scoring state in sync with the toolkit registry.
+            state.custom_tools = list(toolkit.tools)
+
             if toolkit.tools:
                 tool_names = [t.name for t in toolkit.tools]
                 print(f"    {lender.name}: {len(toolkit.tools)} tool(s) "
@@ -678,11 +695,30 @@ class SeasonEngine:
             self._recompute_available(state)
             loans_booked += 1
 
+        # Extract per-lender token/cost data from engine runs
+        lender_costs: dict[str, dict] = {}
+        for run in engine.runs:
+            lid = (run.policy.params or {}).get("_lender_id", "")
+            if not lid:
+                pid = run.policy.policy_id or ""
+                parts = pid.split("_", 2)
+                lid = parts[1] if len(parts) >= 2 and parts[0] == "p" else pid
+            if lid and run.trace and run.trace.cost:
+                c = lender_costs.setdefault(lid, {"tokens_in": 0, "tokens_out": 0, "cost_usd": 0.0})
+                c["tokens_in"] += run.trace.cost.tokens_in
+                c["tokens_out"] += run.trace.cost.tokens_out
+                c["cost_usd"] += run.trace.cost.estimated_cost_usd
+
         # Count rejections and losses for each lender
         booked_bids = {loan.borrower_id for loan in engine.booked_loans}
         for lender in self.base_lenders:
             state = self.lender_states[lender.id]
             decisions = engine.all_decisions.get(lender.id, [])
+            # Accumulate token/cost stats
+            lc = lender_costs.get(lender.id, {})
+            state.cumulative_tokens_in += lc.get("tokens_in", 0)
+            state.cumulative_tokens_out += lc.get("tokens_out", 0)
+            state.cumulative_cost_usd += lc.get("cost_usd", 0.0)
             for d in decisions:
                 state.total_evaluations += 1
                 state.total_tool_calls += tool_counts.get((lender.id, d.borrower_id), 0)
@@ -795,8 +831,7 @@ class SeasonEngine:
                 "defaults_to_date": defaults,
                 "frauds_to_date": frauds,
                 "net_pnl": round(
-                    state.cumulative_interest + state.cumulative_fees
-                    - state.cumulative_losses, 2
+                    self._net_pnl(state), 2
                 ),
             })
 
@@ -804,13 +839,14 @@ class SeasonEngine:
     # Final resolution
     # ------------------------------------------------------------------
 
-    def _final_resolution(self) -> None:
+    def _final_resolution(self) -> list[str]:
         """Fast-forward all remaining active loans to maturity."""
         print(f"\n{'=' * 70}")
         print("FINAL RESOLUTION: Fast-forwarding remaining loans")
         print(f"{'=' * 70}")
 
         eco = self.config.economics
+        events: list[str] = []
         for state in self.lender_states.values():
             for loan in list(state.active_loans):
                 if loan.status != "performing":
@@ -840,6 +876,7 @@ class SeasonEngine:
                 if result.defaulted:
                     loan.status = "defaulted"
                     state.cumulative_losses += result.principal_lost
+                    state.cumulative_workout_cost += result.workout_cost
                     principal_resolved = (
                         result.principal_repaid
                         + result.recovery_amount
@@ -852,13 +889,25 @@ class SeasonEngine:
                     label = "FRAUD DEFAULT" if was_fraud else "DEFAULT"
                     print(f"  {loan.loan_id} ({loan.borrower_name}): {label} "
                           f"— ${result.principal_lost:,.0f} lost")
+                    events.append(
+                        f"{label}: {loan.borrower_name} ({loan.sector}) — "
+                        f"${result.principal_lost:,.0f} lost, "
+                        f"${result.recovery_amount:,.0f} recovered "
+                        f"[{state.lender_name}]"
+                    )
                 else:
                     loan.status = "repaid" if result.matured else "prepaid"
                     state.deployed_capital = max(
                         0.0, state.deployed_capital - result.principal_repaid
                     )
-                    print(f"  {loan.loan_id} ({loan.borrower_name}): REPAID "
+                    label = "REPAID" if result.matured else "PREPAID"
+                    print(f"  {loan.loan_id} ({loan.borrower_name}): {label} "
                           f"— ${loan.total_interest_collected:,.0f} total interest")
+                    events.append(
+                        f"{label}: {loan.borrower_name} ({loan.sector}) — "
+                        f"${loan.total_interest_collected:,.0f} total interest "
+                        f"[{state.lender_name}]"
+                    )
 
                 state.cumulative_interest += result.interest
                 state.cumulative_fees += result.fees
@@ -889,6 +938,8 @@ class SeasonEngine:
                 l for l in state.active_loans if l.status == "performing"
             ]
             self._recompute_sector_exposure(state)
+
+        return events
 
     # ------------------------------------------------------------------
     # Per-week detail capture (for JSON export)
@@ -937,8 +988,7 @@ class SeasonEngine:
         # Snapshot lender states at end of this week
         lender_snapshots = {}
         for lid, state in self.lender_states.items():
-            total_pnl = (state.cumulative_interest + state.cumulative_fees
-                         - state.cumulative_losses)
+            total_pnl = self._net_pnl(state)
             lender_snapshots[lid] = {
                 "name": state.lender_name,
                 "model": state.model,
@@ -953,8 +1003,12 @@ class SeasonEngine:
                 "cumulative_interest": round(state.cumulative_interest, 2),
                 "cumulative_losses": round(state.cumulative_losses, 2),
                 "cumulative_fees": round(state.cumulative_fees, 2),
+                "cumulative_workout_cost": round(state.cumulative_workout_cost, 2),
                 "defaults": sum(1 for o in state.resolved_loans if o.defaulted),
                 "frauds_funded": sum(1 for o in state.resolved_loans if o.was_fraud),
+                "tokens_in": state.cumulative_tokens_in,
+                "tokens_out": state.cumulative_tokens_out,
+                "cost_usd": round(state.cumulative_cost_usd, 4),
             }
 
         self.week_details.append({
@@ -962,6 +1016,42 @@ class SeasonEngine:
             "borrowers": borrowers,
             "decisions": decisions,
             "booked_loans": booked,
+            "events": events,
+            "lender_snapshots": lender_snapshots,
+        })
+
+    def _capture_final_resolution_detail(self, week: int, events: list[str]) -> None:
+        """Append a final timeline step so post-season resolution is visible in exports."""
+        lender_snapshots = {}
+        for lid, state in self.lender_states.items():
+            lender_snapshots[lid] = {
+                "name": state.lender_name,
+                "model": state.model,
+                "net_pnl": round(self._net_pnl(state), 2),
+                "deployed": round(state.deployed_capital, 2),
+                "available": round(state.available_capital, 2),
+                "effective_capital": round(self._effective_capital(state), 2),
+                "deals_won": state.deals_won,
+                "deals_rejected": state.deals_rejected,
+                "deals_lost": state.deals_lost,
+                "active_loans": len(state.active_loans),
+                "cumulative_interest": round(state.cumulative_interest, 2),
+                "cumulative_losses": round(state.cumulative_losses, 2),
+                "cumulative_fees": round(state.cumulative_fees, 2),
+                "cumulative_workout_cost": round(state.cumulative_workout_cost, 2),
+                "defaults": sum(1 for o in state.resolved_loans if o.defaulted),
+                "frauds_funded": sum(1 for o in state.resolved_loans if o.was_fraud),
+                "tokens_in": state.cumulative_tokens_in,
+                "tokens_out": state.cumulative_tokens_out,
+                "cost_usd": round(state.cumulative_cost_usd, 4),
+            }
+
+        self.week_details.append({
+            "week": week,
+            "final_resolution": True,
+            "borrowers": [],
+            "decisions": [],
+            "booked_loans": [],
             "events": events,
             "lender_snapshots": lender_snapshots,
         })
@@ -975,8 +1065,7 @@ class SeasonEngine:
         lenders = []
         for lender in self.base_lenders:
             state = self.lender_states[lender.id]
-            total_pnl = (state.cumulative_interest + state.cumulative_fees
-                         - state.cumulative_losses)
+            total_pnl = self._net_pnl(state)
             lenders.append({
                 "id": lender.id,
                 "name": state.lender_name,
@@ -990,10 +1079,14 @@ class SeasonEngine:
                 "cumulative_interest": round(state.cumulative_interest, 2),
                 "cumulative_losses": round(state.cumulative_losses, 2),
                 "cumulative_fees": round(state.cumulative_fees, 2),
+                "cumulative_workout_cost": round(state.cumulative_workout_cost, 2),
                 "defaults": sum(1 for o in state.resolved_loans if o.defaulted),
                 "frauds_funded": sum(1 for o in state.resolved_loans if o.was_fraud),
                 "weekly_utilization": [round(u, 4) for u in state.weekly_utilization],
                 "weekly_snapshots": state.weekly_snapshots,
+                "tokens_in": state.cumulative_tokens_in,
+                "tokens_out": state.cumulative_tokens_out,
+                "cost_usd": round(state.cumulative_cost_usd, 4),
             })
 
         return {
@@ -1019,8 +1112,7 @@ class SeasonEngine:
         print(f"{'=' * 70}")
 
         for state in self.lender_states.values():
-            total_pnl = (state.cumulative_interest + state.cumulative_fees
-                         - state.cumulative_losses)
+            total_pnl = self._net_pnl(state)
             avg_util = (
                 sum(state.weekly_utilization) / len(state.weekly_utilization)
                 if state.weekly_utilization else 0.0
@@ -1033,6 +1125,7 @@ class SeasonEngine:
             print(f"    Interest Earned: ${state.cumulative_interest:,.0f}")
             print(f"    Fees Earned: ${state.cumulative_fees:,.0f}")
             print(f"    Losses: ${state.cumulative_losses:,.0f}")
+            print(f"    Workout Costs: ${state.cumulative_workout_cost:,.0f}")
             print(f"    Net P&L: ${total_pnl:,.0f}")
             print(f"    Avg Utilization: {avg_util:.1%}")
             print(f"    Concentration Violation Weeks: "
