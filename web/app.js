@@ -9,6 +9,8 @@
 import { AssetLoader } from './asset-loader.js';
 import { TownScene } from './town-scene.js';
 import { generateLayout } from './town-layout.js';
+import { renderStats } from './stats-dashboard.js';
+import { Dashboard2D } from './dashboard-2d.js';
 
 // ---- Constants ----
 
@@ -42,6 +44,9 @@ class App {
     // Trace viewer state
     this.lenderColorMap = {};
     this.nextColor = 0;
+
+    // 2D Dashboard
+    this.dashboard2d = null;
 
     this.dom = {};
     this._initDOM();
@@ -81,11 +86,13 @@ class App {
         const name = url.split('/').pop();
         this._logEvent('system', `Loaded ${name}: ${data.weeks.length} timeline steps, ${data.lenders.length} lenders`);
         this.dom.dropOverlay.hidden = true;
+        this.dashboard2d = null;
         await this._initTown();
         this.dom.controlsGroup.hidden = false;
         this.dom.packSelector.hidden = false;
         this._buildTimeline();
         this._renderLeaderboard(-1);
+        this._extractSeasonTraces();
         this._switchTab('game');
       }
     } catch (e) {
@@ -99,9 +106,15 @@ class App {
       dropOverlay: $('drop-overlay'),
       fileInput: $('file-input'),
       tabGame: $('tab-game'),
+      tabDashboard: $('tab-dashboard'),
+      tabStats: $('tab-stats'),
       tabTrace: $('tab-trace'),
       pageGame: $('page-game'),
+      pageDashboard: $('page-dashboard'),
+      pageStats: $('page-stats'),
       pageTrace: $('page-trace'),
+      dashboardContent: $('dashboard-content'),
+      statsContent: $('stats-content'),
       townContainer: $('town-container'),
       btnPlay: $('btn-play'),
       btnSpeed: $('btn-speed'),
@@ -156,6 +169,8 @@ class App {
 
     // Tabs
     this.dom.tabGame.addEventListener('click', () => this._switchTab('game'));
+    this.dom.tabDashboard.addEventListener('click', () => this._switchTab('dashboard'));
+    this.dom.tabStats.addEventListener('click', () => this._switchTab('stats'));
     this.dom.tabTrace.addEventListener('click', () => this._switchTab('trace'));
 
     // Playback
@@ -205,11 +220,13 @@ class App {
     this.dom.dropOverlay.hidden = true;
 
     if (this.season) {
+      this.dashboard2d = null;
       await this._initTown();
       this.dom.controlsGroup.hidden = false;
       this.dom.packSelector.hidden = false;
       this._buildTimeline();
       this._renderLeaderboard(-1);
+      this._extractSeasonTraces();
       this._switchTab('game');
     }
     if (this.traces.length) {
@@ -481,6 +498,10 @@ class App {
     }
 
     this._logEvent('system', `Week ${week.week} complete: ${week.booked_loans.length} loans booked`);
+
+    // Sync 2D dashboard if it exists
+    if (this.dashboard2d) this.dashboard2d.setWeek(this.currentWeek);
+
     await this._wait(600);
 
     this.stepping = false;
@@ -540,12 +561,17 @@ class App {
   // ==== UI ====
 
   _switchTab(tab) {
-    const isGame = tab === 'game';
-    this.dom.tabGame.classList.toggle('active', isGame);
-    this.dom.tabTrace.classList.toggle('active', !isGame);
-    this.dom.pageGame.hidden = !isGame;
-    this.dom.pageTrace.hidden = isGame;
-    if (isGame && this.townScene) this.townScene._onResize();
+    this.dom.tabGame.classList.toggle('active', tab === 'game');
+    this.dom.tabDashboard.classList.toggle('active', tab === 'dashboard');
+    this.dom.tabStats.classList.toggle('active', tab === 'stats');
+    this.dom.tabTrace.classList.toggle('active', tab === 'trace');
+    this.dom.pageGame.hidden = tab !== 'game';
+    this.dom.pageDashboard.hidden = tab !== 'dashboard';
+    this.dom.pageStats.hidden = tab !== 'stats';
+    this.dom.pageTrace.hidden = tab !== 'trace';
+    if (tab === 'game' && this.townScene) this.townScene._onResize();
+    if (tab === 'stats' && this.season) renderStats(this.dom.statsContent, this.season);
+    if (tab === 'dashboard') this._updateDashboard2d();
   }
 
   _buildTimeline() {
@@ -777,7 +803,61 @@ class App {
     });
   }
 
+  // ==== 2D Dashboard ====
+
+  _updateDashboard2d() {
+    if (!this.season) return;
+    if (!this.dashboard2d) {
+      this.dashboard2d = new Dashboard2D(this.dom.dashboardContent);
+      this.dashboard2d.setSeason(this.season);
+    }
+    this.dashboard2d.setWeek(this.currentWeek);
+  }
+
   // ==== Trace Viewer ====
+
+  /**
+   * Extract decision data from season JSON into the trace array,
+   * enriched with cost and chain-of-thought data when available.
+   */
+  _extractSeasonTraces() {
+    if (!this.season) return;
+    // Remove any previous season-derived traces
+    this.traces = this.traces.filter(t => t._source !== 'season');
+
+    for (const week of this.season.weeks) {
+      if (!week.decisions) continue;
+      for (const dec of week.decisions) {
+        const lender = this.season.lenders.find(l => l.id === dec.lender_id);
+        const borrower = week.borrowers?.find(b => b.id === dec.borrower_id);
+        this.traces.push({
+          _source: 'season',
+          _file: `Season Week ${week.week}`,
+          _week: week.week,
+          lender_name: lender?.name || dec.lender_id,
+          lender_id: dec.lender_id,
+          model: lender?.model || '',
+          borrower_id: dec.borrower_id,
+          borrower_name: borrower?.name || dec.borrower_id,
+          decision: dec.decision,
+          reasoning: dec.reasoning || '',
+          term_sheet: dec.term_sheet,
+          tokens_in: dec.tokens_in || 0,
+          tokens_out: dec.tokens_out || 0,
+          cost_usd: dec.cost_usd || 0,
+          tool_calls_count: dec.tool_calls || 0,
+          chain_of_thought: dec.chain_of_thought || '',
+          true_outcome: borrower?.true_outcome || 'unknown',
+        });
+        this._assignColor(lender?.name);
+      }
+    }
+
+    if (this.traces.length) {
+      this._updateTraceFilters();
+      this._renderTraces();
+    }
+  }
 
   _updateTraceFilters() {
     const lenders = new Set();
@@ -866,6 +946,22 @@ class App {
     const decisionClass = trace.error ? 'error' : (trace.decision || '').toLowerCase();
     const decisionLabel = trace.error ? 'ERROR' : (trace.decision || '?');
 
+    // Cost badge
+    let costBadge = '';
+    if (trace.cost_usd > 0) {
+      costBadge += `<span class="trace-card-cost">$${trace.cost_usd.toFixed(4)}</span>`;
+    }
+    if (trace.tokens_in > 0 || trace.tokens_out > 0) {
+      costBadge += `<span class="trace-card-tokens">${fmtNum(trace.tokens_in + trace.tokens_out)} tok</span>`;
+    }
+
+    // True outcome badge for season traces
+    let outcomeBadge = '';
+    if (trace.true_outcome && trace.true_outcome !== 'unknown') {
+      const outcomeClass = `outcome-${trace.true_outcome}`;
+      outcomeBadge = `<span class="trace-card-outcome ${outcomeClass}">${trace.true_outcome}</span>`;
+    }
+
     const header = document.createElement('div');
     header.className = 'trace-card-header';
     header.innerHTML = `
@@ -874,7 +970,9 @@ class App {
       <span class="trace-card-lender">${esc(trace.lender_name || trace.lender_id)}</span>
       <span class="trace-card-model">${esc(trace.model || '')}</span>
       <span class="trace-card-borrower">${esc(trace.borrower_name || trace.borrower_id)}</span>
+      ${outcomeBadge}
       <span class="trace-card-decision ${decisionClass}">${decisionLabel}</span>
+      ${costBadge}
     `;
     header.addEventListener('click', () => card.classList.toggle('expanded'));
     card.appendChild(header);
@@ -882,6 +980,53 @@ class App {
     const body = document.createElement('div');
     body.className = 'trace-card-body';
 
+    // Chain-of-thought (show prominently if available)
+    if (trace.chain_of_thought) {
+      body.appendChild(this._makeSection('Chain of Thought', () => {
+        const el = document.createElement('div');
+        el.className = 'trace-cot';
+        el.innerHTML = `<div class="trace-cot-content">${esc(trace.chain_of_thought)}</div>`;
+        return el;
+      }, true));
+    }
+
+    // Reasoning summary
+    if (trace.reasoning) {
+      body.appendChild(this._makeSection('Reasoning', () => pre(trace.reasoning), true));
+    }
+
+    // Term sheet
+    if (trace.term_sheet) {
+      body.appendChild(this._makeSection('Term Sheet', () => {
+        const el = document.createElement('div');
+        el.className = 'detail-grid';
+        const rate = trace.term_sheet.rate != null ? trace.term_sheet.rate : trace.term_sheet.interest_rate;
+        const rateStr = rate != null ? (rate > 1 ? rate.toFixed(1) : (rate * 100).toFixed(1)) : '—';
+        el.innerHTML = `
+          <div class="detail-stat"><span class="detail-stat-label">Amount</span><span class="detail-stat-value">$${fmtNum(trace.term_sheet.amount || trace.term_sheet.principal || 0)}</span></div>
+          <div class="detail-stat"><span class="detail-stat-label">Rate</span><span class="detail-stat-value">${rateStr}%</span></div>
+          <div class="detail-stat"><span class="detail-stat-label">Term</span><span class="detail-stat-value">${trace.term_sheet.term_months || '—'}mo</span></div>
+        `;
+        return el;
+      }, true));
+    }
+
+    // Cost details
+    if (trace.tokens_in > 0 || trace.cost_usd > 0) {
+      body.appendChild(this._makeSection('Cost & Tokens', () => {
+        const el = document.createElement('div');
+        el.className = 'detail-grid';
+        el.innerHTML = `
+          <div class="detail-stat"><span class="detail-stat-label">Cost</span><span class="detail-stat-value">$${(trace.cost_usd || 0).toFixed(4)}</span></div>
+          <div class="detail-stat"><span class="detail-stat-label">Tokens In</span><span class="detail-stat-value">${fmtNum(trace.tokens_in || 0)}</span></div>
+          <div class="detail-stat"><span class="detail-stat-label">Tokens Out</span><span class="detail-stat-value">${fmtNum(trace.tokens_out || 0)}</span></div>
+          <div class="detail-stat"><span class="detail-stat-label">Tool Calls</span><span class="detail-stat-value">${trace.tool_calls_count || 0}</span></div>
+        `;
+        return el;
+      }, false));
+    }
+
+    // Original trace data (from file-based traces)
     if (trace.system_prompt) body.appendChild(this._makeSection('System Prompt', () => pre(trace.system_prompt), false));
     if (trace.user_prompt) body.appendChild(this._makeSection('User Prompt', () => pre(trace.user_prompt), false));
     if (trace.tool_calls?.length) {

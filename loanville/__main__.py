@@ -6,6 +6,8 @@ Usage:
   python -m loanville --mock             # Mock mode (no API key needed)
   python -m loanville --mix hard         # Adversarial stress test
   python -m loanville --compare          # Compare big vs small models (mock)
+  python -m loanville view               # Open web viewer in browser
+  python -m loanville view season.json   # Open viewer with specific file
 """
 
 import argparse
@@ -21,6 +23,74 @@ from .engine import SimulationEngine
 from .models import EconomicsConfig, ECONOMICS_PRESETS, SeasonConfig
 from .scoring import print_final_report, print_season_report, score_lenders, score_season
 from .season import SeasonEngine
+
+
+def run_view(json_file=None, port=8765):
+    """Start a local HTTP server and open the web viewer in the browser."""
+    import http.server
+    import json
+    import shutil
+    import threading
+    import webbrowser
+    from pathlib import Path
+
+    web_dir = Path(__file__).resolve().parent.parent / "web"
+    if not web_dir.is_dir():
+        print(f"ERROR: web directory not found at {web_dir}", file=sys.stderr)
+        sys.exit(1)
+
+    # If a JSON file was specified, copy it into web/seasons/ so the viewer picks it up
+    if json_file:
+        src = Path(json_file).resolve()
+        if not src.exists():
+            print(f"ERROR: file not found: {json_file}", file=sys.stderr)
+            sys.exit(1)
+        seasons_dir = web_dir / "seasons"
+        seasons_dir.mkdir(exist_ok=True)
+        dest = seasons_dir / src.name
+        if not dest.exists() or dest.resolve() != src:
+            shutil.copy2(src, dest)
+        # Rebuild index
+        all_files = sorted(
+            [f.name for f in seasons_dir.glob("*.json") if f.name != "index.json"],
+            reverse=True,
+        )
+        with open(seasons_dir / "index.json", "w") as f:
+            json.dump(all_files, f, indent=2)
+        print(f"  Loaded: {src.name}")
+
+    os.chdir(web_dir)
+
+    handler = http.server.SimpleHTTPRequestHandler
+    handler.log_message = lambda *a: None  # suppress request logs
+
+    try:
+        httpd = http.server.HTTPServer(("127.0.0.1", port), handler)
+    except OSError:
+        # Port in use — try next few ports
+        for p in range(port + 1, port + 10):
+            try:
+                httpd = http.server.HTTPServer(("127.0.0.1", p), handler)
+                port = p
+                break
+            except OSError:
+                continue
+        else:
+            print(f"ERROR: Could not find an open port near {port}", file=sys.stderr)
+            sys.exit(1)
+
+    url = f"http://127.0.0.1:{port}"
+    print(f"\n  Loanville Web Viewer")
+    print(f"  {url}")
+    print(f"  Press Ctrl+C to stop\n")
+
+    threading.Timer(0.5, lambda: webbrowser.open(url)).start()
+
+    try:
+        httpd.serve_forever()
+    except KeyboardInterrupt:
+        print("\n  Viewer stopped.")
+        httpd.shutdown()
 
 
 def _run_single(borrowers, lenders, mock=False, data_mode="full",
@@ -165,6 +235,15 @@ def main() -> None:
     load_dotenv()
 
     parser = argparse.ArgumentParser(description="Loanville — The LLM Lending Simulator")
+    subparsers = parser.add_subparsers(dest="command")
+
+    # `view` subcommand
+    view_parser = subparsers.add_parser("view", help="Open the web viewer in a browser")
+    view_parser.add_argument("file", nargs="?", default=None,
+                             help="Optional season JSON file to load")
+    view_parser.add_argument("--port", type=int, default=8765,
+                             help="HTTP server port (default: 8765)")
+
     parser.add_argument("--mock", action="store_true",
                         help="Use mock LLM responses (no API key needed)")
     parser.add_argument("--compare", action="store_true",
@@ -222,6 +301,11 @@ def main() -> None:
     parser.add_argument("--json", type=str, default=None, metavar="FILE",
                         help="Export season results to JSON file (for web viewer)")
     args = parser.parse_args()
+
+    # Handle `view` subcommand
+    if args.command == "view":
+        run_view(json_file=args.file, port=args.port)
+        return
 
     if args.season and args.compare:
         parser.error("--season and --compare cannot be used together.")
