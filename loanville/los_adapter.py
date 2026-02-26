@@ -356,15 +356,15 @@ async def evaluate_via_los(
             except Exception as exc:
                 logger.warning("Stage transition to %s failed for deal %s: %s", to_stage, deal_id, exc)
 
-        # Step 7: Evaluate — send dossier inline for rich prompt building
+        # Step 7: Evaluate — always send dossier inline for parity with direct sim mode.
         eval_body: dict = {
             "policy": policy_dict,
             "provider": provider,
             "mode": mode,
+            "dossier": dossier,
         }
-        # When mode=full, include dossier so the LOS uses the rich prompt builder
+        # Full mode also receives explicit model config.
         if mode == "full":
-            eval_body["dossier"] = dossier
             eval_body["models"] = models
 
         eval_resp = await client.post(f"{base}/v1/deals/{deal_id}/evaluate", json=eval_body)

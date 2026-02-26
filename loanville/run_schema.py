@@ -299,6 +299,51 @@ class UnderwritingRun:
             p = data["policy"]
             run.policy = RunPolicy(**{k: v for k, v in p.items()
                                       if k in RunPolicy.__dataclass_fields__})
+        if "inputs" in data and isinstance(data["inputs"], dict):
+            i = data["inputs"]
+            financials = i.get("financials", {}) or {}
+            banking = i.get("banking", {}) or {}
+            business = i.get("business", {}) or {}
+            run.inputs = RunInputs(
+                raw_documents=i.get("raw_documents", []) or [],
+                financials=ExtractedFinancials(**{
+                    k: v for k, v in financials.items()
+                    if k in ExtractedFinancials.__dataclass_fields__
+                }),
+                banking=ExtractedBanking(**{
+                    k: v for k, v in banking.items()
+                    if k in ExtractedBanking.__dataclass_fields__
+                }),
+                business=ExtractedBusiness(**{
+                    k: v for k, v in business.items()
+                    if k in ExtractedBusiness.__dataclass_fields__
+                }),
+                missing_info=i.get("missing_info", []) or [],
+            )
+        if "trace" in data and isinstance(data["trace"], dict):
+            tr = data["trace"]
+            steps = []
+            for s in tr.get("steps", []) or []:
+                if not isinstance(s, dict):
+                    continue
+                steps.append(TraceStep(
+                    t=s.get("t", run.timestamp_utc),
+                    type=s.get("type", "note"),
+                    name=s.get("name", ""),
+                    args=s.get("args", {}) or {},
+                    result=s.get("result", {}) or {},
+                    content=s.get("content", ""),
+                ))
+            cost = tr.get("cost", {}) or {}
+            run.trace = RunTrace(
+                steps=steps,
+                latency_ms=tr.get("latency_ms", 0) or 0,
+                cost=TraceCost(
+                    tokens_in=cost.get("tokens_in", 0) or 0,
+                    tokens_out=cost.get("tokens_out", 0) or 0,
+                    estimated_cost_usd=cost.get("estimated_cost_usd", 0.0) or 0.0,
+                ),
+            )
         if "decision" in data:
             d = data["decision"]
             run.decision = RunDecision(
@@ -328,12 +373,15 @@ class UnderwritingRun:
             )
         if "scores" in data:
             sc = data["scores"]
-            run.scores = RunScores(
-                gates=sc.get("gates"),
-                uw_quality=sc.get("uw_quality"),
-                business=sc.get("business"),
-                overall=sc.get("overall"),
-            )
+            if isinstance(sc, RunScores):
+                run.scores = sc
+            elif isinstance(sc, dict):
+                run.scores = RunScores(
+                    gates=sc.get("gates"),
+                    uw_quality=sc.get("uw_quality"),
+                    business=sc.get("business"),
+                    overall=sc.get("overall"),
+                )
         return run
 
     @classmethod
