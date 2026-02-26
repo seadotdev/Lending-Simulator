@@ -5,6 +5,7 @@ Usage:
   python -m loanville                    # LOS mode, easy mix (default)
   python -m loanville --mock             # Mock mode (no API key needed)
   python -m loanville --mix hard         # Adversarial stress test
+  python -m loanville --scenario realistic-10w --lenders budget-league
   python -m loanville --compare          # Compare big vs small models (mock)
   python -m loanville view               # Open web viewer in browser
   python -m loanville view season.json   # Open viewer with specific file
@@ -15,12 +16,20 @@ import asyncio
 import logging
 import os
 import sys
+from pathlib import Path
 
 from dotenv import load_dotenv
 
 from .data import get_borrowers, get_lenders, MIX_PRESETS
 from .engine import SimulationEngine
 from .models import EconomicsConfig, ECONOMICS_PRESETS, SeasonConfig
+from .presets import (
+    apply_lender_preset,
+    list_lender_presets,
+    list_scenario_presets,
+    load_lender_preset,
+    load_scenario_preset,
+)
 from .scoring import print_final_report, print_season_report, score_lenders, score_season
 from .season import SeasonEngine
 
@@ -232,11 +241,37 @@ def run_compare(mix: str):
     print(f"{'*'*70}\n")
 
 
+SEASON_DEFAULTS = {
+    "weeks": 10,
+    "cohort_size": 5,
+    "months_per_week": 2,
+    "season_mix": "realistic",
+    "seed": 42,
+    "arrival_phases": 1,
+    "deep_uw_slots_per_week": 0,
+    "speed_scoring": False,
+    "custom_tools": False,
+    "info_asymmetry": "none",
+    "data_mode": "full",
+}
+
+
+def _format_source(path: Path | None) -> str | None:
+    if path is None:
+        return None
+    try:
+        return str(path.relative_to(Path.cwd()))
+    except ValueError:
+        return str(path)
+
+
 def main() -> None:
     load_dotenv()
 
     parser = argparse.ArgumentParser(description="Loanville — The LLM Lending Simulator")
     subparsers = parser.add_subparsers(dest="command")
+    lenders_list = ", ".join(list_lender_presets()) or "(none found)"
+    scenarios_list = ", ".join(list_scenario_presets()) or "(none found)"
 
     # `view` subcommand
     view_parser = subparsers.add_parser("view", help="Open the web viewer in a browser")
@@ -249,12 +284,20 @@ def main() -> None:
                         help="Use mock LLM responses (no API key needed)")
     parser.add_argument("--compare", action="store_true",
                         help="Run frontier-vs-small model comparison (uses mock mode)")
+    parser.add_argument("--lenders", default=None,
+                        help="Lender preset name or file path (persona selection + model mapping). "
+                             f"Built-in presets: {lenders_list}")
+    parser.add_argument("--scenario", default=None,
+                        help="Scenario preset name or file path (season bundle). "
+                             "Implies --season. "
+                             f"Built-in presets: {scenarios_list}")
     parser.add_argument("--mix", choices=list(MIX_PRESETS.keys()), default="realistic",
                         help="Borrower population mix (default: realistic)")
     parser.add_argument("--data-mode",
                         choices=["full", "quarterly_only", "aggregate_only", "statements_inline", "lite"],
-                        default="full",
-                        help="Financial data presentation mode (default: full). "
+                        default=None,
+                        help="Financial data presentation mode. "
+                             "Default: full (or scenario preset value). "
                              "'lite' uses compact prompts optimized for small models (3B-30B).")
     parser.add_argument("--seed", type=int, default=None,
                         help="Random seed for deterministic borrower ordering")
@@ -280,29 +323,30 @@ def main() -> None:
     # Season mode arguments
     parser.add_argument("--season", action="store_true",
                         help="Run multi-week season mode")
-    parser.add_argument("--weeks", type=int, default=10,
-                        help="Number of weeks in season (default: 10)")
-    parser.add_argument("--cohort-size", type=int, default=5,
-                        help="Borrowers per week in season mode (default: 5)")
+    parser.add_argument("--weeks", type=int, default=None,
+                        help="Number of weeks in season (default: 10, or scenario preset value)")
+    parser.add_argument("--cohort-size", type=int, default=None,
+                        help="Borrowers per week in season mode (default: 5, or scenario preset value)")
     parser.add_argument("--season-mix",
                         choices=["gentle", "realistic", "adversarial", "stress", "escalating"],
-                        default="realistic",
-                        help="Season borrower mix (default: realistic)")
+                        default=None,
+                        help="Season borrower mix (default: realistic, or scenario preset value)")
     parser.add_argument("--speed-scoring", action="store_true",
                         help="Enable speed-to-offer scoring in season mode")
     parser.add_argument("--custom-tools", action="store_true",
                         help="Enable custom tool creation in season mode")
-    parser.add_argument("--months-per-week", type=int, default=2,
-                        help="Months of loan aging per season week (default: 2)")
-    parser.add_argument("--arrival-phases", type=int, default=1,
-                        help="Number of intra-week arrival phases for the cohort (default: 1)")
-    parser.add_argument("--deep-uw-slots", type=int, default=0,
-                        help="Weekly cap on deep-underwrite approvals per lender in season mode; 0 disables cap")
+    parser.add_argument("--months-per-week", type=int, default=None,
+                        help="Months of loan aging per season week (default: 2, or scenario preset value)")
+    parser.add_argument("--arrival-phases", type=int, default=None,
+                        help="Number of intra-week arrival phases (default: 1, or scenario preset value)")
+    parser.add_argument("--deep-uw-slots", type=int, default=None,
+                        help="Weekly cap on deep-underwrite approvals; 0 disables cap "
+                             "(default: 0, or scenario preset value)")
     parser.add_argument("--info-asymmetry",
                         choices=["none", "partial_statements", "redacted"],
-                        default="none",
+                        default=None,
                         help="Per-lender borrower view differences "
-                             "(default: none)")
+                             "(default: none, or scenario preset value)")
     # Leaderboard
     parser.add_argument("--leaderboard", action="store_true",
                         help="Emit match record to leaderboard after scoring")
@@ -317,8 +361,12 @@ def main() -> None:
         run_view(json_file=args.file, port=args.port)
         return
 
-    if args.season and args.compare:
-        parser.error("--season and --compare cannot be used together.")
+    season_mode = args.season or bool(args.scenario)
+
+    if season_mode and args.compare:
+        parser.error("--season/--scenario and --compare cannot be used together.")
+    if args.compare and (args.lenders or args.scenario):
+        parser.error("--compare cannot be combined with --lenders or --scenario.")
 
     # Configure logging — errors always shown, -v adds per-call progress
     logging.basicConfig(
@@ -344,26 +392,98 @@ def main() -> None:
 
     economics = ECONOMICS_PRESETS[args.economics]
 
-    if args.season:
-        season_config = SeasonConfig(
-            weeks=args.weeks,
-            cohort_size=args.cohort_size,
-            months_per_week=args.months_per_week,
-            season_mix=args.season_mix,
-            seed=args.seed or 42,
-            speed_scoring=args.speed_scoring,
-            custom_tools=args.custom_tools,
-            economics=economics,
-            arrival_phases=args.arrival_phases,
-            deep_uw_slots_per_week=args.deep_uw_slots,
-            info_asymmetry=args.info_asymmetry,
+    scenario_overrides = {}
+    scenario_source = None
+    if args.scenario:
+        try:
+            scenario_overrides, scenario_path = load_scenario_preset(args.scenario)
+            scenario_source = _format_source(scenario_path)
+        except (ValueError, RuntimeError) as exc:
+            parser.error(str(exc))
+
+    data_mode = args.data_mode or scenario_overrides.get("data_mode", SEASON_DEFAULTS["data_mode"])
+    info_asymmetry = (
+        args.info_asymmetry
+        or scenario_overrides.get("info_asymmetry", SEASON_DEFAULTS["info_asymmetry"])
+    )
+
+    lenders = get_lenders()
+    lenders_source = None
+    if args.lenders:
+        try:
+            lender_assignments, lenders_path = load_lender_preset(args.lenders)
+            lenders = apply_lender_preset(lenders, lender_assignments)
+            lenders_source = _format_source(lenders_path)
+        except (ValueError, RuntimeError) as exc:
+            parser.error(str(exc))
+
+    if season_mode:
+        weeks = args.weeks if args.weeks is not None else scenario_overrides.get("weeks", SEASON_DEFAULTS["weeks"])
+        cohort_size = (
+            args.cohort_size
+            if args.cohort_size is not None
+            else scenario_overrides.get("cohort_size", SEASON_DEFAULTS["cohort_size"])
         )
-        lenders = get_lenders()
+        months_per_week = (
+            args.months_per_week
+            if args.months_per_week is not None
+            else scenario_overrides.get("months_per_week", SEASON_DEFAULTS["months_per_week"])
+        )
+        season_mix = (
+            args.season_mix
+            or scenario_overrides.get("season_mix", SEASON_DEFAULTS["season_mix"])
+        )
+        season_seed = (
+            args.seed
+            if args.seed is not None
+            else scenario_overrides.get("seed", SEASON_DEFAULTS["seed"])
+        )
+        arrival_phases = (
+            args.arrival_phases
+            if args.arrival_phases is not None
+            else scenario_overrides.get("arrival_phases", SEASON_DEFAULTS["arrival_phases"])
+        )
+        deep_uw_slots = (
+            args.deep_uw_slots
+            if args.deep_uw_slots is not None
+            else scenario_overrides.get(
+                "deep_uw_slots_per_week",
+                SEASON_DEFAULTS["deep_uw_slots_per_week"],
+            )
+        )
+        speed_scoring = (
+            bool(scenario_overrides.get("speed_scoring", SEASON_DEFAULTS["speed_scoring"]))
+            or args.speed_scoring
+        )
+        custom_tools = (
+            bool(scenario_overrides.get("custom_tools", SEASON_DEFAULTS["custom_tools"]))
+            or args.custom_tools
+        )
+
+        season_config = SeasonConfig(
+            weeks=weeks,
+            cohort_size=cohort_size,
+            months_per_week=months_per_week,
+            season_mix=season_mix,
+            seed=season_seed,
+            speed_scoring=speed_scoring,
+            custom_tools=custom_tools,
+            economics=economics,
+            arrival_phases=arrival_phases,
+            deep_uw_slots_per_week=deep_uw_slots,
+            info_asymmetry=info_asymmetry,
+        )
+
+        if scenario_source:
+            print(f"  Scenario preset: {scenario_source}")
+        if lenders_source:
+            print(f"  Lender preset: {lenders_source}")
+
         season = SeasonEngine(
             config=season_config,
             lenders=lenders,
             mock=mock,
-            data_mode=args.data_mode,
+            data_mode=data_mode,
             los_url=args.los_url,
             los_provider=args.los_provider,
             los_mode=args.los_mode,
@@ -388,13 +508,13 @@ def main() -> None:
             week_records = emit_match_records_from_season_weeks(
                 season_engine=season,
                 lenders=lenders,
-                mix=args.season_mix,
+                mix=season_mix,
             )
             aggregate_record = emit_match_record_from_season(
                 season_engine=season,
                 season_scores=season_scores,
                 lenders=lenders,
-                mix=args.season_mix,
+                mix=season_mix,
             )
 
             weekly_paths = [write_match_record(r) for r in week_records]
@@ -452,7 +572,9 @@ def main() -> None:
     print("=" * 70)
 
     borrowers = get_borrowers(args.mix, seed=args.seed)
-    lenders = get_lenders()
+
+    if lenders_source:
+        print(f"  Lender preset: {lenders_source}")
 
     print(f"\nLoaded {len(borrowers)} borrower applications")
     _print_mix_info(args.mix, borrowers)
@@ -465,12 +587,12 @@ def main() -> None:
               f"Target Yield: {l.target_yield_pct}%")
 
     scores, engine = _run_single(
-        borrowers, lenders, mock=mock, data_mode=args.data_mode,
+        borrowers, lenders, mock=mock, data_mode=data_mode,
         los_url=args.los_url,
         los_provider=args.los_provider, los_mode=args.los_mode,
         underwrite_only=args.underwrite_only, los_model=args.los_model,
         economics=economics,
-        info_asymmetry=args.info_asymmetry,
+        info_asymmetry=info_asymmetry,
     )
 
     # Emit match record to leaderboard

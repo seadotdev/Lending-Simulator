@@ -60,6 +60,13 @@ python elo_benchmark.py --standings elo_results.json
 
 # Single-run benchmark with Pareto analysis
 python benchmark_models.py --mix analyst
+
+# Preset-driven season run (scenario + lender/model mapping)
+python -m loanville \
+  --economics balanced \
+  --scenario realistic-10w \
+  --lenders budget-league \
+  --mock
 ```
 
 ## Configuration
@@ -73,6 +80,9 @@ Models are defined in `benchmark_models.py`. The tournament uses all models from
 ```
 elo_benchmark.py          # 3-Elo tournament runner, matchup generation, standings
 benchmark_models.py       # Model lists, single-run benchmark, Pareto analysis
+configs/
+├── lenders/              # Persona→model presets (e.g. budget-league)
+└── scenarios/            # Named season bundles (e.g. realistic-10w)
 loanville/
 ├── __main__.py           # CLI entry point (legacy single-run mode)
 ├── models.py             # Dataclasses: Borrower, LenderConfig, LenderDecision, LenderScore

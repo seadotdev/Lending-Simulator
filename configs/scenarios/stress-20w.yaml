@@ -1,0 +1,10 @@
+weeks: 20
+cohort_size: 20
+months_per_week: 2
+season_mix: stress
+arrival_phases: 3
+deep_uw_slots_per_week: 3
+info_asymmetry: partial_statements
+data_mode: full
+speed_scoring: true
+custom_tools: true
