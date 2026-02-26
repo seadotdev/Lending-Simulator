@@ -622,6 +622,9 @@ class SeasonEngine:
                 # evaluation round.  Actual LLM call deferred to origination.
                 pass
 
+            # Keep season scoring state in sync with the toolkit registry.
+            state.custom_tools = list(toolkit.tools)
+
             if toolkit.tools:
                 tool_names = [t.name for t in toolkit.tools]
                 print(f"    {lender.name}: {len(toolkit.tools)} tool(s) "

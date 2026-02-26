@@ -92,6 +92,7 @@ elapsed = time.time() - t0
 # ── Score ─────────────────────────────────────────────────────────────────
 season_scores = score_season(season.lender_states, config)
 print_season_report(season_scores)
+scores_by_id = {s.lender_id: s for s in season_scores}
 
 # ── Leaderboard ──────────────────────────────────────────────────────────
 from loanville.leaderboard import emit_match_record_from_season, emit_and_update
@@ -140,7 +141,10 @@ print("\n" + "=" * 70)
 print("  PER-LENDER DETAIL")
 print("=" * 70)
 
-for state, score in zip(season.lender_states.values(), season_scores):
+for state in season.lender_states.values():
+    score = scores_by_id.get(state.lender_id)
+    if score is None:
+        continue
     net = (
         state.cumulative_interest
         + state.cumulative_fees
@@ -165,10 +169,10 @@ print("=" * 70)
 
 print(f"\n  {'Model':<35s} {'Score':>8} {'Won':>5} {'Rej':>5} {'Dflt':>5} {'Fraud':>6} {'Net P&L':>12}")
 print(f"  {'─'*76}")
-for state, score in sorted(
-    zip(season.lender_states.values(), season_scores),
-    key=lambda x: -x[1].final_score,
-):
+for score in season_scores:
+    state = season.lender_states.get(score.lender_id)
+    if state is None:
+        continue
     frauds = sum(1 for loan in state.resolved_loans if loan.was_fraud and loan.defaulted)
     defaults = sum(1 for loan in state.resolved_loans if loan.defaulted)
     net = (

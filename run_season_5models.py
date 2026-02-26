@@ -148,10 +148,10 @@ print("=" * 70)
 
 print(f"\n  {'Model':<30s} {'Persona':<12s} {'Score':>7} {'Won':>5} {'Rej':>5} {'Dflt':>5} {'Net P&L':>12}")
 print(f"  {'─'*76}")
-for state, score in sorted(
-    zip(season.lender_states.values(), season_scores),
-    key=lambda x: -x[1].final_score,
-):
+for score in season_scores:
+    state = season.lender_states.get(score.lender_id)
+    if state is None:
+        continue
     frauds = sum(1 for loan in state.resolved_loans if loan.was_fraud and loan.defaulted)
     defaults = sum(1 for loan in state.resolved_loans if loan.defaulted)
     net = (
