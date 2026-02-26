@@ -618,9 +618,14 @@ async def evaluate_all_via_los(
 
     Returns (decisions, runs) for compatibility with the engine.
     """
-    # Default timeout: 180s for underwrite-only (LLM calls), 60s for rules
+    # Default timeout: 180s for LLM calls (underwrite-only or full+LLM mode), 60s for rules-only.
+    # Reasoning models (DeepSeek-R1, QwQ, etc.) can take 90-180s per evaluation
+    # due to internal chain-of-thought, so 60s is too aggressive for any LLM path.
     if timeout is None:
-        timeout = 180.0 if underwrite_only else 60.0
+        if underwrite_only or mode != "rules_only":
+            timeout = 180.0
+        else:
+            timeout = 60.0
 
     semaphore = asyncio.Semaphore(max_concurrent)
 
