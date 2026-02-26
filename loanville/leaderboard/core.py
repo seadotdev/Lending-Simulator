@@ -459,8 +459,13 @@ def emit_match_record_from_season(
             "lender_persona": lender.name,
             "raroc_score": score.final_score if score else 0.0,
             "deals_won": state.deals_won,
-            "deals_rejected": state.deals_rejected,
-            "deals_errored": getattr(state, 'deals_errored', 0),
+            # Use full evaluation accounting so validation error-rate denominator
+            # reflects all decisions (won + lost approvals + explicit rejects + errors).
+            "deals_rejected": max(
+                0,
+                len(decisions) - state.deals_won - getattr(state, "deals_errored", 0),
+            ),
+            "deals_errored": getattr(state, "deals_errored", 0),
             "frauds_funded": frauds_funded,
             "defaults": defaults,
             "deployed": state.deployed_capital,
@@ -595,7 +600,8 @@ def season_week_to_match_record(
             1 for d in decisions
             if (d.reasoning or "").startswith("[LLM_ERROR]")
         )
-        decisions_rejected = sum(1 for d in decisions if d.decision != "APPROVE")
+        deals_won = len(won_loans)
+        total_decisions = len(decisions)
 
         # Per-week profitability proxy to preserve "score" semantics in Elo updates.
         raroc_like = (net_pnl / deployed * 100.0) if deployed > 0 else 0.0
@@ -606,8 +612,9 @@ def season_week_to_match_record(
             "lender_id": lender.id,
             "lender_persona": lender.name,
             "raroc_score": raroc_like,
-            "deals_won": len(won_loans),
-            "deals_rejected": max(0, decisions_rejected - deals_errored),
+            "deals_won": deals_won,
+            # Same full-evaluation accounting as aggregate season records.
+            "deals_rejected": max(0, total_decisions - deals_won - deals_errored),
             "deals_errored": deals_errored,
             "frauds_funded": frauds_funded,
             "defaults": defaults,

@@ -251,7 +251,7 @@ class SeasonConfig:
     weeks: int = 10
     cohort_size: int = 5
     months_per_week: int = 2
-    season_mix: str = "realistic"  # gentle | realistic | adversarial | escalating
+    season_mix: str = "realistic"  # gentle | realistic | adversarial | stress | escalating
     seed: int = 42
     speed_scoring: bool = True
     custom_tools: bool = True
@@ -286,7 +286,7 @@ class SeasonConfig:
             raise ValueError("cohort_size must be > 0")
         if self.months_per_week <= 0:
             raise ValueError("months_per_week must be > 0")
-        valid_mixes = ("gentle", "realistic", "adversarial", "escalating")
+        valid_mixes = ("gentle", "realistic", "adversarial", "stress", "escalating")
         if self.season_mix not in valid_mixes:
             raise ValueError(
                 f"season_mix must be one of {valid_mixes}, got '{self.season_mix}'"
