@@ -20,7 +20,7 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
-from .data import get_borrowers, get_lenders, MIX_PRESETS
+from .data import MIX_PRESETS, SCENARIOS, get_borrowers, get_lenders, get_scenario
 from .engine import SimulationEngine
 from .models import EconomicsConfig, ECONOMICS_PRESETS, SeasonConfig
 from .presets import (
@@ -253,6 +253,8 @@ SEASON_DEFAULTS = {
     "custom_tools": False,
     "info_asymmetry": "none",
     "data_mode": "full",
+    "borrower_patience_weeks": 1,
+    "offer_validity_weeks": 1,
 }
 
 
@@ -272,6 +274,7 @@ def main() -> None:
     subparsers = parser.add_subparsers(dest="command")
     lenders_list = ", ".join(list_lender_presets()) or "(none found)"
     scenarios_list = ", ".join(list_scenario_presets()) or "(none found)"
+    builtin_scenarios = ", ".join(sorted(SCENARIOS.keys()))
 
     # `view` subcommand
     view_parser = subparsers.add_parser("view", help="Open the web viewer in a browser")
@@ -290,7 +293,8 @@ def main() -> None:
     parser.add_argument("--scenario", default=None,
                         help="Scenario preset name or file path (season bundle). "
                              "Implies --season. "
-                             f"Built-in presets: {scenarios_list}")
+                             f"Built-in presets: {scenarios_list}. "
+                             f"In-code scenarios: {builtin_scenarios}")
     parser.add_argument("--mix", choices=list(MIX_PRESETS.keys()), default="realistic",
                         help="Borrower population mix (default: realistic)")
     parser.add_argument("--data-mode",
@@ -337,6 +341,10 @@ def main() -> None:
                         help="Enable custom tool creation in season mode")
     parser.add_argument("--months-per-week", type=int, default=None,
                         help="Months of loan aging per season week (default: 2, or scenario preset value)")
+    parser.add_argument("--borrower-patience-weeks", type=int, default=None,
+                        help="How many weeks borrowers stay in market (default: 1, or scenario preset value)")
+    parser.add_argument("--offer-validity-weeks", type=int, default=None,
+                        help="How many weeks offers stay open (default: 1, or scenario preset value)")
     parser.add_argument("--arrival-phases", type=int, default=None,
                         help="Number of intra-week arrival phases (default: 1, or scenario preset value)")
     parser.add_argument("--deep-uw-slots", type=int, default=None,
@@ -396,12 +404,19 @@ def main() -> None:
 
     scenario_overrides = {}
     scenario_source = None
+    scenario_lenders = None
     if args.scenario:
-        try:
-            scenario_overrides, scenario_path = load_scenario_preset(args.scenario)
-            scenario_source = _format_source(scenario_path)
-        except (ValueError, RuntimeError) as exc:
-            parser.error(str(exc))
+        builtin = get_scenario(args.scenario)
+        if builtin is not None:
+            scenario_source = f"builtin:{args.scenario}"
+            scenario_overrides = builtin.get("season", builtin)
+            scenario_lenders = builtin.get("lenders")
+        else:
+            try:
+                scenario_overrides, scenario_path = load_scenario_preset(args.scenario)
+                scenario_source = _format_source(scenario_path)
+            except (ValueError, RuntimeError) as exc:
+                parser.error(str(exc))
 
     data_mode = args.data_mode or scenario_overrides.get("data_mode", SEASON_DEFAULTS["data_mode"])
     info_asymmetry = (
@@ -409,12 +424,12 @@ def main() -> None:
         or scenario_overrides.get("info_asymmetry", SEASON_DEFAULTS["info_asymmetry"])
     )
 
-    lenders = get_lenders()
+    lenders = scenario_lenders or get_lenders()
     lenders_source = None
     if args.lenders:
         try:
             lender_assignments, lenders_path = load_lender_preset(args.lenders)
-            lenders = apply_lender_preset(lenders, lender_assignments)
+            lenders = apply_lender_preset(get_lenders(), lender_assignments)
             lenders_source = _format_source(lenders_path)
         except (ValueError, RuntimeError) as exc:
             parser.error(str(exc))
@@ -453,6 +468,22 @@ def main() -> None:
                 SEASON_DEFAULTS["deep_uw_slots_per_week"],
             )
         )
+        borrower_patience_weeks = (
+            args.borrower_patience_weeks
+            if args.borrower_patience_weeks is not None
+            else scenario_overrides.get(
+                "borrower_patience_weeks",
+                SEASON_DEFAULTS["borrower_patience_weeks"],
+            )
+        )
+        offer_validity_weeks = (
+            args.offer_validity_weeks
+            if args.offer_validity_weeks is not None
+            else scenario_overrides.get(
+                "offer_validity_weeks",
+                SEASON_DEFAULTS["offer_validity_weeks"],
+            )
+        )
         speed_scoring = (
             bool(scenario_overrides.get("speed_scoring", SEASON_DEFAULTS["speed_scoring"]))
             or args.speed_scoring
@@ -474,6 +505,8 @@ def main() -> None:
             arrival_phases=arrival_phases,
             deep_uw_slots_per_week=deep_uw_slots,
             info_asymmetry=info_asymmetry,
+            borrower_patience_weeks=borrower_patience_weeks,
+            offer_validity_weeks=offer_validity_weeks,
         )
 
         if scenario_source:

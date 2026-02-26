@@ -10,6 +10,7 @@ from .borrower_gen import generate_cohort
 from .cost_tracking import print_season_cost_summary
 from .custom_tools import LenderToolkit
 from .engine import SimulationEngine, resolve_loan_period
+from .market_pool import MarketPool
 from .models import (
     ActiveLoan,
     BookedLoan,
@@ -53,6 +54,10 @@ def _print_season_header(config: SeasonConfig) -> None:
         flags.append(f"arrival-phases({config.arrival_phases})")
     if config.deep_uw_slots_per_week > 0:
         flags.append(f"deep-uw-slots({config.deep_uw_slots_per_week}/wk)")
+    if config.borrower_patience_weeks > 1:
+        flags.append(f"borrower-patience({config.borrower_patience_weeks}w)")
+    if config.offer_validity_weeks > 1:
+        flags.append(f"offer-validity({config.offer_validity_weeks}w)")
     if flags:
         print(f"  Features: {', '.join(flags)}")
     print("=" * 70)
@@ -109,6 +114,7 @@ class SeasonEngine:
         self.all_borrowers: list = []               # all borrowers across all weeks
         self.all_deal_results: dict[str, dict] = {} # borrower_id -> deal result
         self.weekly_match_data: list[dict] = []     # one entry per completed week
+        self._seen_borrower_ids: set[str] = set()
 
         # Pass-through kwargs for SimulationEngine
         self.engine_kwargs = dict(
@@ -126,6 +132,14 @@ class SeasonEngine:
         # Per-week competition stats for briefing feedback
         # lid -> {won, lost, rejected, avg_offered_rate, avg_winning_rate}
         self._last_week_stats: dict[str, dict] = {}
+        self.deliberate_mode = (
+            config.borrower_patience_weeks > 1 or config.offer_validity_weeks > 1
+        )
+        self.market_pool = MarketPool(
+            borrower_patience_weeks=config.borrower_patience_weeks,
+            offer_validity_weeks=config.offer_validity_weeks,
+        ) if self.deliberate_mode else None
+        self._market_loan_counter = 0
 
         self._init_states(lenders)
 
@@ -307,6 +321,211 @@ class SeasonEngine:
 
         return used_per_lender
 
+    def _inject_pipeline_context(self, week: int, lenders: list[LenderConfig]) -> None:
+        if not self.deliberate_mode or not self.market_pool:
+            return
+        self.market_pool.set_current_week(week)
+        for lender in lenders:
+            state = self.lender_states[lender.id]
+            self.market_pool.set_lender_capital_snapshot(
+                lender.id,
+                total_capital=state.total_capital,
+                deployed_capital=state.deployed_capital,
+                available_capital=state.available_capital,
+                cost_of_capital=self.config.economics.funding_rate,
+            )
+            params = dict(lender.policy_params or {})
+            params["offer_validity_weeks"] = self.config.offer_validity_weeks
+            params["pipeline"] = self.market_pool.build_pipeline_context(lender.id)
+            lender.policy_params = params
+
+    def _apply_market_decisions(
+        self,
+        week: int,
+        engine: SimulationEngine,
+        events: list[str],
+    ) -> None:
+        if not self.deliberate_mode or not self.market_pool:
+            return
+
+        for lender_id, decisions in engine.all_decisions.items():
+            state = self.lender_states.get(lender_id)
+            if not state:
+                continue
+
+            for decision in decisions:
+                mb = self.market_pool.get_market_borrower(decision.borrower_id)
+                if not mb or mb.status != "shopping":
+                    continue
+                if lender_id in mb.rejected_by:
+                    continue
+
+                if decision.reasoning and decision.reasoning.startswith("[LLM_ERROR]"):
+                    self.market_pool.record_pass(lender_id, decision.borrower_id, week)
+                    decision.decision = "PASS"
+                    decision.term_sheet = None
+                    continue
+
+                if decision.reasoning and decision.reasoning.startswith("[BANDWIDTH_LIMIT]"):
+                    self.market_pool.record_pass(lender_id, decision.borrower_id, week)
+                    decision.decision = "PASS"
+                    decision.term_sheet = None
+                    continue
+
+                if decision.decision == "PASS":
+                    self.market_pool.record_pass(lender_id, decision.borrower_id, week)
+                    continue
+
+                if decision.decision == "REJECT" or not decision.term_sheet:
+                    self.market_pool.record_reject(lender_id, decision.borrower_id)
+                    decision.term_sheet = None
+                    decision.offer_valid_weeks = 1
+                    continue
+
+                existing_open = next(
+                    (
+                        o.term_sheet.loan_amount
+                        for o in mb.open_offers
+                        if o.status == "open" and o.lender_id == lender_id
+                    ),
+                    0.0,
+                )
+                reserved = self.market_pool.reserved_capital_for_lender(lender_id)
+                available_for_new = max(
+                    0.0,
+                    state.available_capital - max(0.0, reserved - existing_open),
+                )
+                if decision.term_sheet.loan_amount > available_for_new:
+                    decision.decision = "PASS"
+                    decision.term_sheet = None
+                    decision.reasoning = (
+                        f"{decision.reasoning} "
+                        "[SYSTEM: Offer skipped due to reserved-capital limit]"
+                    ).strip()
+                    self.market_pool.record_pass(lender_id, decision.borrower_id, week)
+                    continue
+
+                valid_weeks = max(
+                    1,
+                    int(decision.offer_valid_weeks or self.config.offer_validity_weeks),
+                )
+                offer = self.market_pool.add_offer(
+                    lender_id=lender_id,
+                    borrower_id=decision.borrower_id,
+                    term_sheet=decision.term_sheet,
+                    reasoning=decision.reasoning or "",
+                    issued_week=week,
+                    validity_weeks=valid_weeks,
+                )
+                if offer:
+                    events.append(
+                        f"  [Market] {state.lender_name} offered "
+                        f"{mb.borrower.dossier.company_name}: "
+                        f"${offer.term_sheet.loan_amount:,.0f} @ "
+                        f"{offer.term_sheet.interest_rate:.1f}% "
+                        f"({valid_weeks}w validity)"
+                    )
+
+    def _resolve_market_bookings(
+        self,
+        week: int,
+        engine: SimulationEngine,
+        events: list[str],
+    ) -> None:
+        if not self.deliberate_mode or not self.market_pool:
+            return
+
+        accepted, expired = self.market_pool.resolve_expired()
+        if not accepted and not expired:
+            return
+
+        for mb, offer in accepted:
+            self._market_loan_counter += 1
+            loan = BookedLoan(
+                id=f"LOAN-{self._market_loan_counter:03d}",
+                borrower_id=mb.borrower.id,
+                lender_id=offer.lender_id,
+                borrower_name=mb.borrower.dossier.company_name,
+                sector=mb.borrower.dossier.sector,
+                principal=offer.term_sheet.loan_amount,
+                interest_rate=offer.term_sheet.interest_rate,
+                term_months=offer.term_sheet.term_months,
+                true_outcome=mb.borrower.true_outcome,
+                months_before_default=mb.borrower.months_before_default,
+            )
+            engine.booked_loans.append(loan)
+            competing = [
+                o for o in mb.open_offers
+                if o.status in {"accepted", "open"} and o.lender_id != offer.lender_id
+            ]
+            engine.deal_results[mb.borrower.id] = {
+                "outcome": "booked",
+                "winner": offer.lender_id,
+                "loan_id": loan.id,
+                "competitive": bool(competing),
+                "speed_bonus_decisive": False,
+            }
+            lender_name = self.lender_states[offer.lender_id].lender_name
+            events.append(
+                f"  [Market] BOOKED: {mb.borrower.dossier.company_name} accepted "
+                f"{offer.offer_id} from {lender_name}"
+            )
+
+        for mb in expired:
+            engine.deal_results[mb.borrower.id] = {"outcome": "no_takers", "winner": None}
+            events.append(
+                f"  [Market] EXITED: {mb.borrower.dossier.company_name} left market "
+                "(no open offers)"
+            )
+
+    def _flush_market_pool_at_close(self) -> list[str]:
+        if not self.deliberate_mode or not self.market_pool:
+            return []
+
+        accepted, expired = self.market_pool.force_resolve_all()
+        events: list[str] = []
+        for mb, offer in accepted:
+            self._market_loan_counter += 1
+            loan_id = f"LOAN-{self._market_loan_counter:03d}"
+            active = ActiveLoan(
+                loan_id=loan_id,
+                borrower_id=mb.borrower.id,
+                borrower_name=mb.borrower.dossier.company_name,
+                lender_id=offer.lender_id,
+                sector=mb.borrower.dossier.sector,
+                principal=offer.term_sheet.loan_amount,
+                interest_rate=offer.term_sheet.interest_rate,
+                term_months=offer.term_sheet.term_months,
+                true_outcome=mb.borrower.true_outcome,
+                months_before_default=mb.borrower.months_before_default,
+                booked_week=self.config.weeks + 1,
+                remaining_balance=offer.term_sheet.loan_amount,
+            )
+            state = self.lender_states[offer.lender_id]
+            state.active_loans.append(active)
+            state.deployed_capital += active.principal
+            state.deals_won += 1
+            self._recompute_available(state)
+            self.all_deal_results[mb.borrower.id] = {
+                "outcome": "booked",
+                "winner": offer.lender_id,
+                "loan_id": loan_id,
+                "competitive": False,
+            }
+            events.append(
+                f"  [Market close] BOOKED: {mb.borrower.dossier.company_name} "
+                f"with {state.lender_name}"
+            )
+        for mb in expired:
+            self.all_deal_results[mb.borrower.id] = {"outcome": "no_takers", "winner": None}
+            events.append(
+                f"  [Market close] EXITED: {mb.borrower.dossier.company_name} "
+                "(no open offers)"
+            )
+        for state in self.lender_states.values():
+            self._recompute_sector_exposure(state)
+        return events
+
     # ------------------------------------------------------------------
     # Main season loop
     # ------------------------------------------------------------------
@@ -346,11 +565,28 @@ class SeasonEngine:
             if self.config.custom_tools:
                 self._tooling_phase(week)
 
+            # 3b. Deliberate market timers
+            if self.deliberate_mode and self.market_pool:
+                tick_events = self.market_pool.tick(week)
+                events.extend(tick_events)
+                for e in tick_events:
+                    print(e)
+
             # 4. Generate cohort
             cohort = generate_cohort(week, self.config, self.used_static_ids)
             _print_cohort_summary(week, cohort)
             phase_map = self._assign_arrival_phases(cohort)
             self._print_arrival_schedule(cohort, phase_map)
+
+            if self.deliberate_mode and self.market_pool:
+                self.market_pool.add_cohort(cohort, week)
+                origination_pool = self.market_pool.get_all_shopping_borrowers()
+                print(
+                    f"\n  [Market] Shopping pool this week: {len(origination_pool)} "
+                    f"borrowers (new cohort: {len(cohort)})"
+                )
+            else:
+                origination_pool = cohort
 
             # 5. Build week lenders (inject briefing + available capital)
             #    Only include active (non-eliminated) lenders
@@ -362,19 +598,26 @@ class SeasonEngine:
                 print("\n  No active lenders remaining — skipping origination.")
                 continue
 
+            if self.deliberate_mode and self.market_pool:
+                self._inject_pipeline_context(week, week_lenders)
+
             # 6. Run origination via SimulationEngine
-            engine = SimulationEngine(cohort, week_lenders, **self.engine_kwargs)
+            engine = SimulationEngine(origination_pool, week_lenders, **self.engine_kwargs)
             await engine.run_origination()
             slots_used = self._enforce_deep_uw_slots(engine, phase_map)
 
-            # 7. Adjudicate with season capital + optional speed scoring
-            capital = self._get_remaining_capital()
-            tool_counts = self._extract_tool_counts(engine) if self.config.speed_scoring else None
-            engine.adjudicate_deals(
-                remaining_capital=capital,
-                speed_scoring=self.config.speed_scoring,
-                tool_call_counts=tool_counts,
-            )
+            # 7. Deal resolution
+            if self.deliberate_mode:
+                self._apply_market_decisions(week, engine, events)
+                self._resolve_market_bookings(week, engine, events)
+            else:
+                capital = self._get_remaining_capital()
+                tool_counts = self._extract_tool_counts(engine) if self.config.speed_scoring else None
+                engine.adjudicate_deals(
+                    remaining_capital=capital,
+                    speed_scoring=self.config.speed_scoring,
+                    tool_call_counts=tool_counts,
+                )
 
             # 8. Ingest results
             week_result = self._ingest_results(week, engine, slots_used)
@@ -382,12 +625,19 @@ class SeasonEngine:
             self.week_results.append(week_result)
 
             # 8b. Capture per-week detail for JSON export
-            self._capture_week_detail(week, cohort, engine, events, phase_map, slots_used)
+            detail_cohort = origination_pool if self.deliberate_mode else cohort
+            self._capture_week_detail(week, detail_cohort, engine, events, phase_map, slots_used)
             self._capture_week_match_data(week, engine)
 
             # 9. Snapshot utilization + weekly analytics
             self._snapshot_utilization()
             self._record_week_snapshots(week)
+
+        # Final market close for any still-shopping borrowers
+        if self.deliberate_mode:
+            market_close_events = self._flush_market_pool_at_close()
+            for e in market_close_events:
+                print(e)
 
         # Final resolution — fast-forward remaining active loans
         final_events = self._final_resolution()
@@ -602,7 +852,8 @@ class SeasonEngine:
                 lines.append(
                     f"  Your deals: {stats['won']} won, "
                     f"{stats['lost']} lost to cheaper offers, "
-                    f"{stats['rejected']} rejected"
+                    f"{stats['rejected']} rejected, "
+                    f"{stats.get('passed', 0)} passed"
                 )
                 avg_off = stats["avg_offered_rate"]
                 avg_win = stats["avg_winning_rate"]
@@ -697,6 +948,7 @@ class SeasonEngine:
                 sector_limits=lender.sector_limits,
                 existing_portfolio=existing,
                 custom_tools=tool_definitions,
+                policy_params=copy.deepcopy(lender.policy_params),
             )
             week_lenders.append(week_lender)
         return week_lenders
@@ -889,6 +1141,8 @@ class SeasonEngine:
                 state.total_tool_calls += decision_tool_calls
                 if d.reasoning and d.reasoning.startswith("[LLM_ERROR]"):
                     state.deals_errored += 1
+                elif d.decision == "PASS":
+                    state.deals_passed += 1
                 elif d.decision != "APPROVE":
                     state.deals_rejected += 1
                 elif d.borrower_id in booked_bids:
@@ -911,8 +1165,23 @@ class SeasonEngine:
 
         # Accumulate data for leaderboard
         for lid, decisions in engine.all_decisions.items():
-            self.all_decisions.setdefault(lid, []).extend(decisions)
-        self.all_borrowers.extend(engine.borrowers)
+            bucket = self.all_decisions.setdefault(lid, [])
+            if self.deliberate_mode:
+                by_borrower = {d.borrower_id: idx for idx, d in enumerate(bucket)}
+                for decision in decisions:
+                    idx = by_borrower.get(decision.borrower_id)
+                    if idx is None:
+                        by_borrower[decision.borrower_id] = len(bucket)
+                        bucket.append(decision)
+                    else:
+                        bucket[idx] = decision
+            else:
+                bucket.extend(decisions)
+        for borrower in engine.borrowers:
+            if borrower.id in self._seen_borrower_ids:
+                continue
+            self._seen_borrower_ids.add(borrower.id)
+            self.all_borrowers.append(borrower)
         self.all_deal_results.update(engine.deal_results)
 
         # Compute per-week competition stats for briefing feedback
@@ -925,9 +1194,13 @@ class SeasonEngine:
             lid = lender.id
             decisions = engine.all_decisions.get(lid, [])
             won = sum(1 for l in engine.booked_loans if l.lender_id == lid)
-            rejected = sum(1 for d in decisions if d.decision != "APPROVE")
+            rejected = sum(1 for d in decisions if d.decision == "REJECT")
+            passed = sum(1 for d in decisions if d.decision == "PASS")
             approved = sum(1 for d in decisions if d.decision == "APPROVE")
             lost = approved - won
+            if self.deliberate_mode and self.market_pool:
+                pending_offers = len(self.market_pool.open_offers_for_lender(lid))
+                lost = max(0, lost - pending_offers)
             offered_rates = [
                 d.term_sheet.interest_rate for d in decisions
                 if d.decision == "APPROVE" and d.term_sheet
@@ -935,7 +1208,7 @@ class SeasonEngine:
             avg_offered = sum(offered_rates) / len(offered_rates) if offered_rates else 0.0
             avg_winning = sum(winning_rates) / len(winning_rates) if winning_rates else 0.0
             self._last_week_stats[lid] = {
-                "won": won, "lost": lost, "rejected": rejected,
+                "won": won, "lost": lost, "rejected": rejected, "passed": passed,
                 "avg_offered_rate": avg_offered,
                 "avg_winning_rate": avg_winning,
             }
@@ -1247,6 +1520,7 @@ class SeasonEngine:
                     "lender_id": lender_id,
                     "borrower_id": d.borrower_id,
                     "decision": d.decision,
+                    "offer_valid_weeks": getattr(d, "offer_valid_weeks", 1),
                     "bandwidth_limited": bool(d.reasoning and d.reasoning.startswith("[BANDWIDTH_LIMIT]")),
                     "reasoning": d.reasoning or "",
                     "term_sheet": {
@@ -1288,6 +1562,7 @@ class SeasonEngine:
                 "effective_capital": round(self._effective_capital(state), 2),
                 "deals_won": state.deals_won,
                 "deals_rejected": state.deals_rejected,
+                "deals_passed": state.deals_passed,
                 "deals_lost": state.deals_lost,
                 "active_loans": len(state.active_loans),
                 "active_loans_detail": [
@@ -1344,6 +1619,7 @@ class SeasonEngine:
                 "effective_capital": round(self._effective_capital(state), 2),
                 "deals_won": state.deals_won,
                 "deals_rejected": state.deals_rejected,
+                "deals_passed": state.deals_passed,
                 "deals_lost": state.deals_lost,
                 "active_loans": len(state.active_loans),
                 "active_loans_detail": [
@@ -1401,6 +1677,7 @@ class SeasonEngine:
                 "deployed": round(state.deployed_capital, 2),
                 "deals_won": state.deals_won,
                 "deals_rejected": state.deals_rejected,
+                "deals_passed": state.deals_passed,
                 "deals_lost": state.deals_lost,
                 "cumulative_interest": round(state.cumulative_interest, 2),
                 "cumulative_losses": round(state.cumulative_losses, 2),
@@ -1441,6 +1718,8 @@ class SeasonEngine:
                 "seed": self.config.seed,
                 "arrival_phases": self.config.arrival_phases,
                 "deep_uw_slots_per_week": self.config.deep_uw_slots_per_week,
+                "borrower_patience_weeks": self.config.borrower_patience_weeks,
+                "offer_validity_weeks": self.config.offer_validity_weeks,
             },
             "lenders": lenders,
             "weeks": self.week_details,
@@ -1465,7 +1744,7 @@ class SeasonEngine:
             print(f"\n  {state.lender_name} ({state.model})")
             print(f"    Capital: ${state.total_capital:,.0f}")
             print(f"    Deals Won: {state.deals_won} | Lost: {state.deals_lost} | "
-                  f"Rejected: {state.deals_rejected}")
+                  f"Rejected: {state.deals_rejected} | Passed: {state.deals_passed}")
             print(f"    Interest Earned: ${state.cumulative_interest:,.0f}")
             print(f"    Fees Earned: ${state.cumulative_fees:,.0f}")
             print(f"    Losses: ${state.cumulative_losses:,.0f}")

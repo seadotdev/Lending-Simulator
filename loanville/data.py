@@ -7,6 +7,7 @@ Contains 3 lender personas with distinct risk profiles.
 10 mix presets control the good/bad/fraud ratio of each simulation run.
 """
 
+import copy
 import random
 from .models import (
     Borrower,
@@ -2061,3 +2062,63 @@ def get_borrowers(
 
 def get_lenders() -> list[LenderConfig]:
     return _build_lenders()
+
+
+def _build_deliberate_lenders() -> list[LenderConfig]:
+    base = _build_lenders()
+    lender_a = copy.deepcopy(base[0])
+    lender_b = copy.deepcopy(base[1])
+
+    lender_a.id = "LND-D01"
+    lender_a.name = "Apex Deliberate Capital"
+    lender_a.total_capital = 1_200_000
+    lender_a.max_single_loan = 325_000
+    lender_a.existing_portfolio = [
+        ExistingLoan("Northwind Care", "Healthcare Services", 280000, 220000, 8.9, 18),
+        ExistingLoan("Bluegate Software", "IT Services", 290000, 230000, 9.8, 20),
+    ]
+    lender_a.persona = (
+        "You are Apex Deliberate Capital. You optimize portfolio P&L over multiple weeks, "
+        "not one-shot win rate. You may PASS to preserve capital for better opportunities. "
+        "Track open offers, reserve capital intentionally, and avoid over-committing."
+    )
+
+    lender_b.id = "LND-D02"
+    lender_b.name = "Harbor Deliberate Credit"
+    lender_b.total_capital = 1_100_000
+    lender_b.max_single_loan = 300_000
+    lender_b.existing_portfolio = [
+        ExistingLoan("Lakeview Transit", "Aero-Logistics", 260000, 200000, 7.6, 22),
+        ExistingLoan("Sunline BuildCo", "Construction Services", 290000, 220000, 8.2, 24),
+    ]
+    lender_b.persona = (
+        "You are Harbor Deliberate Credit. You run a selective multi-week pipeline strategy. "
+        "Use PASS when timing is unfavorable, issue time-bounded offers deliberately, and "
+        "balance yield versus concentration across weeks."
+    )
+
+    return [lender_a, lender_b]
+
+
+SCENARIOS: dict[str, dict] = {
+    "default": {},
+    "deliberate_1v1": {
+        "lenders": _build_deliberate_lenders(),
+        "season": {
+            "weeks": 6,
+            "cohort_size": 3,
+            "borrower_patience_weeks": 3,
+            "offer_validity_weeks": 2,
+            "season_mix": "realistic",
+            "speed_scoring": False,
+            "custom_tools": False,
+        },
+    },
+}
+
+
+def get_scenario(name: str) -> dict | None:
+    scenario = SCENARIOS.get(name)
+    if scenario is None:
+        return None
+    return copy.deepcopy(scenario)

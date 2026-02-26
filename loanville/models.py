@@ -86,6 +86,8 @@ class LenderConfig:
     existing_portfolio: list[ExistingLoan] = field(default_factory=list)
     # Optional per-lender custom tool definitions (season mode).
     custom_tools: list[dict] = field(default_factory=list)
+    # Optional policy parameter overrides forwarded to LOS.
+    policy_params: dict = field(default_factory=dict)
 
 
 @dataclass
@@ -99,9 +101,33 @@ class TermSheet:
 class LenderDecision:
     lender_id: str
     borrower_id: str
-    decision: str  # "APPROVE" or "REJECT"
+    decision: str  # "APPROVE" | "REJECT" | "PASS"
     reasoning: str
     term_sheet: Optional[TermSheet] = None
+    offer_valid_weeks: int = 1
+
+
+@dataclass
+class OpenOffer:
+    offer_id: str
+    lender_id: str
+    borrower_id: str
+    term_sheet: TermSheet
+    reasoning: str
+    issued_week: int
+    weeks_remaining: int
+    status: str = "open"  # open | accepted | expired
+
+
+@dataclass
+class MarketBorrower:
+    borrower: Borrower
+    entered_week: int
+    weeks_remaining: int
+    open_offers: list[OpenOffer] = field(default_factory=list)
+    passed_by: dict[str, int] = field(default_factory=dict)  # lender_id -> week
+    rejected_by: set[str] = field(default_factory=set)
+    status: str = "shopping"  # shopping | booked | expired
 
 
 @dataclass
@@ -256,6 +282,8 @@ class SeasonConfig:
     speed_scoring: bool = True
     custom_tools: bool = True
     economics: EconomicsConfig = field(default_factory=EconomicsConfig)
+    borrower_patience_weeks: int = 1
+    offer_validity_weeks: int = 1
 
     # Capital adequacy elimination — lenders below this fraction of initial
     # capital are eliminated from the season (inspired by Skirmish's spawn
@@ -300,6 +328,10 @@ class SeasonConfig:
             raise ValueError("arrival_phases must be > 0")
         if self.deep_uw_slots_per_week < 0:
             raise ValueError("deep_uw_slots_per_week must be >= 0")
+        if self.borrower_patience_weeks <= 0:
+            raise ValueError("borrower_patience_weeks must be > 0")
+        if self.offer_validity_weeks <= 0:
+            raise ValueError("offer_validity_weeks must be > 0")
 
 
 @dataclass
@@ -322,6 +354,7 @@ class SeasonLenderState:
     deals_won: int = 0
     deals_lost: int = 0
     deals_rejected: int = 0
+    deals_passed: int = 0
     deals_errored: int = 0
     # Portfolio management tracking
     weekly_utilization: list[float] = field(default_factory=list)

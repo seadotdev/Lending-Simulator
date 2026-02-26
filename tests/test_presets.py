@@ -1,6 +1,6 @@
 import unittest
 
-from loanville.data import get_lenders
+from loanville.data import get_lenders, get_scenario
 from loanville.presets import (
     apply_lender_preset,
     list_lender_presets,
@@ -42,6 +42,14 @@ class PresetTests(unittest.TestCase):
         self.assertEqual(scenario["deep_uw_slots_per_week"], 3)
         self.assertTrue(scenario["speed_scoring"])
         self.assertTrue(scenario["custom_tools"])
+
+    def test_builtin_scenario_includes_deliberate_settings(self) -> None:
+        scenario = get_scenario("deliberate_1v1")
+        assert scenario is not None
+        self.assertIn("season", scenario)
+        self.assertEqual(scenario["season"]["borrower_patience_weeks"], 3)
+        self.assertEqual(scenario["season"]["offer_validity_weeks"], 2)
+        self.assertEqual(len(scenario["lenders"]), 2)
 
 
 if __name__ == "__main__":

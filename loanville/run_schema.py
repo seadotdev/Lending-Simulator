@@ -71,17 +71,20 @@ class RunPolicy:
     @classmethod
     def from_lender(cls, lender: LenderConfig, policy_id: str = "") -> RunPolicy:
         pid = policy_id or f"p_{lender.id}_{lender.model.replace('/', '_')}"
+        params = {
+            "_lender_id": lender.id,
+            "target_yield_pct": lender.target_yield_pct,
+            "max_single_loan": lender.max_single_loan,
+            "total_capital": lender.total_capital,
+            "sector_limits": lender.sector_limits,
+            "persona": lender.persona,
+        }
+        if lender.policy_params:
+            params.update(lender.policy_params)
         return cls(
             policy_id=pid,
             model=lender.model,
-            params={
-                "_lender_id": lender.id,
-                "target_yield_pct": lender.target_yield_pct,
-                "max_single_loan": lender.max_single_loan,
-                "total_capital": lender.total_capital,
-                "sector_limits": lender.sector_limits,
-                "persona": lender.persona,
-            },
+            params=params,
         )
 
 
@@ -218,7 +221,12 @@ class RunDecision:
 
     @classmethod
     def from_lender_decision(cls, d: LenderDecision) -> RunDecision:
-        action = "approve" if d.decision == "APPROVE" else "decline"
+        if d.decision == "APPROVE":
+            action = "approve"
+        elif d.decision == "PASS":
+            action = "refer"
+        else:
+            action = "decline"
         terms = DecisionTerms()
         if d.term_sheet:
             terms = DecisionTerms(
