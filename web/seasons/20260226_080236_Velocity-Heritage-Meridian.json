@@ -1,0 +1,1389 @@
+{
+  "type": "season",
+  "config": {
+    "weeks": 3,
+    "cohort_size": 3,
+    "months_per_week": 2,
+    "season_mix": "gentle",
+    "seed": 42
+  },
+  "lenders": [
+    {
+      "id": "LND-001",
+      "name": "Velocity Capital",
+      "model": "deepseek/deepseek-chat-v3-0324",
+      "total_capital": 3000000,
+      "net_pnl": 0.0,
+      "deployed": 1180000,
+      "deals_won": 0,
+      "deals_rejected": 2,
+      "deals_lost": 7,
+      "cumulative_interest": 0.0,
+      "cumulative_losses": 0.0,
+      "cumulative_fees": 0.0,
+      "defaults": 0,
+      "frauds_funded": 0,
+      "weekly_utilization": [
+        0.3933,
+        0.3933,
+        0.3933
+      ],
+      "weekly_snapshots": [
+        {
+          "week": 1,
+          "effective_capital": 2996360.0,
+          "available_capital": 1816360.0,
+          "deployed_capital": 1180000,
+          "active_loans": 0,
+          "defaults_to_date": 0,
+          "frauds_to_date": 0,
+          "net_pnl": 0.0
+        },
+        {
+          "week": 2,
+          "effective_capital": 2992727.28,
+          "available_capital": 1812727.28,
+          "deployed_capital": 1180000,
+          "active_loans": 0,
+          "defaults_to_date": 0,
+          "frauds_to_date": 0,
+          "net_pnl": 0.0
+        },
+        {
+          "week": 3,
+          "effective_capital": 2989101.83,
+          "available_capital": 1809101.83,
+          "deployed_capital": 1180000,
+          "active_loans": 0,
+          "defaults_to_date": 0,
+          "frauds_to_date": 0,
+          "net_pnl": 0.0
+        }
+      ]
+    },
+    {
+      "id": "LND-002",
+      "name": "Heritage Trust Bank",
+      "model": "qwen/qwen3-235b-a22b",
+      "total_capital": 4000000,
+      "net_pnl": -34581.77,
+      "deployed": 1500000.0,
+      "deals_won": 7,
+      "deals_rejected": 2,
+      "deals_lost": 0,
+      "cumulative_interest": 187101.52,
+      "cumulative_losses": 244533.29,
+      "cumulative_fees": 22850.0,
+      "defaults": 1,
+      "frauds_funded": 0,
+      "weekly_utilization": [
+        0.5125,
+        0.66,
+        0.9176
+      ],
+      "weekly_snapshots": [
+        {
+          "week": 1,
+          "effective_capital": 3995000.0,
+          "available_capital": 1945000.0,
+          "deployed_capital": 2050000,
+          "active_loans": 2,
+          "defaults_to_date": 0,
+          "frauds_to_date": 0,
+          "net_pnl": 0.0
+        },
+        {
+          "week": 2,
+          "effective_capital": 4004085.59,
+          "available_capital": 1364169.73,
+          "deployed_capital": 2639915.86,
+          "active_loans": 4,
+          "defaults_to_date": 0,
+          "frauds_to_date": 0,
+          "net_pnl": 13071.9
+        },
+        {
+          "week": 3,
+          "effective_capital": 4022920.49,
+          "available_capital": 352359.8,
+          "deployed_capital": 3670560.69,
+          "active_loans": 7,
+          "defaults_to_date": 0,
+          "frauds_to_date": 0,
+          "net_pnl": 34837.38
+        }
+      ]
+    },
+    {
+      "id": "LND-003",
+      "name": "Meridian Partners",
+      "model": "meta-llama/llama-3.3-70b-instruct",
+      "total_capital": 3500000,
+      "net_pnl": 0.0,
+      "deployed": 1200000,
+      "deals_won": 0,
+      "deals_rejected": 2,
+      "deals_lost": 7,
+      "cumulative_interest": 0.0,
+      "cumulative_losses": 0.0,
+      "cumulative_fees": 0.0,
+      "defaults": 0,
+      "frauds_funded": 0,
+      "weekly_utilization": [
+        0.3429,
+        0.3429,
+        0.3429
+      ],
+      "weekly_snapshots": [
+        {
+          "week": 1,
+          "effective_capital": 3495400.0,
+          "available_capital": 2295400.0,
+          "deployed_capital": 1200000,
+          "active_loans": 0,
+          "defaults_to_date": 0,
+          "frauds_to_date": 0,
+          "net_pnl": 0.0
+        },
+        {
+          "week": 2,
+          "effective_capital": 3490809.2,
+          "available_capital": 2290809.2,
+          "deployed_capital": 1200000,
+          "active_loans": 0,
+          "defaults_to_date": 0,
+          "frauds_to_date": 0,
+          "net_pnl": 0.0
+        },
+        {
+          "week": 3,
+          "effective_capital": 3486227.58,
+          "available_capital": 2286227.58,
+          "deployed_capital": 1200000,
+          "active_loans": 0,
+          "defaults_to_date": 0,
+          "frauds_to_date": 0,
+          "net_pnl": 0.0
+        }
+      ]
+    },
+    {
+      "id": "LND-004",
+      "name": "Pinnacle Finance",
+      "model": "qwen/qwen3-30b-a3b",
+      "total_capital": 3200000,
+      "net_pnl": -191367.66,
+      "deployed": 880000.0,
+      "deals_won": 2,
+      "deals_rejected": 0,
+      "deals_lost": 7,
+      "cumulative_interest": 47820.88,
+      "cumulative_losses": 246688.54,
+      "cumulative_fees": 7500.0,
+      "defaults": 2,
+      "frauds_funded": 0,
+      "weekly_utilization": [
+        0.3688,
+        0.5024,
+        0.4748
+      ],
+      "weekly_snapshots": [
+        {
+          "week": 1,
+          "effective_capital": 3195360.0,
+          "available_capital": 2015360.0,
+          "deployed_capital": 1180000,
+          "active_loans": 1,
+          "defaults_to_date": 0,
+          "frauds_to_date": 0,
+          "net_pnl": 0.0
+        },
+        {
+          "week": 2,
+          "effective_capital": 3200470.02,
+          "available_capital": 1592690.18,
+          "deployed_capital": 1607779.84,
+          "active_loans": 2,
+          "defaults_to_date": 0,
+          "frauds_to_date": 0,
+          "net_pnl": 9203.59
+        },
+        {
+          "week": 3,
+          "effective_capital": 3215478.35,
+          "available_capital": 1696098.89,
+          "deployed_capital": 1519379.46,
+          "active_loans": 2,
+          "defaults_to_date": 0,
+          "frauds_to_date": 0,
+          "net_pnl": 27610.91
+        }
+      ]
+    },
+    {
+      "id": "LND-005",
+      "name": "Atlas Credit",
+      "model": "meta-llama/llama-3.3-70b-instruct",
+      "total_capital": 3800000,
+      "net_pnl": 0.0,
+      "deployed": 1070000,
+      "deals_won": 0,
+      "deals_rejected": 3,
+      "deals_lost": 6,
+      "cumulative_interest": 0.0,
+      "cumulative_losses": 0.0,
+      "cumulative_fees": 0.0,
+      "defaults": 0,
+      "frauds_funded": 0,
+      "weekly_utilization": [
+        0.2816,
+        0.2816,
+        0.2816
+      ],
+      "weekly_snapshots": [
+        {
+          "week": 1,
+          "effective_capital": 3794540.0,
+          "available_capital": 2724540.0,
+          "deployed_capital": 1070000,
+          "active_loans": 0,
+          "defaults_to_date": 0,
+          "frauds_to_date": 0,
+          "net_pnl": 0.0
+        },
+        {
+          "week": 2,
+          "effective_capital": 3789090.92,
+          "available_capital": 2719090.92,
+          "deployed_capital": 1070000,
+          "active_loans": 0,
+          "defaults_to_date": 0,
+          "frauds_to_date": 0,
+          "net_pnl": 0.0
+        },
+        {
+          "week": 3,
+          "effective_capital": 3783652.74,
+          "available_capital": 2713652.74,
+          "deployed_capital": 1070000,
+          "active_loans": 0,
+          "defaults_to_date": 0,
+          "frauds_to_date": 0,
+          "net_pnl": 0.0
+        }
+      ]
+    }
+  ],
+  "weeks": [
+    {
+      "week": 1,
+      "borrowers": [
+        {
+          "id": "BRW-002",
+          "name": "NovaBio Labs",
+          "sector": "Bio-Synthetics",
+          "amount": 300000,
+          "true_outcome": "good"
+        },
+        {
+          "id": "BRW-029",
+          "name": "Metro Print & Design",
+          "sector": "Print Services",
+          "amount": 250000,
+          "true_outcome": "good"
+        },
+        {
+          "id": "BRW-022",
+          "name": "Velocity Staffing Partners",
+          "sector": "Professional Services",
+          "amount": 300000,
+          "true_outcome": "bad"
+        }
+      ],
+      "decisions": [
+        {
+          "lender_id": "LND-001",
+          "borrower_id": "BRW-002",
+          "decision": "APPROVE",
+          "reasoning": "Strong application. Monthly free cash flow of $33,917 provides a DSCR of 2.7x on proposed payments. 4 years in business with consistent revenue trends. Sector exposure within limits.",
+          "term_sheet": {
+            "amount": 300000,
+            "rate": 14.07,
+            "term_months": 24
+          },
+          "tokens_in": 0,
+          "tokens_out": 0,
+          "cost_usd": 0.0,
+          "tool_calls": 0
+        },
+        {
+          "lender_id": "LND-001",
+          "borrower_id": "BRW-029",
+          "decision": "APPROVE",
+          "reasoning": "Strong application. Monthly free cash flow of $41,167 provides a DSCR of 3.3x on proposed payments. 18 years in business with consistent revenue trends. Sector exposure within limits.",
+          "term_sheet": {
+            "amount": 250000,
+            "rate": 13.73,
+            "term_months": 20
+          },
+          "tokens_in": 0,
+          "tokens_out": 0,
+          "cost_usd": 0.0,
+          "tool_calls": 0
+        },
+        {
+          "lender_id": "LND-001",
+          "borrower_id": "BRW-022",
+          "decision": "REJECT",
+          "reasoning": "Fundamental business weaknesses detected.",
+          "term_sheet": null,
+          "tokens_in": 0,
+          "tokens_out": 0,
+          "cost_usd": 0.0,
+          "tool_calls": 0
+        },
+        {
+          "lender_id": "LND-002",
+          "borrower_id": "BRW-002",
+          "decision": "APPROVE",
+          "reasoning": "Strong application. Monthly free cash flow of $33,917 provides a DSCR of 3.3x on proposed payments. 4 years in business with consistent revenue trends. Sector exposure within limits.",
+          "term_sheet": {
+            "amount": 300000,
+            "rate": 8.43,
+            "term_months": 29
+          },
+          "tokens_in": 0,
+          "tokens_out": 0,
+          "cost_usd": 0.0,
+          "tool_calls": 0
+        },
+        {
+          "lender_id": "LND-002",
+          "borrower_id": "BRW-029",
+          "decision": "APPROVE",
+          "reasoning": "Strong application. Monthly free cash flow of $41,167 provides a DSCR of 4.6x on proposed payments. 18 years in business with consistent revenue trends. Sector exposure within limits.",
+          "term_sheet": {
+            "amount": 250000,
+            "rate": 8.35,
+            "term_months": 28
+          },
+          "tokens_in": 0,
+          "tokens_out": 0,
+          "cost_usd": 0.0,
+          "tool_calls": 0
+        },
+        {
+          "lender_id": "LND-002",
+          "borrower_id": "BRW-022",
+          "decision": "REJECT",
+          "reasoning": "Fundamental business weaknesses detected.",
+          "term_sheet": null,
+          "tokens_in": 0,
+          "tokens_out": 0,
+          "cost_usd": 0.0,
+          "tool_calls": 0
+        },
+        {
+          "lender_id": "LND-003",
+          "borrower_id": "BRW-002",
+          "decision": "APPROVE",
+          "reasoning": "Strong application. Monthly free cash flow of $33,917 provides a DSCR of 3.2x on proposed payments. 4 years in business with consistent revenue trends. Sector exposure within limits.",
+          "term_sheet": {
+            "amount": 300000,
+            "rate": 11.41,
+            "term_months": 28
+          },
+          "tokens_in": 0,
+          "tokens_out": 0,
+          "cost_usd": 0.0,
+          "tool_calls": 0
+        },
+        {
+          "lender_id": "LND-003",
+          "borrower_id": "BRW-029",
+          "decision": "APPROVE",
+          "reasoning": "Strong application. Monthly free cash flow of $41,167 provides a DSCR of 3.5x on proposed payments. 18 years in business with consistent revenue trends. Sector exposure within limits.",
+          "term_sheet": {
+            "amount": 250000,
+            "rate": 10.82,
+            "term_months": 21
+          },
+          "tokens_in": 0,
+          "tokens_out": 0,
+          "cost_usd": 0.0,
+          "tool_calls": 0
+        },
+        {
+          "lender_id": "LND-003",
+          "borrower_id": "BRW-022",
+          "decision": "REJECT",
+          "reasoning": "Fundamental business weaknesses detected.",
+          "term_sheet": null,
+          "tokens_in": 0,
+          "tokens_out": 0,
+          "cost_usd": 0.0,
+          "tool_calls": 0
+        },
+        {
+          "lender_id": "LND-004",
+          "borrower_id": "BRW-002",
+          "decision": "APPROVE",
+          "reasoning": "Acceptable risk profile. Revenue of $1,353,000 supports the requested loan amount. Cash flow appears adequate for debt service.",
+          "term_sheet": {
+            "amount": 300000,
+            "rate": 11.81,
+            "term_months": 22
+          },
+          "tokens_in": 0,
+          "tokens_out": 0,
+          "cost_usd": 0.0,
+          "tool_calls": 0
+        },
+        {
+          "lender_id": "LND-004",
+          "borrower_id": "BRW-029",
+          "decision": "APPROVE",
+          "reasoning": "Acceptable risk profile. Revenue of $1,870,000 supports the requested loan amount. Cash flow appears adequate for debt service.",
+          "term_sheet": {
+            "amount": 250000,
+            "rate": 13.02,
+            "term_months": 33
+          },
+          "tokens_in": 0,
+          "tokens_out": 0,
+          "cost_usd": 0.0,
+          "tool_calls": 0
+        },
+        {
+          "lender_id": "LND-004",
+          "borrower_id": "BRW-022",
+          "decision": "APPROVE",
+          "reasoning": "Acceptable risk profile. Revenue of $2,322,000 supports the requested loan amount. Cash flow appears adequate for debt service.",
+          "term_sheet": {
+            "amount": 300000,
+            "rate": 12.64,
+            "term_months": 24
+          },
+          "tokens_in": 0,
+          "tokens_out": 0,
+          "cost_usd": 0.0,
+          "tool_calls": 0
+        },
+        {
+          "lender_id": "LND-005",
+          "borrower_id": "BRW-002",
+          "decision": "APPROVE",
+          "reasoning": "Strong application. Monthly free cash flow of $33,917 provides a DSCR of 3.1x on proposed payments. 4 years in business with consistent revenue trends. Sector exposure within limits.",
+          "term_sheet": {
+            "amount": 300000,
+            "rate": 9.81,
+            "term_months": 27
+          },
+          "tokens_in": 0,
+          "tokens_out": 0,
+          "cost_usd": 0.0,
+          "tool_calls": 0
+        },
+        {
+          "lender_id": "LND-005",
+          "borrower_id": "BRW-029",
+          "decision": "APPROVE",
+          "reasoning": "Strong application. Monthly free cash flow of $41,167 provides a DSCR of 3.1x on proposed payments. 18 years in business with consistent revenue trends. Sector exposure within limits.",
+          "term_sheet": {
+            "amount": 250000,
+            "rate": 9.11,
+            "term_months": 19
+          },
+          "tokens_in": 0,
+          "tokens_out": 0,
+          "cost_usd": 0.0,
+          "tool_calls": 0
+        },
+        {
+          "lender_id": "LND-005",
+          "borrower_id": "BRW-022",
+          "decision": "REJECT",
+          "reasoning": "Fundamental business weaknesses detected.",
+          "term_sheet": null,
+          "tokens_in": 0,
+          "tokens_out": 0,
+          "cost_usd": 0.0,
+          "tool_calls": 0
+        }
+      ],
+      "booked_loans": [
+        {
+          "id": "LOAN-001",
+          "borrower_id": "BRW-002",
+          "borrower_name": "NovaBio Labs",
+          "lender_id": "LND-002",
+          "sector": "Bio-Synthetics",
+          "principal": 300000,
+          "interest_rate": 8.43,
+          "term_months": 29
+        },
+        {
+          "id": "LOAN-002",
+          "borrower_id": "BRW-029",
+          "borrower_name": "Metro Print & Design",
+          "lender_id": "LND-002",
+          "sector": "Print Services",
+          "principal": 250000,
+          "interest_rate": 8.35,
+          "term_months": 28
+        },
+        {
+          "id": "LOAN-003",
+          "borrower_id": "BRW-022",
+          "borrower_name": "Velocity Staffing Partners",
+          "lender_id": "LND-004",
+          "sector": "Professional Services",
+          "principal": 300000,
+          "interest_rate": 12.64,
+          "term_months": 24
+        }
+      ],
+      "events": [
+        "  [Velocity Capital] Capital decay: -$3,640 on $1,820,000 idle (cumulative: $3,640)",
+        "  [Heritage Trust Bank] Capital decay: -$5,000 on $2,500,000 idle (cumulative: $5,000)",
+        "  [Meridian Partners] Capital decay: -$4,600 on $2,300,000 idle (cumulative: $4,600)",
+        "  [Pinnacle Finance] Capital decay: -$4,640 on $2,320,000 idle (cumulative: $4,640)",
+        "  [Atlas Credit] Capital decay: -$5,460 on $2,730,000 idle (cumulative: $5,460)"
+      ],
+      "lender_snapshots": {
+        "LND-001": {
+          "name": "Velocity Capital",
+          "model": "deepseek/deepseek-chat-v3-0324",
+          "net_pnl": 0.0,
+          "deployed": 1180000,
+          "available": 1816360.0,
+          "effective_capital": 2996360.0,
+          "deals_won": 0,
+          "deals_rejected": 1,
+          "deals_lost": 2,
+          "active_loans": 0,
+          "cumulative_interest": 0.0,
+          "cumulative_losses": 0.0,
+          "cumulative_fees": 0.0,
+          "defaults": 0,
+          "frauds_funded": 0
+        },
+        "LND-002": {
+          "name": "Heritage Trust Bank",
+          "model": "qwen/qwen3-235b-a22b",
+          "net_pnl": 0.0,
+          "deployed": 2050000,
+          "available": 1945000.0,
+          "effective_capital": 3995000.0,
+          "deals_won": 2,
+          "deals_rejected": 1,
+          "deals_lost": 0,
+          "active_loans": 2,
+          "cumulative_interest": 0.0,
+          "cumulative_losses": 0.0,
+          "cumulative_fees": 0.0,
+          "defaults": 0,
+          "frauds_funded": 0
+        },
+        "LND-003": {
+          "name": "Meridian Partners",
+          "model": "meta-llama/llama-3.3-70b-instruct",
+          "net_pnl": 0.0,
+          "deployed": 1200000,
+          "available": 2295400.0,
+          "effective_capital": 3495400.0,
+          "deals_won": 0,
+          "deals_rejected": 1,
+          "deals_lost": 2,
+          "active_loans": 0,
+          "cumulative_interest": 0.0,
+          "cumulative_losses": 0.0,
+          "cumulative_fees": 0.0,
+          "defaults": 0,
+          "frauds_funded": 0
+        },
+        "LND-004": {
+          "name": "Pinnacle Finance",
+          "model": "qwen/qwen3-30b-a3b",
+          "net_pnl": 0.0,
+          "deployed": 1180000,
+          "available": 2015360.0,
+          "effective_capital": 3195360.0,
+          "deals_won": 1,
+          "deals_rejected": 0,
+          "deals_lost": 2,
+          "active_loans": 1,
+          "cumulative_interest": 0.0,
+          "cumulative_losses": 0.0,
+          "cumulative_fees": 0.0,
+          "defaults": 0,
+          "frauds_funded": 0
+        },
+        "LND-005": {
+          "name": "Atlas Credit",
+          "model": "meta-llama/llama-3.3-70b-instruct",
+          "net_pnl": 0.0,
+          "deployed": 1070000,
+          "available": 2724540.0,
+          "effective_capital": 3794540.0,
+          "deals_won": 0,
+          "deals_rejected": 1,
+          "deals_lost": 2,
+          "active_loans": 0,
+          "cumulative_interest": 0.0,
+          "cumulative_losses": 0.0,
+          "cumulative_fees": 0.0,
+          "defaults": 0,
+          "frauds_funded": 0
+        }
+      }
+    },
+    {
+      "week": 2,
+      "borrowers": [
+        {
+          "id": "BRW-005",
+          "name": "PixelForge Studios",
+          "sector": "Digital Media",
+          "amount": 400000,
+          "true_outcome": "good"
+        },
+        {
+          "id": "BRW-034",
+          "name": "Silverline HVAC Services",
+          "sector": "Construction Services",
+          "amount": 225000,
+          "true_outcome": "good"
+        },
+        {
+          "id": "BRW-023",
+          "name": "Atlas Precision Components",
+          "sector": "Advanced Manufacturing",
+          "amount": 450000,
+          "true_outcome": "bad"
+        }
+      ],
+      "decisions": [
+        {
+          "lender_id": "LND-001",
+          "borrower_id": "BRW-005",
+          "decision": "APPROVE",
+          "reasoning": "Strong application. Monthly free cash flow of $45,333 provides a DSCR of 2.6x on proposed payments. 7 years in business with consistent revenue trends. Sector exposure within limits.",
+          "term_sheet": {
+            "amount": 400000,
+            "rate": 13.95,
+            "term_months": 23
+          },
+          "tokens_in": 0,
+          "tokens_out": 0,
+          "cost_usd": 0.0,
+          "tool_calls": 0
+        },
+        {
+          "lender_id": "LND-001",
+          "borrower_id": "BRW-034",
+          "decision": "APPROVE",
+          "reasoning": "Strong application. Monthly free cash flow of $47,917 provides a DSCR of 4.9x on proposed payments. 12 years in business with consistent revenue trends. Sector exposure within limits.",
+          "term_sheet": {
+            "amount": 225000,
+            "rate": 13.99,
+            "term_months": 23
+          },
+          "tokens_in": 0,
+          "tokens_out": 0,
+          "cost_usd": 0.0,
+          "tool_calls": 0
+        },
+        {
+          "lender_id": "LND-001",
+          "borrower_id": "BRW-023",
+          "decision": "REJECT",
+          "reasoning": "Fundamental business weaknesses detected.",
+          "term_sheet": null,
+          "tokens_in": 0,
+          "tokens_out": 0,
+          "cost_usd": 0.0,
+          "tool_calls": 0
+        },
+        {
+          "lender_id": "LND-002",
+          "borrower_id": "BRW-005",
+          "decision": "APPROVE",
+          "reasoning": "Strong application. Monthly free cash flow of $45,333 provides a DSCR of 3.1x on proposed payments. 7 years in business with consistent revenue trends. Sector exposure within limits.",
+          "term_sheet": {
+            "amount": 400000,
+            "rate": 8.3,
+            "term_months": 27
+          },
+          "tokens_in": 0,
+          "tokens_out": 0,
+          "cost_usd": 0.0,
+          "tool_calls": 0
+        },
+        {
+          "lender_id": "LND-002",
+          "borrower_id": "BRW-034",
+          "decision": "APPROVE",
+          "reasoning": "Strong application. Monthly free cash flow of $47,917 provides a DSCR of 5.3x on proposed payments. 12 years in business with consistent revenue trends. Sector exposure within limits.",
+          "term_sheet": {
+            "amount": 225000,
+            "rate": 8.14,
+            "term_months": 25
+          },
+          "tokens_in": 0,
+          "tokens_out": 0,
+          "cost_usd": 0.0,
+          "tool_calls": 0
+        },
+        {
+          "lender_id": "LND-002",
+          "borrower_id": "BRW-023",
+          "decision": "REJECT",
+          "reasoning": "Fundamental business weaknesses detected.",
+          "term_sheet": null,
+          "tokens_in": 0,
+          "tokens_out": 0,
+          "cost_usd": 0.0,
+          "tool_calls": 0
+        },
+        {
+          "lender_id": "LND-003",
+          "borrower_id": "BRW-005",
+          "decision": "APPROVE",
+          "reasoning": "Strong application. Monthly free cash flow of $45,333 provides a DSCR of 2.4x on proposed payments. 7 years in business with consistent revenue trends. Sector exposure within limits.",
+          "term_sheet": {
+            "amount": 400000,
+            "rate": 10.79,
+            "term_months": 21
+          },
+          "tokens_in": 0,
+          "tokens_out": 0,
+          "cost_usd": 0.0,
+          "tool_calls": 0
+        },
+        {
+          "lender_id": "LND-003",
+          "borrower_id": "BRW-034",
+          "decision": "APPROVE",
+          "reasoning": "Strong application. Monthly free cash flow of $47,917 provides a DSCR of 5.3x on proposed payments. 12 years in business with consistent revenue trends. Sector exposure within limits.",
+          "term_sheet": {
+            "amount": 225000,
+            "rate": 11.11,
+            "term_months": 25
+          },
+          "tokens_in": 0,
+          "tokens_out": 0,
+          "cost_usd": 0.0,
+          "tool_calls": 0
+        },
+        {
+          "lender_id": "LND-003",
+          "borrower_id": "BRW-023",
+          "decision": "APPROVE",
+          "reasoning": "Strong application. Monthly free cash flow of $15,417 provides a DSCR of 1.0x on proposed payments. 11 years in business with consistent revenue trends. Sector exposure within limits.",
+          "term_sheet": {
+            "amount": 450000,
+            "rate": 12.71,
+            "term_months": 28
+          },
+          "tokens_in": 0,
+          "tokens_out": 0,
+          "cost_usd": 0.0,
+          "tool_calls": 0
+        },
+        {
+          "lender_id": "LND-004",
+          "borrower_id": "BRW-005",
+          "decision": "APPROVE",
+          "reasoning": "Acceptable risk profile. Revenue of $1,735,000 supports the requested loan amount. Cash flow appears adequate for debt service.",
+          "term_sheet": {
+            "amount": 400000,
+            "rate": 11.79,
+            "term_months": 21
+          },
+          "tokens_in": 0,
+          "tokens_out": 0,
+          "cost_usd": 0.0,
+          "tool_calls": 0
+        },
+        {
+          "lender_id": "LND-004",
+          "borrower_id": "BRW-034",
+          "decision": "APPROVE",
+          "reasoning": "Acceptable risk profile. Revenue of $2,041,000 supports the requested loan amount. Cash flow appears adequate for debt service.",
+          "term_sheet": {
+            "amount": 225000,
+            "rate": 12.63,
+            "term_months": 30
+          },
+          "tokens_in": 0,
+          "tokens_out": 0,
+          "cost_usd": 0.0,
+          "tool_calls": 0
+        },
+        {
+          "lender_id": "LND-004",
+          "borrower_id": "BRW-023",
+          "decision": "APPROVE",
+          "reasoning": "Acceptable risk profile. Revenue of $2,664,000 supports the requested loan amount. Cash flow appears adequate for debt service.",
+          "term_sheet": {
+            "amount": 450000,
+            "rate": 11.31,
+            "term_months": 13
+          },
+          "tokens_in": 0,
+          "tokens_out": 0,
+          "cost_usd": 0.0,
+          "tool_calls": 0
+        },
+        {
+          "lender_id": "LND-005",
+          "borrower_id": "BRW-005",
+          "decision": "APPROVE",
+          "reasoning": "Strong application. Monthly free cash flow of $45,333 provides a DSCR of 2.6x on proposed payments. 7 years in business with consistent revenue trends. Sector exposure within limits.",
+          "term_sheet": {
+            "amount": 400000,
+            "rate": 9.46,
+            "term_months": 23
+          },
+          "tokens_in": 0,
+          "tokens_out": 0,
+          "cost_usd": 0.0,
+          "tool_calls": 0
+        },
+        {
+          "lender_id": "LND-005",
+          "borrower_id": "BRW-034",
+          "decision": "APPROVE",
+          "reasoning": "Strong application. Monthly free cash flow of $47,917 provides a DSCR of 4.5x on proposed payments. 12 years in business with consistent revenue trends. Sector exposure within limits.",
+          "term_sheet": {
+            "amount": 225000,
+            "rate": 9.31,
+            "term_months": 21
+          },
+          "tokens_in": 0,
+          "tokens_out": 0,
+          "cost_usd": 0.0,
+          "tool_calls": 0
+        },
+        {
+          "lender_id": "LND-005",
+          "borrower_id": "BRW-023",
+          "decision": "REJECT",
+          "reasoning": "Fundamental business weaknesses detected.",
+          "term_sheet": null,
+          "tokens_in": 0,
+          "tokens_out": 0,
+          "cost_usd": 0.0,
+          "tool_calls": 0
+        }
+      ],
+      "booked_loans": [
+        {
+          "id": "LOAN-001",
+          "borrower_id": "BRW-005",
+          "borrower_name": "PixelForge Studios",
+          "lender_id": "LND-002",
+          "sector": "Digital Media",
+          "principal": 400000,
+          "interest_rate": 8.3,
+          "term_months": 27
+        },
+        {
+          "id": "LOAN-002",
+          "borrower_id": "BRW-034",
+          "borrower_name": "Silverline HVAC Services",
+          "lender_id": "LND-002",
+          "sector": "Construction Services",
+          "principal": 225000,
+          "interest_rate": 8.14,
+          "term_months": 25
+        },
+        {
+          "id": "LOAN-003",
+          "borrower_id": "BRW-023",
+          "borrower_name": "Atlas Precision Components",
+          "lender_id": "LND-004",
+          "sector": "Advanced Manufacturing",
+          "principal": 450000,
+          "interest_rate": 11.31,
+          "term_months": 13
+        }
+      ],
+      "events": [
+        "PAYMENT: NovaBio Labs \u2014 $4,149 interest, $18,792 principal [Heritage Trust Bank]",
+        "PAYMENT: Metro Print & Design \u2014 $3,423 interest, $16,292 principal [Heritage Trust Bank]",
+        "PAYMENT: Velocity Staffing Partners \u2014 $6,204 interest, $22,220 principal [Pinnacle Finance]",
+        "  [Velocity Capital] Capital decay: -$3,633 on $1,816,360 idle (cumulative: $7,273)",
+        "  [Heritage Trust Bank] Capital decay: -$3,986 on $1,993,156 idle (cumulative: $8,986)",
+        "  [Meridian Partners] Capital decay: -$4,591 on $2,295,400 idle (cumulative: $9,191)",
+        "  [Pinnacle Finance] Capital decay: -$4,094 on $2,046,784 idle (cumulative: $8,734)",
+        "  [Atlas Credit] Capital decay: -$5,449 on $2,724,540 idle (cumulative: $10,909)"
+      ],
+      "lender_snapshots": {
+        "LND-001": {
+          "name": "Velocity Capital",
+          "model": "deepseek/deepseek-chat-v3-0324",
+          "net_pnl": 0.0,
+          "deployed": 1180000,
+          "available": 1812727.28,
+          "effective_capital": 2992727.28,
+          "deals_won": 0,
+          "deals_rejected": 2,
+          "deals_lost": 4,
+          "active_loans": 0,
+          "cumulative_interest": 0.0,
+          "cumulative_losses": 0.0,
+          "cumulative_fees": 0.0,
+          "defaults": 0,
+          "frauds_funded": 0
+        },
+        "LND-002": {
+          "name": "Heritage Trust Bank",
+          "model": "qwen/qwen3-235b-a22b",
+          "net_pnl": 13071.9,
+          "deployed": 2639915.86,
+          "available": 1364169.73,
+          "effective_capital": 4004085.59,
+          "deals_won": 4,
+          "deals_rejected": 2,
+          "deals_lost": 0,
+          "active_loans": 4,
+          "cumulative_interest": 7571.9,
+          "cumulative_losses": 0.0,
+          "cumulative_fees": 5500.0,
+          "defaults": 0,
+          "frauds_funded": 0
+        },
+        "LND-003": {
+          "name": "Meridian Partners",
+          "model": "meta-llama/llama-3.3-70b-instruct",
+          "net_pnl": 0.0,
+          "deployed": 1200000,
+          "available": 2290809.2,
+          "effective_capital": 3490809.2,
+          "deals_won": 0,
+          "deals_rejected": 1,
+          "deals_lost": 5,
+          "active_loans": 0,
+          "cumulative_interest": 0.0,
+          "cumulative_losses": 0.0,
+          "cumulative_fees": 0.0,
+          "defaults": 0,
+          "frauds_funded": 0
+        },
+        "LND-004": {
+          "name": "Pinnacle Finance",
+          "model": "qwen/qwen3-30b-a3b",
+          "net_pnl": 9203.59,
+          "deployed": 1607779.84,
+          "available": 1592690.18,
+          "effective_capital": 3200470.02,
+          "deals_won": 2,
+          "deals_rejected": 0,
+          "deals_lost": 4,
+          "active_loans": 2,
+          "cumulative_interest": 6203.59,
+          "cumulative_losses": 0.0,
+          "cumulative_fees": 3000.0,
+          "defaults": 0,
+          "frauds_funded": 0
+        },
+        "LND-005": {
+          "name": "Atlas Credit",
+          "model": "meta-llama/llama-3.3-70b-instruct",
+          "net_pnl": 0.0,
+          "deployed": 1070000,
+          "available": 2719090.92,
+          "effective_capital": 3789090.92,
+          "deals_won": 0,
+          "deals_rejected": 2,
+          "deals_lost": 4,
+          "active_loans": 0,
+          "cumulative_interest": 0.0,
+          "cumulative_losses": 0.0,
+          "cumulative_fees": 0.0,
+          "defaults": 0,
+          "frauds_funded": 0
+        }
+      }
+    },
+    {
+      "week": 3,
+      "borrowers": [
+        {
+          "id": "BRW-S03-002",
+          "name": "Catalyst Dynamics",
+          "sector": "Urban Agriculture",
+          "amount": 330000,
+          "true_outcome": "good"
+        },
+        {
+          "id": "BRW-S03-001",
+          "name": "Meridian Labs",
+          "sector": "Furniture Manufacturing",
+          "amount": 400000,
+          "true_outcome": "good"
+        },
+        {
+          "id": "BRW-S03-003",
+          "name": "Horizon Collective",
+          "sector": "Property Services",
+          "amount": 380000,
+          "true_outcome": "bad"
+        }
+      ],
+      "decisions": [
+        {
+          "lender_id": "LND-001",
+          "borrower_id": "BRW-S03-002",
+          "decision": "APPROVE",
+          "reasoning": "Strong application. Monthly free cash flow of $45,170 provides a DSCR of 2.5x on proposed payments. 9 years in business with consistent revenue trends. Sector exposure within limits.",
+          "term_sheet": {
+            "amount": 330000,
+            "rate": 13.58,
+            "term_months": 18
+          },
+          "tokens_in": 0,
+          "tokens_out": 0,
+          "cost_usd": 0.0,
+          "tool_calls": 0
+        },
+        {
+          "lender_id": "LND-001",
+          "borrower_id": "BRW-S03-001",
+          "decision": "APPROVE",
+          "reasoning": "Strong application. Monthly free cash flow of $35,402 provides a DSCR of 2.0x on proposed payments. 9 years in business with consistent revenue trends. Sector exposure within limits.",
+          "term_sheet": {
+            "amount": 400000,
+            "rate": 13.97,
+            "term_months": 23
+          },
+          "tokens_in": 0,
+          "tokens_out": 0,
+          "cost_usd": 0.0,
+          "tool_calls": 0
+        },
+        {
+          "lender_id": "LND-001",
+          "borrower_id": "BRW-S03-003",
+          "decision": "APPROVE",
+          "reasoning": "Strong application. Monthly free cash flow of $9,521 provides a DSCR of 0.5x on proposed payments. 9 years in business with consistent revenue trends. Sector exposure within limits.",
+          "term_sheet": {
+            "amount": 380000,
+            "rate": 13.8,
+            "term_months": 20
+          },
+          "tokens_in": 0,
+          "tokens_out": 0,
+          "cost_usd": 0.0,
+          "tool_calls": 0
+        },
+        {
+          "lender_id": "LND-002",
+          "borrower_id": "BRW-S03-002",
+          "decision": "APPROVE",
+          "reasoning": "Strong application. Monthly free cash flow of $45,170 provides a DSCR of 2.6x on proposed payments. 9 years in business with consistent revenue trends. Sector exposure within limits.",
+          "term_sheet": {
+            "amount": 330000,
+            "rate": 7.58,
+            "term_months": 19
+          },
+          "tokens_in": 0,
+          "tokens_out": 0,
+          "cost_usd": 0.0,
+          "tool_calls": 0
+        },
+        {
+          "lender_id": "LND-002",
+          "borrower_id": "BRW-S03-001",
+          "decision": "APPROVE",
+          "reasoning": "Strong application. Monthly free cash flow of $35,402 provides a DSCR of 2.4x on proposed payments. 9 years in business with consistent revenue trends. Sector exposure within limits.",
+          "term_sheet": {
+            "amount": 400000,
+            "rate": 8.32,
+            "term_months": 27
+          },
+          "tokens_in": 0,
+          "tokens_out": 0,
+          "cost_usd": 0.0,
+          "tool_calls": 0
+        },
+        {
+          "lender_id": "LND-002",
+          "borrower_id": "BRW-S03-003",
+          "decision": "APPROVE",
+          "reasoning": "Strong application. Monthly free cash flow of $9,521 provides a DSCR of 0.5x on proposed payments. 9 years in business with consistent revenue trends. Sector exposure within limits.",
+          "term_sheet": {
+            "amount": 380000,
+            "rate": 7.68,
+            "term_months": 20
+          },
+          "tokens_in": 0,
+          "tokens_out": 0,
+          "cost_usd": 0.0,
+          "tool_calls": 0
+        },
+        {
+          "lender_id": "LND-003",
+          "borrower_id": "BRW-S03-002",
+          "decision": "APPROVE",
+          "reasoning": "Strong application. Monthly free cash flow of $45,170 provides a DSCR of 3.1x on proposed payments. 9 years in business with consistent revenue trends. Sector exposure within limits.",
+          "term_sheet": {
+            "amount": 330000,
+            "rate": 10.93,
+            "term_months": 23
+          },
+          "tokens_in": 0,
+          "tokens_out": 0,
+          "cost_usd": 0.0,
+          "tool_calls": 0
+        },
+        {
+          "lender_id": "LND-003",
+          "borrower_id": "BRW-S03-001",
+          "decision": "APPROVE",
+          "reasoning": "Strong application. Monthly free cash flow of $35,402 provides a DSCR of 2.5x on proposed payments. 9 years in business with consistent revenue trends. Sector exposure within limits.",
+          "term_sheet": {
+            "amount": 400000,
+            "rate": 11.4,
+            "term_months": 28
+          },
+          "tokens_in": 0,
+          "tokens_out": 0,
+          "cost_usd": 0.0,
+          "tool_calls": 0
+        },
+        {
+          "lender_id": "LND-003",
+          "borrower_id": "BRW-S03-003",
+          "decision": "REJECT",
+          "reasoning": "Fundamental business weaknesses detected.",
+          "term_sheet": null,
+          "tokens_in": 0,
+          "tokens_out": 0,
+          "cost_usd": 0.0,
+          "tool_calls": 0
+        },
+        {
+          "lender_id": "LND-004",
+          "borrower_id": "BRW-S03-002",
+          "decision": "APPROVE",
+          "reasoning": "Acceptable risk profile. Revenue of $1,605,883 supports the requested loan amount. Cash flow appears adequate for debt service.",
+          "term_sheet": {
+            "amount": 330000,
+            "rate": 11.54,
+            "term_months": 19
+          },
+          "tokens_in": 0,
+          "tokens_out": 0,
+          "cost_usd": 0.0,
+          "tool_calls": 0
+        },
+        {
+          "lender_id": "LND-004",
+          "borrower_id": "BRW-S03-001",
+          "decision": "APPROVE",
+          "reasoning": "Acceptable risk profile. Revenue of $1,265,977 supports the requested loan amount. Cash flow appears adequate for debt service.",
+          "term_sheet": {
+            "amount": 400000,
+            "rate": 11.02,
+            "term_months": 14
+          },
+          "tokens_in": 0,
+          "tokens_out": 0,
+          "cost_usd": 0.0,
+          "tool_calls": 0
+        },
+        {
+          "lender_id": "LND-004",
+          "borrower_id": "BRW-S03-003",
+          "decision": "APPROVE",
+          "reasoning": "Acceptable risk profile. Revenue of $1,716,627 supports the requested loan amount. Cash flow appears adequate for debt service.",
+          "term_sheet": {
+            "amount": 380000,
+            "rate": 12.53,
+            "term_months": 23
+          },
+          "tokens_in": 0,
+          "tokens_out": 0,
+          "cost_usd": 0.0,
+          "tool_calls": 0
+        },
+        {
+          "lender_id": "LND-005",
+          "borrower_id": "BRW-S03-002",
+          "decision": "APPROVE",
+          "reasoning": "Strong application. Monthly free cash flow of $45,170 provides a DSCR of 3.7x on proposed payments. 9 years in business with consistent revenue trends. Sector exposure within limits.",
+          "term_sheet": {
+            "amount": 330000,
+            "rate": 9.81,
+            "term_months": 27
+          },
+          "tokens_in": 0,
+          "tokens_out": 0,
+          "cost_usd": 0.0,
+          "tool_calls": 0
+        },
+        {
+          "lender_id": "LND-005",
+          "borrower_id": "BRW-S03-001",
+          "decision": "APPROVE",
+          "reasoning": "Strong application. Monthly free cash flow of $35,402 provides a DSCR of 1.7x on proposed payments. 9 years in business with consistent revenue trends. Sector exposure within limits.",
+          "term_sheet": {
+            "amount": 400000,
+            "rate": 9.15,
+            "term_months": 19
+          },
+          "tokens_in": 0,
+          "tokens_out": 0,
+          "cost_usd": 0.0,
+          "tool_calls": 0
+        },
+        {
+          "lender_id": "LND-005",
+          "borrower_id": "BRW-S03-003",
+          "decision": "REJECT",
+          "reasoning": "Fundamental business weaknesses detected.",
+          "term_sheet": null,
+          "tokens_in": 0,
+          "tokens_out": 0,
+          "cost_usd": 0.0,
+          "tool_calls": 0
+        }
+      ],
+      "booked_loans": [
+        {
+          "id": "LOAN-001",
+          "borrower_id": "BRW-S03-002",
+          "borrower_name": "Catalyst Dynamics",
+          "lender_id": "LND-002",
+          "sector": "Urban Agriculture",
+          "principal": 330000,
+          "interest_rate": 7.58,
+          "term_months": 19
+        },
+        {
+          "id": "LOAN-002",
+          "borrower_id": "BRW-S03-001",
+          "borrower_name": "Meridian Labs",
+          "lender_id": "LND-002",
+          "sector": "Furniture Manufacturing",
+          "principal": 400000,
+          "interest_rate": 8.32,
+          "term_months": 27
+        },
+        {
+          "id": "LOAN-003",
+          "borrower_id": "BRW-S03-003",
+          "borrower_name": "Horizon Collective",
+          "lender_id": "LND-002",
+          "sector": "Property Services",
+          "principal": 380000,
+          "interest_rate": 7.68,
+          "term_months": 20
+        }
+      ],
+      "events": [
+        "PAYMENT: NovaBio Labs \u2014 $3,884 interest, $19,057 principal [Heritage Trust Bank]",
+        "PAYMENT: Metro Print & Design \u2014 $3,195 interest, $16,520 principal [Heritage Trust Bank]",
+        "PAYMENT: PixelForge Studios \u2014 $5,440 interest, $27,145 principal [Heritage Trust Bank]",
+        "PAYMENT: Silverline HVAC Services \u2014 $2,996 interest, $16,634 principal [Heritage Trust Bank]",
+        "PAYMENT: Velocity Staffing Partners \u2014 $5,733 interest, $22,691 principal [Pinnacle Finance]",
+        "PAYMENT: Atlas Precision Components \u2014 $8,174 interest, $65,710 principal [Pinnacle Finance]",
+        "  [Velocity Capital] Capital decay: -$3,625 on $1,812,727 idle (cumulative: $10,898)",
+        "  [Heritage Trust Bank] Capital decay: -$2,931 on $1,465,290 idle (cumulative: $11,917)",
+        "  [Meridian Partners] Capital decay: -$4,582 on $2,290,809 idle (cumulative: $13,772)",
+        "  [Pinnacle Finance] Capital decay: -$3,399 on $1,699,498 idle (cumulative: $12,133)",
+        "  [Atlas Credit] Capital decay: -$5,438 on $2,719,091 idle (cumulative: $16,347)"
+      ],
+      "lender_snapshots": {
+        "LND-001": {
+          "name": "Velocity Capital",
+          "model": "deepseek/deepseek-chat-v3-0324",
+          "net_pnl": 0.0,
+          "deployed": 1180000,
+          "available": 1809101.83,
+          "effective_capital": 2989101.83,
+          "deals_won": 0,
+          "deals_rejected": 2,
+          "deals_lost": 7,
+          "active_loans": 0,
+          "cumulative_interest": 0.0,
+          "cumulative_losses": 0.0,
+          "cumulative_fees": 0.0,
+          "defaults": 0,
+          "frauds_funded": 0
+        },
+        "LND-002": {
+          "name": "Heritage Trust Bank",
+          "model": "qwen/qwen3-235b-a22b",
+          "net_pnl": 34837.38,
+          "deployed": 3670560.69,
+          "available": 352359.8,
+          "effective_capital": 4022920.49,
+          "deals_won": 7,
+          "deals_rejected": 2,
+          "deals_lost": 0,
+          "active_loans": 7,
+          "cumulative_interest": 23087.38,
+          "cumulative_losses": 0.0,
+          "cumulative_fees": 11750.0,
+          "defaults": 0,
+          "frauds_funded": 0
+        },
+        "LND-003": {
+          "name": "Meridian Partners",
+          "model": "meta-llama/llama-3.3-70b-instruct",
+          "net_pnl": 0.0,
+          "deployed": 1200000,
+          "available": 2286227.58,
+          "effective_capital": 3486227.58,
+          "deals_won": 0,
+          "deals_rejected": 2,
+          "deals_lost": 7,
+          "active_loans": 0,
+          "cumulative_interest": 0.0,
+          "cumulative_losses": 0.0,
+          "cumulative_fees": 0.0,
+          "defaults": 0,
+          "frauds_funded": 0
+        },
+        "LND-004": {
+          "name": "Pinnacle Finance",
+          "model": "qwen/qwen3-30b-a3b",
+          "net_pnl": 27610.91,
+          "deployed": 1519379.46,
+          "available": 1696098.89,
+          "effective_capital": 3215478.35,
+          "deals_won": 2,
+          "deals_rejected": 0,
+          "deals_lost": 7,
+          "active_loans": 2,
+          "cumulative_interest": 20110.91,
+          "cumulative_losses": 0.0,
+          "cumulative_fees": 7500.0,
+          "defaults": 0,
+          "frauds_funded": 0
+        },
+        "LND-005": {
+          "name": "Atlas Credit",
+          "model": "meta-llama/llama-3.3-70b-instruct",
+          "net_pnl": 0.0,
+          "deployed": 1070000,
+          "available": 2713652.74,
+          "effective_capital": 3783652.74,
+          "deals_won": 0,
+          "deals_rejected": 3,
+          "deals_lost": 6,
+          "active_loans": 0,
+          "cumulative_interest": 0.0,
+          "cumulative_losses": 0.0,
+          "cumulative_fees": 0.0,
+          "defaults": 0,
+          "frauds_funded": 0
+        }
+      }
+    }
+  ]
+}
