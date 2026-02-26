@@ -47,7 +47,15 @@ load_dotenv()
 
 from loanville.data import get_borrowers, MIX_PRESETS
 from loanville.engine import SimulationEngine
-from loanville.llm import MODEL_PRICING, clear_usage, get_cost_summary, get_token_usage
+# Cost tracking — try loanville.llm first, fall back to stubs if deprecated
+try:
+    from loanville.llm import MODEL_PRICING, clear_usage, get_cost_summary, get_token_usage
+except ImportError:
+    # llm.py deprecated in favour of LOS path; provide no-op stubs
+    MODEL_PRICING: dict[str, tuple[float, float]] = {}
+    def clear_usage() -> None: pass  # noqa: E704
+    def get_cost_summary() -> dict[str, float]: return {}  # noqa: E704
+    def get_token_usage() -> dict[str, dict[str, int]]: return {}  # noqa: E704
 from loanville.models import Borrower, LenderConfig
 from loanville.scoring import (
     RISK_FREE_RATE, SIM_HORIZON_MONTHS,
@@ -65,28 +73,108 @@ INITIAL_ELO = 1500
 # Epsilon for utility comparison ties (Profit Elo)
 UTILITY_EPSILON = 500.0  # $500 — within this range counts as a tie
 
+# Per-match Elo movement cap — prevents catastrophic swings from correlated
+# per-applicant signals (inspired by Skirmish's natural 1-signal-per-match bound)
+ELO_MATCH_CAP = 40.0  # max ±40 points per model per match
+
+# Composite Elo weights for single-number leaderboard ranking
+# (triple Elo retained as analytical drill-down)
+COMPOSITE_WEIGHTS = {
+    "profit": 0.50,
+    "credit": 0.30,
+    "dealshare": 0.20,
+}
+
 
 # ---------------------------------------------------------------------------
 # Lender factory — identical config for all three slots
 # ---------------------------------------------------------------------------
 
-def make_lender(slot: int, model_id: str, display_name: str) -> LenderConfig:
+def _build_feedback_prompt(prev_results: dict) -> str:
+    """Build a coaching prompt from previous match results.
+
+    Mirrors Skirmish's NEXT_ROUND.md pattern where LLMs review match logs
+    and previous strategies before generating improved ones.
+    """
+    cm = prev_results.get("confusion_matrix", {})
+    good_app = cm.get("good", {}).get("approved", 0)
+    good_rej = cm.get("good", {}).get("rejected", 0)
+    bad_app = cm.get("bad", {}).get("approved", 0)
+    bad_rej = cm.get("bad", {}).get("rejected", 0)
+    fraud_app = cm.get("fraud", {}).get("approved", 0)
+    fraud_rej = cm.get("fraud", {}).get("rejected", 0)
+
+    deals_won = prev_results.get("deals_won", 0)
+    frauds_funded = prev_results.get("frauds_funded", 0)
+    defaults = prev_results.get("defaults", 0)
+    net_pnl = prev_results.get("net_pnl", 0)
+    score = prev_results.get("score", 0)
+
+    lines = [
+        "--- PREVIOUS MATCH PERFORMANCE REVIEW ---",
+        f"RAROC Score: {score:+.2f}%  |  Net P&L: ${net_pnl:,.0f}  |  Deals Won: {deals_won}",
+        f"Defaults: {defaults}  |  Frauds Funded: {frauds_funded}",
+        "",
+        "Decision Accuracy:",
+        f"  Good borrowers: {good_app} correctly approved, {good_rej} incorrectly rejected",
+        f"  Bad borrowers: {bad_rej} correctly rejected, {bad_app} incorrectly approved",
+        f"  Fraud borrowers: {fraud_rej} correctly rejected, {fraud_app} incorrectly approved",
+        "",
+    ]
+
+    # Add specific coaching based on weaknesses
+    if good_rej > good_app:
+        lines.append("ADJUST: You are too conservative — you rejected more good borrowers than you approved. "
+                      "Consider loosening your approval criteria for borrowers with strong fundamentals.")
+    if bad_app > bad_rej:
+        lines.append("ADJUST: You are too aggressive — you approved more bad borrowers than you rejected. "
+                      "Tighten your risk analysis, especially for borrowers with weak debt service coverage.")
+    if fraud_app > 0:
+        lines.append(f"ADJUST: You funded {fraud_app} fraudulent borrower(s). Look more carefully for "
+                      "red flags: round-number deposits, circular transfers, structured deposits under $10K, "
+                      "and fabricated statements with suspiciously regular amounts.")
+    if deals_won == 0:
+        lines.append("ADJUST: You won zero deals. Your pricing may be too high. Consider offering more "
+                      "competitive rates to win deals while maintaining positive expected value.")
+
+    lines.append("Use this feedback to improve your decisions in the next round.")
+    lines.append("--- END PERFORMANCE REVIEW ---")
+
+    return "\n".join(lines)
+
+
+def make_lender(
+    slot: int,
+    model_id: str,
+    display_name: str,
+    feedback: dict | None = None,
+) -> LenderConfig:
     """Create a lender config for the Elo tournament.
 
     All lenders get identical parameters so the only differentiator is the
     model's analytical and pricing ability.
+
+    If feedback is provided (dict with confusion_matrix, deals_won, etc.),
+    a coaching prompt from the previous match is prepended to the persona.
     """
+    base_persona = (
+        "You are a middle-market commercial lender evaluating loan applications. "
+        "Your goal is to maximize risk-adjusted returns by approving creditworthy "
+        "borrowers at appropriate interest rates while rejecting borrowers who "
+        "are unlikely to repay. Carefully analyze each borrower's financial "
+        "statements, cash flow, debt service capacity, and business fundamentals. "
+        "You offer terms between 12-30 months with competitive interest rates."
+    )
+
+    if feedback:
+        persona = _build_feedback_prompt(feedback) + "\n\n" + base_persona
+    else:
+        persona = base_persona
+
     return LenderConfig(
         id=f"ELO-{slot:03d}",
         name=f"Lender {slot} [{display_name}]",
-        persona=(
-            "You are a middle-market commercial lender evaluating loan applications. "
-            "Your goal is to maximize risk-adjusted returns by approving creditworthy "
-            "borrowers at appropriate interest rates while rejecting borrowers who "
-            "are unlikely to repay. Carefully analyze each borrower's financial "
-            "statements, cash flow, debt service capacity, and business fundamentals. "
-            "You offer terms between 12-30 months with competitive interest rates."
-        ),
+        persona=persona,
         model=model_id,
         target_yield_pct=11.0,
         max_single_loan=700000,
@@ -213,11 +301,16 @@ def run_match(
     api_key: str,
     sample_borrowers: int | None = None,
     rng: random.Random | None = None,
+    model_feedback: dict[str, dict] | None = None,
 ) -> list[dict]:
     """Run a single 3-way match.  Returns per-model results sorted by score.
 
     If sample_borrowers is set, randomly samples that many borrowers from the
     pool each match (stratified: maintains good/bad/fraud ratio).
+
+    If model_feedback is provided (model_id -> previous match results dict),
+    each model receives coaching based on its prior performance, mirroring
+    Skirmish's inter-round strategy iteration loop.
     """
     borrowers = get_borrowers(mix)
 
@@ -245,12 +338,18 @@ def run_match(
         borrowers = sampled
 
     lenders = [
-        make_lender(i + 1, model_id, name)
+        make_lender(
+            i + 1, model_id, name,
+            feedback=(model_feedback or {}).get(model_id),
+        )
         for i, (model_id, name) in enumerate(models)
     ]
 
     clear_usage()
-    engine = SimulationEngine(borrowers, lenders, api_key, mock=False)
+    engine = SimulationEngine(
+        borrowers, lenders, mock=False,
+        underwrite_only=True,
+    )
 
     # Suppress the engine's verbose phase-by-phase output
     with contextlib.redirect_stdout(io.StringIO()):
@@ -336,10 +435,31 @@ def _apply_elo_update(
     ratings[mj] += pair_k * (actual_j - exp_j)
 
 
+def _clamp_elo_deltas(
+    old_ratings: dict[str, float],
+    new_ratings: dict[str, float],
+    cap: float = ELO_MATCH_CAP,
+) -> dict[str, float]:
+    """Clamp per-model Elo movement to ±cap for a single match.
+
+    Prevents catastrophic swings when correlated per-applicant signals all
+    push in the same direction (e.g. a universally bad model losing on every
+    borrower).  Inspired by Skirmish's natural 1-signal-per-match bound.
+    """
+    clamped = dict(new_ratings)
+    for mid in old_ratings:
+        if mid in clamped:
+            delta = clamped[mid] - old_ratings[mid]
+            if abs(delta) > cap:
+                clamped[mid] = old_ratings[mid] + (cap if delta > 0 else -cap)
+    return clamped
+
+
 def update_dealshare_elo(
     ratings: dict[str, float],
     match_results: list[dict],
     k: float = DEFAULT_K,
+    match_cap: float = ELO_MATCH_CAP,
 ) -> dict[str, float]:
     """DealShare Elo: rewards winning deals (market participation).
 
@@ -355,6 +475,7 @@ def update_dealshare_elo(
     if not all_bids:
         return dict(ratings)
 
+    old_ratings = dict(ratings)
     new_ratings = dict(ratings)
     n = len(match_results)
     pair_k = k / ((n - 1) * len(all_bids))
@@ -380,7 +501,7 @@ def update_dealshare_elo(
 
                 _apply_elo_update(new_ratings, mi, mj, actual_i, actual_j, pair_k)
 
-    return new_ratings
+    return _clamp_elo_deltas(old_ratings, new_ratings, match_cap)
 
 
 def update_profit_elo(
@@ -388,6 +509,7 @@ def update_profit_elo(
     match_results: list[dict],
     k: float = DEFAULT_K,
     epsilon: float = UTILITY_EPSILON,
+    match_cap: float = ELO_MATCH_CAP,
 ) -> dict[str, float]:
     """Profit Elo: rewards economic utility per borrower.
 
@@ -406,6 +528,7 @@ def update_profit_elo(
     if not all_bids:
         return dict(ratings)
 
+    old_ratings = dict(ratings)
     new_ratings = dict(ratings)
     n = len(match_results)
     pair_k = k / ((n - 1) * len(all_bids))
@@ -429,13 +552,14 @@ def update_profit_elo(
 
                 _apply_elo_update(new_ratings, mi, mj, actual_i, actual_j, pair_k)
 
-    return new_ratings
+    return _clamp_elo_deltas(old_ratings, new_ratings, match_cap)
 
 
 def update_credit_elo(
     ratings: dict[str, float],
     match_results: list[dict],
     k: float = DEFAULT_K,
+    match_cap: float = ELO_MATCH_CAP,
 ) -> dict[str, float]:
     """Credit Elo: rewards correct approve/reject decisions vs ground truth.
 
@@ -457,6 +581,7 @@ def update_credit_elo(
     if not all_bids:
         return dict(ratings)
 
+    old_ratings = dict(ratings)
     new_ratings = dict(ratings)
     n = len(match_results)
     pair_k = k / ((n - 1) * len(all_bids))
@@ -496,7 +621,37 @@ def update_credit_elo(
 
                 _apply_elo_update(new_ratings, mi, mj, actual_i, actual_j, pair_k)
 
-    return new_ratings
+    return _clamp_elo_deltas(old_ratings, new_ratings, match_cap)
+
+
+def compute_composite_elo(
+    profit_ratings: dict[str, float],
+    credit_ratings: dict[str, float],
+    dealshare_ratings: dict[str, float],
+    weights: dict[str, float] | None = None,
+) -> dict[str, float]:
+    """Compute a single composite Elo for leaderboard display.
+
+    Combines the three Elo dimensions into one legible number, inspired by
+    Skirmish's single-rating leaderboard.  The triple Elo is retained as
+    analytical drill-down.
+
+    Default weights: 50% Profit, 30% Credit, 20% DealShare.
+    """
+    w = weights or COMPOSITE_WEIGHTS
+    wp = w.get("profit", 0.50)
+    wc = w.get("credit", 0.30)
+    wd = w.get("dealshare", 0.20)
+
+    all_models = set(profit_ratings) | set(credit_ratings) | set(dealshare_ratings)
+    composite = {}
+    for mid in all_models:
+        composite[mid] = (
+            wp * profit_ratings.get(mid, INITIAL_ELO)
+            + wc * credit_ratings.get(mid, INITIAL_ELO)
+            + wd * dealshare_ratings.get(mid, INITIAL_ELO)
+        )
+    return composite
 
 
 # Legacy compatibility
@@ -523,6 +678,104 @@ def update_elo_batch(
                 actual_i, actual_j = 0.0, 1.0
             _apply_elo_update(new_ratings, mi, mj, actual_i, actual_j, pair_k)
     return new_ratings
+
+
+# ---------------------------------------------------------------------------
+# Epsilon neutrality validation
+# ---------------------------------------------------------------------------
+
+def validate_epsilon_neutrality(
+    match_history: list[list[dict]],
+    model_ids: list[str],
+    epsilons: list[float] | None = None,
+    k: float = DEFAULT_K,
+) -> dict:
+    """Analyze how UTILITY_EPSILON affects Profit Elo rankings.
+
+    Replays match history with different epsilon values to detect whether
+    the current epsilon systematically favors conservative or aggressive
+    strategies.  If rankings are stable across epsilon values, the current
+    setting is neutral.
+
+    Args:
+        match_history: List of match results (each is a list[dict] from run_match)
+        model_ids: All model IDs to track
+        epsilons: Epsilon values to test (default: 0, 100, 250, 500, 1000, 2000)
+        k: Elo K-factor
+
+    Returns:
+        {
+            "epsilons": [float, ...],
+            "rankings_by_epsilon": {eps: [model_id ranked by Profit Elo]},
+            "rating_deltas": {model_id: {eps: profit_elo}},
+            "rank_variance": {model_id: float},  # variance of rank across epsilons
+            "stable": bool,  # True if top-3 ranking is identical across all epsilons
+            "summary": str,
+        }
+    """
+    if epsilons is None:
+        epsilons = [0.0, 100.0, 250.0, 500.0, 1000.0, 2000.0]
+
+    rankings_by_epsilon: dict[float, list[str]] = {}
+    ratings_by_epsilon: dict[float, dict[str, float]] = {}
+
+    for eps in epsilons:
+        ratings = {mid: float(INITIAL_ELO) for mid in model_ids}
+        for match_results in match_history:
+            if len(match_results) < 2:
+                continue
+            ratings = update_profit_elo(
+                ratings, match_results, k=k, epsilon=eps,
+                match_cap=ELO_MATCH_CAP,
+            )
+
+        ranked = sorted(ratings.items(), key=lambda x: x[1], reverse=True)
+        rankings_by_epsilon[eps] = [mid for mid, _ in ranked]
+        ratings_by_epsilon[eps] = dict(ratings)
+
+    # Compute per-model rank variance across epsilon values
+    model_ranks: dict[str, list[int]] = {mid: [] for mid in model_ids}
+    for eps in epsilons:
+        for rank, mid in enumerate(rankings_by_epsilon[eps]):
+            model_ranks[mid].append(rank)
+
+    rank_variance = {}
+    for mid, ranks in model_ranks.items():
+        mean = sum(ranks) / len(ranks)
+        rank_variance[mid] = sum((r - mean) ** 2 for r in ranks) / len(ranks)
+
+    # Check if top-3 is stable
+    top3_sets = [tuple(rankings_by_epsilon[eps][:3]) for eps in epsilons]
+    stable = len(set(top3_sets)) == 1
+
+    # Build summary
+    if stable:
+        summary = (
+            f"STABLE: Top-3 ranking is identical across all {len(epsilons)} "
+            f"epsilon values ({epsilons[0]}-{epsilons[-1]}). "
+            f"Current epsilon ${UTILITY_EPSILON:.0f} is neutral."
+        )
+    else:
+        max_var_model = max(rank_variance, key=rank_variance.get)
+        summary = (
+            f"UNSTABLE: Top-3 ranking varies across epsilon values. "
+            f"Most affected model: {max_var_model} "
+            f"(rank variance: {rank_variance[max_var_model]:.2f}). "
+            f"Consider investigating whether epsilon ${UTILITY_EPSILON:.0f} "
+            f"favors specific strategy types."
+        )
+
+    return {
+        "epsilons": epsilons,
+        "rankings_by_epsilon": rankings_by_epsilon,
+        "rating_deltas": {
+            mid: {eps: ratings_by_epsilon[eps].get(mid, INITIAL_ELO) for eps in epsilons}
+            for mid in model_ids
+        },
+        "rank_variance": rank_variance,
+        "stable": stable,
+        "summary": summary,
+    }
 
 
 # ---------------------------------------------------------------------------
@@ -571,8 +824,14 @@ def run_tournament(
     resume_data: dict | None = None,
     sample_borrowers: int | None = None,
     leaderboard: bool = False,
+    inter_match_feedback: bool = True,
 ) -> dict:
-    """Run the full Elo tournament with three rating systems."""
+    """Run the full Elo tournament with three rating systems.
+
+    If inter_match_feedback is True (default), each model receives coaching
+    based on its most recent match performance, mirroring Skirmish's
+    inter-round strategy iteration loop.
+    """
     # Compute baselines once (they only depend on the mix + standard lender config)
     baseline_lender = make_lender(1, "baseline", "baseline")
     all_borrowers = get_borrowers(mix)
@@ -621,11 +880,17 @@ def run_tournament(
     matchups = generate_matchups(models, remaining, seed=42 + completed)
     match_rng = random.Random(1337 + completed)
 
+    # Track latest match results per model for inter-match feedback
+    # model_id -> most recent results dict (score, confusion_matrix, deals_won, etc.)
+    latest_results: dict[str, dict] = {}
+
     print(f"\n{'='*70}")
     print(f"  LOANVILLE ELO TOURNAMENT (3-Rating System)")
     print(f"  Models: {len(models)} | Mix: {mix} | Matches: {n_matches} | K={k}")
     if sample_borrowers:
         print(f"  Borrower sampling: {sample_borrowers} per match")
+    if inter_match_feedback:
+        print(f"  Inter-match feedback: enabled")
     if completed:
         print(f"  Resuming from match {completed + 1}")
     print(f"{'='*70}\n")
@@ -637,13 +902,29 @@ def run_tournament(
               f"{names[0]} vs {names[1]} vs {names[2]}  ", end="", flush=True)
 
         try:
+            # Build feedback for models in this triplet from their latest results
+            feedback = None
+            if inter_match_feedback and latest_results:
+                feedback = {
+                    mid: latest_results[mid]
+                    for mid, _ in triplet
+                    if mid in latest_results
+                }
+                if not feedback:
+                    feedback = None
+
             t0 = time.time()
             results = run_match(
                 triplet, mix, api_key,
                 sample_borrowers=sample_borrowers,
                 rng=match_rng,
+                model_feedback=feedback,
             )
             elapsed = time.time() - t0
+
+            # Store latest results for inter-match feedback
+            for r in results:
+                latest_results[r["model"]] = r
 
             # Update all three rating systems
             old_ds = dict(dealshare_ratings)
@@ -753,13 +1034,16 @@ def run_tournament(
 def _build_output(dealshare_ratings, profit_ratings, credit_ratings,
                   match_log, models, mix, total_cost,
                   oracle_score=None, heuristic_score=None, rate_stats=None):
+    composite = compute_composite_elo(profit_ratings, credit_ratings, dealshare_ratings)
     out = {
         "timestamp": datetime.now().isoformat(),
         "mix": mix,
         "n_models": len(models),
         "n_matches": len(match_log),
         "total_cost": round(total_cost, 4),
-        # Three rating systems
+        # Composite Elo — single-number ranking for leaderboard display
+        "composite_ratings": {k: round(v, 1) for k, v in composite.items()},
+        # Three rating systems (analytical drill-down)
         "dealshare_ratings": {k: round(v, 1) for k, v in dealshare_ratings.items()},
         "profit_ratings": {k: round(v, 1) for k, v in profit_ratings.items()},
         "credit_ratings": {k: round(v, 1) for k, v in credit_ratings.items()},
@@ -834,20 +1118,22 @@ def print_standings(dealshare_ratings, profit_ratings, credit_ratings,
         for w in winners:
             win_counts[w["model"]] += 1.0 / len(winners)
 
-    # Sort by Profit Elo (the recommended ranking)
-    ranked = sorted(profit_ratings.items(), key=lambda x: x[1], reverse=True)
+    # Compute composite Elo and sort by it (single-number leaderboard)
+    composite = compute_composite_elo(profit_ratings, credit_ratings, dealshare_ratings)
+    ranked = sorted(composite.items(), key=lambda x: x[1], reverse=True)
 
-    print(f"\n{'='*110}")
+    print(f"\n{'='*120}")
     print(f"  ELO STANDINGS — {len(match_log)} matches played")
-    print(f"  Sorted by Profit Elo (recommended ranking)")
-    print(f"{'='*110}")
-    print(f"  {'#':>3s}  {'Model':<24s} {'Profit':>7s} {'Credit':>7s} {'DealSh':>7s}  "
+    print(f"  Sorted by Composite Elo (50% Profit + 30% Credit + 20% DealShare)")
+    print(f"{'='*120}")
+    print(f"  {'#':>3s}  {'Model':<24s} {'Comp':>7s} {'Profit':>7s} {'Credit':>7s} {'DealSh':>7s}  "
           f"{'Matches':>7s}  {'Win%':>5s}  {'AvgRAROC':>9s}  "
           f"{'Good✓':>6s} {'Bad✓':>6s}")
-    print(f"  {'─'*100}")
+    print(f"  {'─'*110}")
 
-    for rank, (model_id, profit_elo) in enumerate(ranked, 1):
+    for rank, (model_id, comp_elo) in enumerate(ranked, 1):
         name = display_map.get(model_id, model_id.split("/")[-1])
+        pr_elo = profit_ratings.get(model_id, INITIAL_ELO)
         ds_elo = dealshare_ratings.get(model_id, INITIAL_ELO)
         cr_elo = credit_ratings.get(model_id, INITIAL_ELO)
         matches = match_counts.get(model_id, 0)
@@ -865,7 +1151,7 @@ def print_standings(dealshare_ratings, profit_ratings, credit_ratings,
         bad_correct = cm["bad"]["rejected"]  # rejecting bad = correct
         bad_pct = f"{bad_correct}/{bad_total}" if bad_total > 0 else "—"
 
-        print(f"  {rank:>3d}  {name:<24s} {profit_elo:>7.0f} {cr_elo:>7.0f} {ds_elo:>7.0f}  "
+        print(f"  {rank:>3d}  {name:<24s} {comp_elo:>7.0f} {pr_elo:>7.0f} {cr_elo:>7.0f} {ds_elo:>7.0f}  "
               f"{matches:>7d}  {win_pct:>4.1f}%  {avg_score:>+8.2f}%  "
               f"{good_pct:>6s} {bad_pct:>6s}")
 
@@ -878,8 +1164,8 @@ def print_standings(dealshare_ratings, profit_ratings, credit_ratings,
         print(f"  {'':>3s}  {'Heuristic (DSCR rules)':24s} {'':>7s} {'':>7s} {'':>7s}  "
               f"{'':>7s}  {'':>5s}  {heuristic_score:>+8.2f}%  {'':>6s} {'':>6s}")
 
-    print(f"{'='*110}")
-    print(f"  Legend: Profit=Profit Elo, Credit=Credit Elo, DealSh=DealShare Elo")
+    print(f"{'='*120}")
+    print(f"  Legend: Comp=Composite Elo (50P/30C/20D), Profit/Credit/DealSh=component Elos")
     print(f"  Good✓=good borrowers correctly approved, Bad✓=bad/fraud correctly rejected")
 
     # Rate analysis section

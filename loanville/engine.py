@@ -4,9 +4,11 @@ ledger booking, and loan resolution (fast-forward).
 """
 
 import asyncio
+import copy
 import hashlib
 import json
 import math
+import random
 
 from .models import (
     BookedLoan,
@@ -189,6 +191,62 @@ def resolve_loan_period(
     )
 
 
+def _create_borrower_views(
+    borrowers: list[Borrower],
+    lender_id: str,
+    mode: str,
+    seed: int = 42,
+) -> list[Borrower]:
+    """Create per-lender views of borrowers with information asymmetry.
+
+    Modes:
+      "none" — all lenders see identical data (default)
+      "partial_statements" — each lender sees 8 of 12 bank statement months
+                             (different random subset per lender)
+      "redacted" — some quarterly income fields are zeroed out per lender
+                   (each lender is missing a different quarter)
+    """
+    if mode == "none":
+        return borrowers
+
+    rng = random.Random(f"{seed}-{lender_id}")
+    views = []
+
+    for b in borrowers:
+        bv = copy.deepcopy(b)
+
+        if mode == "partial_statements":
+            # Each lender sees 8 of 12 months of bank statements
+            stmts = bv.dossier.bank_statements
+            if len(stmts) > 8:
+                indices = list(range(len(stmts)))
+                rng.shuffle(indices)
+                keep = sorted(indices[:8])
+                bv.dossier.bank_statements = [stmts[i] for i in keep]
+
+        elif mode == "redacted":
+            # Each lender is missing one randomly chosen quarter of income data
+            quarters = bv.dossier.quarterly_income
+            if len(quarters) > 1:
+                redact_idx = rng.randint(0, len(quarters) - 1)
+                q = quarters[redact_idx]
+                # Zero out financials but keep the quarter label
+                from .models import QuarterlyIncome
+                quarters[redact_idx] = QuarterlyIncome(
+                    quarter=q.quarter + " [REDACTED]",
+                    revenue=0.0,
+                    expenses=0.0,
+                    gross_profit=0.0,
+                    gross_margin_pct=0.0,
+                    net_income=0.0,
+                    net_margin_pct=0.0,
+                )
+
+        views.append(bv)
+
+    return views
+
+
 class SimulationEngine:
     def __init__(
         self,
@@ -203,6 +261,7 @@ class SimulationEngine:
         underwrite_only: bool = False,
         los_model: str | None = None,
         economics: EconomicsConfig | None = None,
+        info_asymmetry: str = "none",
     ):
         self.borrowers = borrowers
         self.lenders = lenders
@@ -215,6 +274,7 @@ class SimulationEngine:
         self.data_mode = data_mode
         self.max_concurrent = max_concurrent_per_lender
         self.economics = economics or EconomicsConfig()
+        self.info_asymmetry = info_asymmetry
 
         # State
         self.all_decisions: dict[str, list[LenderDecision]] = {}  # lender_id -> decisions
@@ -241,6 +301,10 @@ class SimulationEngine:
             print(f"  - {b.id}: {b.dossier.company_name} ({b.dossier.sector}) "
                   f"requesting ${b.dossier.loan_request_amount:,.0f}")
 
+        if self.info_asymmetry != "none":
+            print(f"  [INFO ASYMMETRY: {self.info_asymmetry}] "
+                  f"Each lender sees a different view of borrower data.")
+
         if self.mock:
             print(f"\n[MOCK MODE] Simulating LLM evaluations (data_mode={self.data_mode})...\n")
             self.all_decisions = mock_evaluate_all(
@@ -255,7 +319,11 @@ class SimulationEngine:
                   f"(mode={mode_label})...\n")
             tasks = [
                 evaluate_all_via_los(
-                    lender, self.borrowers, self.los_url,
+                    lender,
+                    _create_borrower_views(
+                        self.borrowers, lender.id, self.info_asymmetry,
+                    ),
+                    self.los_url,
                     max_concurrent=self.max_concurrent,
                     provider=self.los_provider,
                     mode=self.los_mode,

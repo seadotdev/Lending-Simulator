@@ -25,12 +25,18 @@ load_dotenv()
 
 from loanville.data import get_borrowers, get_lenders
 from loanville.engine import SimulationEngine
-from loanville.llm import (
-    MODEL_PRICING,
-    clear_usage,
-    get_cost_summary,
-    get_token_usage,
-)
+try:
+    from loanville.llm import (
+        MODEL_PRICING,
+        clear_usage,
+        get_cost_summary,
+        get_token_usage,
+    )
+except ImportError:
+    MODEL_PRICING: dict[str, tuple[float, float]] = {}
+    def clear_usage() -> None: pass  # noqa: E704
+    def get_cost_summary() -> dict[str, float]: return {}  # noqa: E704
+    def get_token_usage() -> dict[str, dict[str, int]]: return {}  # noqa: E704
 from loanville.scoring import score_lenders
 
 # ---------------------------------------------------------------------------
