@@ -1135,6 +1135,91 @@ class SeasonEngine:
         """Capture JSON-serializable per-week detail for the web viewer."""
         phase_map = phase_map or {}
         slots_used = slots_used or {}
+        run_lookup: dict[tuple[str, str], dict] = {}
+
+        def _lender_id_for_run(run) -> str:
+            lid = (run.policy.params or {}).get("_lender_id", "")
+            if lid:
+                return lid
+            pid = run.policy.policy_id or ""
+            parts = pid.split("_", 2)
+            if len(parts) >= 2 and parts[0] == "p":
+                return parts[1]
+            return pid
+
+        for run in getattr(engine, "runs", []) or []:
+            lid = _lender_id_for_run(run)
+            bid = getattr(run.case, "case_id", "")
+            if not lid or not bid:
+                continue
+
+            trace_steps = []
+            for s in (getattr(run.trace, "steps", []) or []):
+                trace_steps.append({
+                    "t": getattr(s, "t", ""),
+                    "type": getattr(s, "type", ""),
+                    "name": getattr(s, "name", ""),
+                    "args": getattr(s, "args", {}) or {},
+                    "result": getattr(s, "result", {}) or {},
+                    "content": getattr(s, "content", "") or "",
+                })
+
+            decision_obj = getattr(run, "decision", None)
+            rationale = getattr(decision_obj, "rationale", None)
+            terms = getattr(decision_obj, "terms", None)
+            run_lookup[(lid, bid)] = {
+                "inputs": {
+                    "financials": {
+                        "revenue_ttm": getattr(getattr(run.inputs, "financials", None), "revenue_ttm", 0.0),
+                        "gross_margin": getattr(getattr(run.inputs, "financials", None), "gross_margin", 0.0),
+                        "ebitda_ttm": getattr(getattr(run.inputs, "financials", None), "ebitda_ttm", 0.0),
+                        "net_income": getattr(getattr(run.inputs, "financials", None), "net_income", 0.0),
+                        "annual_expenses": getattr(getattr(run.inputs, "financials", None), "annual_expenses", 0.0),
+                    },
+                    "banking": {
+                        "avg_daily_balance_90d": getattr(getattr(run.inputs, "banking", None), "avg_daily_balance_90d", 0.0),
+                        "nsf_12m": getattr(getattr(run.inputs, "banking", None), "nsf_12m", 0),
+                        "total_deposits_12m": getattr(getattr(run.inputs, "banking", None), "total_deposits_12m", 0.0),
+                        "total_withdrawals_12m": getattr(getattr(run.inputs, "banking", None), "total_withdrawals_12m", 0.0),
+                    },
+                    "business": {
+                        "industry": getattr(getattr(run.inputs, "business", None), "industry", ""),
+                        "years_trading": getattr(getattr(run.inputs, "business", None), "years_trading", 0),
+                        "employee_count": getattr(getattr(run.inputs, "business", None), "employee_count", 0),
+                        "company_name": getattr(getattr(run.inputs, "business", None), "company_name", ""),
+                    },
+                    "raw_documents": list(getattr(run.inputs, "raw_documents", []) or []),
+                    "missing_info": list(getattr(run.inputs, "missing_info", []) or []),
+                },
+                "trace": {
+                    "latency_ms": getattr(getattr(run, "trace", None), "latency_ms", 0),
+                    "steps": trace_steps,
+                    "cost": {
+                        "tokens_in": getattr(getattr(getattr(run, "trace", None), "cost", None), "tokens_in", 0),
+                        "tokens_out": getattr(getattr(getattr(run, "trace", None), "cost", None), "tokens_out", 0),
+                        "estimated_cost_usd": getattr(getattr(getattr(run, "trace", None), "cost", None), "estimated_cost_usd", 0.0),
+                    },
+                },
+                "decision": {
+                    "action": getattr(decision_obj, "action", ""),
+                    "risk_grade": getattr(decision_obj, "risk_grade", ""),
+                    "prob_default_12m": getattr(decision_obj, "prob_default_12m", 0.0),
+                    "confidence": getattr(decision_obj, "confidence", 0.0),
+                    "conditions": list(getattr(decision_obj, "conditions", []) or []),
+                    "covenants": list(getattr(decision_obj, "covenants", []) or []),
+                    "terms": {
+                        "amount": getattr(terms, "amount", 0.0) if terms else 0.0,
+                        "apr": getattr(terms, "apr", 0.0) if terms else 0.0,
+                        "tenor_months": getattr(terms, "tenor_months", 0) if terms else 0,
+                        "fees": getattr(terms, "fees", {}) if terms else {},
+                    },
+                    "rationale": {
+                        "summary": getattr(rationale, "summary", "") if rationale else "",
+                        "key_factors": list(getattr(rationale, "key_factors", []) or []) if rationale else [],
+                        "what_would_change": list(getattr(rationale, "what_would_change", []) or []) if rationale else [],
+                    },
+                },
+            }
         borrowers = []
         for b in cohort:
             borrowers.append({
@@ -1149,17 +1234,32 @@ class SeasonEngine:
         decisions = []
         for lender_id, decs in engine.all_decisions.items():
             for d in decs:
+                run_data = run_lookup.get((lender_id, d.borrower_id), {})
+                trace = run_data.get("trace", {})
+                trace_steps = trace.get("steps", []) or []
+                tool_calls = sum(1 for s in trace_steps if s.get("type") == "tool_call")
+                chain_parts = [
+                    (s.get("content") or "").strip()
+                    for s in trace_steps
+                    if s.get("type") in ("reasoning", "note") and (s.get("content") or "").strip()
+                ]
                 decisions.append({
                     "lender_id": lender_id,
                     "borrower_id": d.borrower_id,
                     "decision": d.decision,
-                    "bandwidth_limited": d.reasoning.startswith("[BANDWIDTH_LIMIT]"),
-                    "reasoning": d.reasoning[:200] if d.reasoning else "",
+                    "bandwidth_limited": bool(d.reasoning and d.reasoning.startswith("[BANDWIDTH_LIMIT]")),
+                    "reasoning": d.reasoning or "",
                     "term_sheet": {
                         "amount": d.term_sheet.loan_amount,
                         "rate": d.term_sheet.interest_rate,
                         "term_months": d.term_sheet.term_months,
                     } if d.term_sheet else None,
+                    "tokens_in": trace.get("cost", {}).get("tokens_in", 0),
+                    "tokens_out": trace.get("cost", {}).get("tokens_out", 0),
+                    "cost_usd": trace.get("cost", {}).get("estimated_cost_usd", 0.0),
+                    "tool_calls": tool_calls,
+                    "chain_of_thought": "\n\n".join(chain_parts),
+                    "los_detail": run_data or None,
                 })
 
         booked = []
@@ -1190,6 +1290,20 @@ class SeasonEngine:
                 "deals_rejected": state.deals_rejected,
                 "deals_lost": state.deals_lost,
                 "active_loans": len(state.active_loans),
+                "active_loans_detail": [
+                    {
+                        "loan_id": l.loan_id,
+                        "borrower_id": l.borrower_id,
+                        "borrower_name": l.borrower_name,
+                        "status": l.status,
+                        "months_elapsed": l.months_elapsed,
+                        "term_months": l.term_months,
+                        "remaining_balance": round(l.remaining_balance, 2),
+                        "total_interest_collected": round(l.total_interest_collected, 2),
+                        "total_principal_repaid": round(l.total_principal_repaid, 2),
+                    }
+                    for l in state.active_loans
+                ],
                 "cumulative_interest": round(state.cumulative_interest, 2),
                 "cumulative_losses": round(state.cumulative_losses, 2),
                 "cumulative_fees": round(state.cumulative_fees, 2),
@@ -1232,6 +1346,20 @@ class SeasonEngine:
                 "deals_rejected": state.deals_rejected,
                 "deals_lost": state.deals_lost,
                 "active_loans": len(state.active_loans),
+                "active_loans_detail": [
+                    {
+                        "loan_id": l.loan_id,
+                        "borrower_id": l.borrower_id,
+                        "borrower_name": l.borrower_name,
+                        "status": l.status,
+                        "months_elapsed": l.months_elapsed,
+                        "term_months": l.term_months,
+                        "remaining_balance": round(l.remaining_balance, 2),
+                        "total_interest_collected": round(l.total_interest_collected, 2),
+                        "total_principal_repaid": round(l.total_principal_repaid, 2),
+                    }
+                    for l in state.active_loans
+                ],
                 "cumulative_interest": round(state.cumulative_interest, 2),
                 "cumulative_losses": round(state.cumulative_losses, 2),
                 "cumulative_fees": round(state.cumulative_fees, 2),

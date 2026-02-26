@@ -13,8 +13,11 @@ export class TownScene {
 
     this.buildingMeshes = new Map();  // lenderIndex → Group
     this.buildingLabels = new Map();  // lenderIndex → CSS2DObject
+    this.buildingStatusBadges = new Map(); // lenderIndex → CSS2DObject
+    this.buildingSmokeBadges = new Map();  // lenderIndex → CSS2DObject
     this.borrowerMeshes = new Map();  // borrowerId → Group
     this.borrowerLabels = new Map();  // borrowerId → CSS2DObject
+    this.borrowerStates = new Map();  // borrowerId → state string
     this.mixers = [];                 // AnimationMixer[]
     this.tweens = [];                 // active tweens
     this.raycaster = new THREE.Raycaster();
@@ -22,6 +25,11 @@ export class TownScene {
     this.hoveredBuilding = null;
     this.selectedBuilding = null;
     this.characterAssetsUnavailable = false;
+    this.animationFrame = null;
+    this.disposed = false;
+    this._boundPointerMove = null;
+    this._boundClick = null;
+    this._boundResize = null;
 
     this.onBuildingClick = null;      // callback(lenderIndex)
     this.onBuildingHover = null;      // callback(lenderIndex|null)
@@ -31,6 +39,7 @@ export class TownScene {
 
   init(container) {
     this.container = container;
+    this.disposed = false;
     const w = container.clientWidth;
     const h = container.clientHeight;
 
@@ -117,15 +126,25 @@ export class TownScene {
     this.scene.add(ground);
 
     // Events
-    this.renderer.domElement.addEventListener('pointermove', (e) => this._onPointerMove(e));
-    this.renderer.domElement.addEventListener('click', (e) => this._onClick(e));
-    window.addEventListener('resize', () => this._onResize());
+    this._boundPointerMove = (e) => this._onPointerMove(e);
+    this._boundClick = (e) => this._onClick(e);
+    this._boundResize = () => this._onResize();
+    this.renderer.domElement.addEventListener('pointermove', this._boundPointerMove);
+    this.renderer.domElement.addEventListener('click', this._boundClick);
+    window.addEventListener('resize', this._boundResize);
 
     this._animate();
   }
 
   async buildTown(layout, lenderNames, assetLoader) {
     this.layout = layout;
+    this.buildingMeshes.clear();
+    this.buildingLabels.clear();
+    this.buildingStatusBadges.clear();
+    this.buildingSmokeBadges.clear();
+    this.borrowerMeshes.clear();
+    this.borrowerLabels.clear();
+    this.borrowerStates.clear();
     const activePack = assetLoader.manifest.activePack;
     const packConfig = assetLoader.getActivePack();
     this.characterAssetsUnavailable = false;
@@ -156,7 +175,7 @@ export class TownScene {
       if (!model) {
         model = this._createFallbackRoad(road);
       }
-      model.position.set(road.x, 0, road.z);
+      model.position.set(road.x, road.isBridge ? 0.25 : 0, road.z);
       model.rotation.y = road.rotation;
       model.traverse(c => { if (c.isMesh) { c.receiveShadow = true; } });
       this.scene.add(model);
@@ -197,11 +216,27 @@ export class TownScene {
         `<div class="signpost-stats">` +
         `<div class="signpost-stat"><div class="signpost-stat-label">Approve</div><div class="signpost-stat-value">—</div></div>` +
         `<div class="signpost-stat"><div class="signpost-stat-label">P&L</div><div class="signpost-stat-value">—</div></div>` +
-        `</div>`;
+        `</div>` +
+        `<div class="signpost-borrowers"></div>`;
       const label = new CSS2DObject(labelDiv);
       label.position.set(0, 2.5, 0);
       model.add(label);
       this.buildingLabels.set(bld.id, label);
+
+      const statusDiv = document.createElement('div');
+      statusDiv.className = 'lender-status-badge';
+      const status = new CSS2DObject(statusDiv);
+      status.position.set(0, 4.1, 0);
+      model.add(status);
+      this.buildingStatusBadges.set(bld.id, status);
+
+      const smokeDiv = document.createElement('div');
+      smokeDiv.className = 'lender-smoke';
+      smokeDiv.textContent = '';
+      const smoke = new CSS2DObject(smokeDiv);
+      smoke.position.set(0.3, 3.6, 0.1);
+      model.add(smoke);
+      this.buildingSmokeBadges.set(bld.id, smoke);
     }
 
     // Decorative town buildings (residential zone)
@@ -219,6 +254,31 @@ export class TownScene {
         }
         if (!model) {
           model = this._createFallbackTownBuilding();
+        }
+        model.position.set(bld.x, 0, bld.z);
+        model.rotation.y = bld.rotation;
+        model.traverse(c => {
+          if (c.isMesh) { c.castShadow = true; c.receiveShadow = true; }
+        });
+        this.scene.add(model);
+      }
+    }
+
+    // Borrower suburb buildings (industrial fallback style)
+    if (layout.borrowerDistrictBuildings) {
+      for (const bld of layout.borrowerDistrictBuildings) {
+        let model = null;
+        if (!packAssetsUnavailable) {
+          try {
+            const loaded = await assetLoader.loadModel(activePack, bld.modelFile);
+            model = loaded.scene;
+          } catch (e) {
+            packAssetsUnavailable = true;
+            fallbackUsed = true;
+          }
+        }
+        if (!model) {
+          model = this._createFallbackIndustrialBuilding();
         }
         model.position.set(bld.x, 0, bld.z);
         model.rotation.y = bld.rotation;
@@ -281,6 +341,9 @@ export class TownScene {
   }
 
   async addBorrower(borrowerId, assetLoader, borrowerInfo, spawnIndex, spawnTotal, spawnPos) {
+    if (this.borrowerMeshes.has(borrowerId)) {
+      return this.borrowerMeshes.get(borrowerId);
+    }
     if (!assetLoader?.manifest) return;
     const charPack = assetLoader.getCharacterPack();
     if (!charPack?.characters) return;
@@ -317,7 +380,9 @@ export class TownScene {
     }
 
     model.userData.borrowerId = borrowerId;
+    model.userData.borrowerName = borrowerInfo?.name || borrowerId;
     this.borrowerMeshes.set(borrowerId, model);
+    this.borrowerStates.set(borrowerId, 'normal');
     this.scene.add(model);
 
     // Borrower label — placed above character head
@@ -333,6 +398,10 @@ export class TownScene {
       this.borrowerLabels.set(borrowerId, label);
     }
 
+    if (borrowerInfo?.state) {
+      this.setBorrowerState(borrowerId, borrowerInfo.state);
+    }
+
     // Try to play idle animation
     if (animations && animations.length > 0) {
       const mixer = new THREE.AnimationMixer(model);
@@ -341,6 +410,48 @@ export class TownScene {
     }
 
     return model;
+  }
+
+  setBorrowerLabelVisible(borrowerId, visible) {
+    const label = this.borrowerLabels.get(borrowerId);
+    if (!label) return;
+    label.element.style.display = visible ? '' : 'none';
+  }
+
+  setBorrowerState(borrowerId, state) {
+    const mesh = this.borrowerMeshes.get(borrowerId);
+    if (!mesh) return;
+    this.borrowerStates.set(borrowerId, state);
+
+    let bodyColor = 0x4a90d9;
+    let emissive = 0x000000;
+    if (state === 'defaulted' || state === 'bankrupt') {
+      bodyColor = 0x3b3f4a;
+      emissive = 0x090909;
+    } else if (state === 'fraud') {
+      bodyColor = 0x151515;
+      emissive = 0x1a0000;
+    } else if (state === 'repaid') {
+      bodyColor = 0x4a7a4a;
+      emissive = 0x001200;
+    }
+
+    mesh.traverse(c => {
+      if (!c.isMesh || !c.material) return;
+      const mats = Array.isArray(c.material) ? c.material : [c.material];
+      for (const mat of mats) {
+        if (mat.color) mat.color.setHex(bodyColor);
+        if (mat.emissive) mat.emissive.setHex(emissive);
+      }
+    });
+
+    const label = this.borrowerLabels.get(borrowerId);
+    if (label) {
+      label.element.classList.remove('borrower-defaulted', 'borrower-fraud', 'borrower-repaid');
+      if (state === 'defaulted' || state === 'bankrupt') label.element.classList.add('borrower-defaulted');
+      if (state === 'fraud') label.element.classList.add('borrower-fraud');
+      if (state === 'repaid') label.element.classList.add('borrower-repaid');
+    }
   }
 
   animateBorrowerWalk(borrowerId, target, duration = 1.0) {
@@ -422,9 +533,14 @@ export class TownScene {
           requestAnimationFrame(tick);
         } else {
           // Clean up
+          if (label) {
+            mesh.remove(label);
+            label.element?.remove();
+          }
           this.scene.remove(mesh);
           this.borrowerMeshes.delete(borrowerId);
           this.borrowerLabels.delete(borrowerId);
+          this.borrowerStates.delete(borrowerId);
           resolve();
         }
       };
@@ -454,11 +570,17 @@ export class TownScene {
   }
 
   clearBorrowers() {
-    for (const [, mesh] of this.borrowerMeshes) {
+    for (const [borrowerId, mesh] of this.borrowerMeshes) {
+      const label = this.borrowerLabels.get(borrowerId);
+      if (label) {
+        mesh.remove(label);
+        label.element?.remove();
+      }
       this.scene.remove(mesh);
     }
     this.borrowerMeshes.clear();
     this.borrowerLabels.clear();
+    this.borrowerStates.clear();
     this.mixers = [];
   }
 
@@ -493,32 +615,111 @@ export class TownScene {
       values[0].textContent = approvalRate !== null ? `${Math.round(approvalRate)}%` : '—';
 
       // P&L
-      const pnlStr = pnl >= 0 ? `+$${fmtK(pnl)}` : `-$${fmtK(Math.abs(pnl))}`;
-      values[1].textContent = pnl !== null ? pnlStr : '—';
-      values[1].className = 'signpost-stat-value ' + (pnl >= 0 ? 'positive' : 'negative');
+      if (pnl === null || pnl === undefined) {
+        values[1].textContent = '—';
+        values[1].className = 'signpost-stat-value';
+      } else {
+        const pnlStr = pnl >= 0 ? `+$${fmtK(pnl)}` : `-$${fmtK(Math.abs(pnl))}`;
+        values[1].textContent = pnlStr;
+        values[1].className = 'signpost-stat-value ' + (pnl >= 0 ? 'positive' : 'negative');
+      }
     }
+  }
+
+  updateLenderBorrowerStack(lenderIndex, borrowerNames = []) {
+    const label = this.buildingLabels.get(lenderIndex);
+    if (!label) return;
+    const stack = label.element.querySelector('.signpost-borrowers');
+    if (!stack) return;
+    if (!borrowerNames.length) {
+      stack.innerHTML = '';
+      return;
+    }
+    stack.innerHTML = borrowerNames
+      .slice(0, 8)
+      .map(name => `<div class="signpost-borrower">${escapeHtml(name)}</div>`)
+      .join('');
+  }
+
+  updateLenderVisualState(lenderIndex, state = {}) {
+    const badge = this.buildingStatusBadges.get(lenderIndex);
+    const smoke = this.buildingSmokeBadges.get(lenderIndex);
+    const label = this.buildingLabels.get(lenderIndex);
+    const group = this.buildingMeshes.get(lenderIndex);
+    if (!group) return;
+
+    if (badge) {
+      badge.element.textContent = state.winner ? '★' : '';
+      badge.element.className = 'lender-status-badge' + (state.winner ? ' winner' : '');
+    }
+
+    if (smoke) {
+      smoke.element.textContent = state.highlyLeveraged ? '~~~' : '';
+      smoke.element.className = 'lender-smoke' + (state.highlyLeveraged ? ' active' : '');
+    }
+
+    if (label) {
+      label.element.classList.toggle('lender-bankrupt', !!state.bankrupt);
+    }
+
+    group.traverse(c => {
+      if (!c.isMesh || !c.material) return;
+      const mats = Array.isArray(c.material) ? c.material : [c.material];
+      for (const mat of mats) {
+        if (mat.color && mat.userData._baseColorHex === undefined) {
+          mat.userData._baseColorHex = mat.color.getHex();
+        }
+        if (state.bankrupt) {
+          if (mat.color) {
+            const base = new THREE.Color(mat.userData._baseColorHex);
+            base.multiplyScalar(0.45);
+            mat.color.copy(base);
+          }
+          if (mat.emissive) mat.emissive.setHex(0x0a0a0a);
+        } else {
+          if (mat.color && mat.userData._baseColorHex !== undefined) {
+            mat.color.setHex(mat.userData._baseColorHex);
+          }
+          if (mat.emissive) mat.emissive.setHex(0x000000);
+        }
+      }
+    });
   }
 
   _createFallbackRoad(road) {
     const group = new THREE.Group();
     const isJunction = /junction|cross|tsplit/.test(road.modelFile || '');
+    const isBridge = !!road.isBridge;
     const width = isJunction ? 2.1 : 1.1;
     const length = isJunction ? 2.1 : 2.0;
     const asphalt = new THREE.Mesh(
       new THREE.BoxGeometry(width, 0.04, length),
-      new THREE.MeshStandardMaterial({ color: 0x2a3444, roughness: 0.95, metalness: 0.05 })
+      new THREE.MeshStandardMaterial({
+        color: isBridge ? 0x4a515e : 0x2a3444,
+        roughness: 0.95,
+        metalness: isBridge ? 0.3 : 0.05,
+      })
     );
-    asphalt.position.y = 0.02;
+    asphalt.position.y = isBridge ? 0.28 : 0.02;
     asphalt.receiveShadow = true;
     group.add(asphalt);
 
     if (!isJunction) {
       const line = new THREE.Mesh(
         new THREE.BoxGeometry(0.08, 0.01, length * 0.7),
-        new THREE.MeshStandardMaterial({ color: 0xe8a838, roughness: 0.8 })
+        new THREE.MeshStandardMaterial({ color: isBridge ? 0xd3dae5 : 0xe8a838, roughness: 0.8 })
       );
-      line.position.y = 0.05;
+      line.position.y = isBridge ? 0.31 : 0.05;
       group.add(line);
+    }
+    if (isBridge) {
+      const railMat = new THREE.MeshStandardMaterial({ color: 0x8a95a6, roughness: 0.6, metalness: 0.45 });
+      const railL = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.16, length), railMat);
+      const railR = railL.clone();
+      railL.position.set(-(width / 2) + 0.04, 0.36, 0);
+      railR.position.set((width / 2) - 0.04, 0.36, 0);
+      group.add(railL);
+      group.add(railR);
     }
     return group;
   }
@@ -568,6 +769,35 @@ export class TownScene {
     body.castShadow = true;
     body.receiveShadow = true;
     group.add(body);
+    return group;
+  }
+
+  _createFallbackIndustrialBuilding() {
+    const group = new THREE.Group();
+    const shell = new THREE.Mesh(
+      new THREE.BoxGeometry(1.9, 1.1, 1.5),
+      new THREE.MeshStandardMaterial({ color: 0x4b5666, roughness: 0.92, metalness: 0.08 })
+    );
+    shell.position.y = 0.55;
+    shell.castShadow = true;
+    shell.receiveShadow = true;
+    group.add(shell);
+
+    const roof = new THREE.Mesh(
+      new THREE.BoxGeometry(2.0, 0.08, 1.6),
+      new THREE.MeshStandardMaterial({ color: 0x2f3948, roughness: 0.85, metalness: 0.2 })
+    );
+    roof.position.y = 1.12;
+    roof.castShadow = true;
+    group.add(roof);
+
+    const stack = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.11, 0.11, 0.8, 12),
+      new THREE.MeshStandardMaterial({ color: 0x7c8696, roughness: 0.7, metalness: 0.4 })
+    );
+    stack.position.set(0.45, 1.4, 0);
+    stack.castShadow = true;
+    group.add(stack);
     return group;
   }
 
@@ -653,24 +883,50 @@ export class TownScene {
   }
 
   dispose() {
+    this.disposed = true;
     this.tweens = [];
     this.mixers = [];
+    if (this.animationFrame) {
+      cancelAnimationFrame(this.animationFrame);
+      this.animationFrame = null;
+    }
+    if (this.renderer?.domElement && this._boundPointerMove) {
+      this.renderer.domElement.removeEventListener('pointermove', this._boundPointerMove);
+    }
+    if (this.renderer?.domElement && this._boundClick) {
+      this.renderer.domElement.removeEventListener('click', this._boundClick);
+    }
+    if (this._boundResize) {
+      window.removeEventListener('resize', this._boundResize);
+    }
+    this.clearBorrowers();
     if (this.renderer) {
       this.renderer.dispose();
-      this.container.removeChild(this.renderer.domElement);
+      if (this.container?.contains(this.renderer.domElement)) {
+        this.container.removeChild(this.renderer.domElement);
+      }
     }
     if (this.labelRenderer) {
-      this.container.removeChild(this.labelRenderer.domElement);
+      if (this.container?.contains(this.labelRenderer.domElement)) {
+        this.container.removeChild(this.labelRenderer.domElement);
+      }
     }
+    this.controls?.dispose?.();
+    this.renderer = null;
+    this.labelRenderer = null;
+    this.scene = null;
+    this.camera = null;
+    this.controls = null;
   }
 
   // ---- Private ----
 
   _animate() {
-    requestAnimationFrame(this._animate);
+    if (this.disposed || !this.renderer || !this.scene || !this.camera) return;
+    this.animationFrame = requestAnimationFrame(this._animate);
     const delta = this.clock.getDelta();
 
-    this.controls.update();
+    this.controls?.update();
 
     // Update animation mixers
     for (const mixer of this.mixers) {
@@ -691,10 +947,11 @@ export class TownScene {
     }
 
     this.renderer.render(this.scene, this.camera);
-    this.labelRenderer.render(this.scene, this.camera);
+    this.labelRenderer?.render(this.scene, this.camera);
   }
 
   _onResize() {
+    if (!this.container || !this.camera || !this.renderer || !this.labelRenderer) return;
     const w = this.container.clientWidth;
     const h = this.container.clientHeight;
     this.camera.aspect = w / h;
@@ -704,6 +961,7 @@ export class TownScene {
   }
 
   _onPointerMove(e) {
+    if (!this.renderer || !this.camera) return;
     const rect = this.renderer.domElement.getBoundingClientRect();
     this.mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
     this.mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
@@ -726,7 +984,11 @@ export class TownScene {
     }
   }
 
-  _onClick() {
+  _onClick(e) {
+    if (!this.renderer || !this.camera) return;
+    const rect = this.renderer.domElement.getBoundingClientRect();
+    this.mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+    this.mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
     this.raycaster.setFromCamera(this.mouse, this.camera);
     const hit = this._pickBuilding();
     const idx = hit?.object?.userData?.lenderIndex ??
@@ -759,8 +1021,10 @@ export class TownScene {
     if (!group) return;
     group.traverse(c => {
       if (c.isMesh && c.material) {
-        const mat = c.material;
-        if (mat.emissive) mat.emissive.setHex(color);
+        const mats = Array.isArray(c.material) ? c.material : [c.material];
+        for (const mat of mats) {
+          if (mat.emissive) mat.emissive.setHex(color);
+        }
       }
     });
   }
@@ -779,4 +1043,11 @@ function fmtK(n) {
   if (abs >= 1e6) return (n / 1e6).toFixed(1) + 'M';
   if (abs >= 1e3) return (n / 1e3).toFixed(0) + 'K';
   return Math.round(n).toString();
+}
+
+function escapeHtml(str) {
+  if (!str) return '';
+  const d = document.createElement('div');
+  d.textContent = str;
+  return d.innerHTML;
 }

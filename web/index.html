@@ -105,8 +105,22 @@
 
         <div class="sidebar-section">
           <h2 class="sidebar-title">Event Log</h2>
+          <div class="event-log-controls">
+            <div class="event-detail-level" role="group" aria-label="Event detail level">
+              <button id="log-level-all" class="event-level-btn active" data-level="all">All</button>
+              <button id="log-level-nb" class="event-level-btn" data-level="nb">NB</button>
+              <button id="log-level-loans" class="event-level-btn" data-level="loans">Loans</button>
+            </div>
+            <label class="los-toggle">
+              <input type="checkbox" id="toggle-los-detail">
+              <span>LOS Interactions</span>
+            </label>
+          </div>
           <div id="event-log" class="event-log">
             <div id="event-log-body" class="event-log-body"></div>
+          </div>
+          <div id="los-panel" class="los-panel" hidden>
+            <div id="los-panel-body" class="los-panel-body"></div>
           </div>
         </div>
       </aside>

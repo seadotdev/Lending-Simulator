@@ -48,6 +48,12 @@ class App {
 
     // 2D Dashboard
     this.dashboard2d = null;
+    this.selectedLenderIndex = null;
+    this.activeBorrowers = new Map(); // borrowerId -> borrower state for persistent town actors
+    this.pendingBorrowerRemovals = new Set();
+    this.eventLogEntries = [];
+    this.logDetailLevel = 'all';
+    this.showLosDetail = false;
 
     this.dom = {};
     this._initDOM();
@@ -127,6 +133,13 @@ class App {
       leaderboard: $('leaderboard'),
       detailPanel: $('detail-panel'),
       eventLogBody: $('event-log-body'),
+      eventLog: $('event-log'),
+      logLevelAll: $('log-level-all'),
+      logLevelNb: $('log-level-nb'),
+      logLevelLoans: $('log-level-loans'),
+      toggleLosDetail: $('toggle-los-detail'),
+      losPanel: $('los-panel'),
+      losPanelBody: $('los-panel-body'),
       controlsGroup: $('controls-group'),
       // Season selector
       selectSeason: $('select-season'),
@@ -199,6 +212,18 @@ class App {
     // Pack selector
     this.dom.selectBuildingPack.addEventListener('change', () => this._changePack());
     this.dom.selectCharacterPack.addEventListener('change', () => this._changePack());
+
+    const setLevel = (level) => {
+      this.logDetailLevel = level;
+      this._applyEventLogFilters();
+    };
+    this.dom.logLevelAll?.addEventListener('click', () => setLevel('all'));
+    this.dom.logLevelNb?.addEventListener('click', () => setLevel('nb'));
+    this.dom.logLevelLoans?.addEventListener('click', () => setLevel('loans'));
+    this.dom.toggleLosDetail?.addEventListener('change', () => {
+      this.showLosDetail = !!this.dom.toggleLosDetail.checked;
+      this._renderLosPanel();
+    });
   }
 
   // ==== File Loading ====
@@ -226,6 +251,7 @@ class App {
     this.dom.dropOverlay.hidden = true;
 
     if (this.season) {
+      this._reset();
       this.dashboard2d = null;
       await this._initTown();
       this.dom.controlsGroup.hidden = false;
@@ -303,12 +329,16 @@ class App {
     this.townScene.init(this.dom.townContainer);
 
     try {
-      await this.assetLoader.loadManifest();
+      if (!this.assetLoader.manifest) {
+        await this.assetLoader.loadManifest();
+      }
       const manifest = this.assetLoader.manifest;
 
-      // Sync dropdown values to match manifest defaults
-      this.dom.selectBuildingPack.value = manifest.activePack;
-      this.dom.selectCharacterPack.value = manifest.characterPack;
+      // Honor explicit picker values after first load.
+      if (!this.dom.selectBuildingPack.value) this.dom.selectBuildingPack.value = manifest.activePack;
+      if (!this.dom.selectCharacterPack.value) this.dom.selectCharacterPack.value = manifest.characterPack;
+      manifest.activePack = this.dom.selectBuildingPack.value || manifest.activePack;
+      manifest.characterPack = this.dom.selectCharacterPack.value || manifest.characterPack;
 
       // Use buildingTiers (curated order) if available, else fall back to buildings list
       const packConfig = this.assetLoader.getActivePack();
@@ -331,10 +361,14 @@ class App {
     }
 
     this.townScene.onBuildingClick = idx => this._showDetail(idx);
+    this._renderLenderVisualStates();
   }
 
   async _changePack() {
     if (!this.season) return;
+    if (!this.assetLoader.manifest) {
+      await this.assetLoader.loadManifest();
+    }
     this.assetLoader.manifest.activePack = this.dom.selectBuildingPack.value;
     this.assetLoader.manifest.characterPack = this.dom.selectCharacterPack.value;
     // Rebuild town with new assets
@@ -366,6 +400,8 @@ class App {
     const week = this.season.weeks[this.currentWeek];
     const lenders = this.season.lenders;
 
+    this._renderLosPanel();
+
     // Final resolution is exported as a dedicated timeline step.
     if (week.final_resolution) {
       this._setPhase('FINAL RESOLUTION');
@@ -376,17 +412,13 @@ class App {
       for (const evt of week.events) {
         this._logEvent(this._eventTypeForMessage(evt), evt);
       }
+      this._applyBorrowerStateFromEvents(week.events || []);
       await this._wait(800);
       this._renderLeaderboard(this.currentWeek);
-
-      for (let i = 0; i < lenders.length; i++) {
-        const snap = week.lender_snapshots[lenders[i].id];
-        if (snap) {
-          const totalDec = (snap.deals_won || 0) + (snap.deals_rejected || 0) + (snap.deals_lost || 0);
-          const approvalRate = totalDec > 0 ? ((snap.deals_won || 0) / totalDec) * 100 : null;
-          this.townScene?.updateSignpost(i, snap.name, approvalRate, snap.net_pnl);
-        }
-      }
+      this._updateSignpostsFromWeek(week);
+      await this._syncPersistentBorrowersFromWeek(week);
+      this._renderLenderVisualStates(week);
+      if (this.selectedLenderIndex !== null) this._showDetail(this.selectedLenderIndex);
 
       this._logEvent('system', 'Final resolution complete');
       await this._wait(600);
@@ -408,30 +440,70 @@ class App {
     for (const evt of week.events) {
       this._logEvent(this._eventTypeForMessage(evt), evt);
     }
+    this._applyBorrowerStateFromEvents(week.events || []);
     await this._wait(800);
 
     // ---- BORROWERS ARRIVE ----
     this._setPhase('BORROWERS ARRIVE');
-    this.townScene?.clearBorrowers();
 
     const totalBorrowers = week.borrowers.length;
-    const spawnPos = this.layout?.spawnPoint || { x: 0, z: -10 };
-    const borrowerSpawns = week.borrowers.map((b, i) =>
-      this.townScene?.addBorrower(b.id, this.assetLoader, { name: b.name, amount: b.amount }, i, totalBorrowers, spawnPos)
-    );
+    const spawnPos = this.layout?.spawnPoint || { x: -8, z: -8 };
+    const borrowerSpawns = week.borrowers.map((b, i) => {
+      this.activeBorrowers.set(b.id, {
+        id: b.id,
+        name: b.name,
+        amount: b.amount,
+        lenderId: null,
+        lenderIndex: null,
+        trueOutcome: b.true_outcome || 'unknown',
+        state: 'incoming',
+      });
+      return this.townScene?.addBorrower(
+        b.id,
+        this.assetLoader,
+        { name: b.name, amount: b.amount, state: 'incoming' },
+        i,
+        totalBorrowers,
+        spawnPos,
+      );
+    });
     await Promise.all(borrowerSpawns.filter(Boolean));
     this._logEvent('loan', `${week.borrowers.length} borrowers arrived: ${week.borrowers.map(b => b.name).join(', ')}`);
-    await this._wait(400);
+    await this._wait(350);
 
-    // ---- TRAVEL (residential → junction) ----
+    // ---- TRAVEL (borrower district → bridge → junction) ----
     this._setPhase('TRAVEL');
+    const suburbEntry = this.layout?.suburbEntry || { x: -8, z: -8 };
+    const bridgeMidpoint = this.layout?.bridgeMidpoint || { x: -4, z: -4 };
     const junction = { x: 0, z: 0 };
-    const travelWalks = week.borrowers.map((b, i) => {
-      const spread = (i - (totalBorrowers - 1) / 2) * 0.6;
-      return this.townScene?.animateBorrowerWalk(b.id, { x: junction.x + spread, z: junction.z }, 1.0 / SPEED_LEVELS[this.speedIndex]);
+    const toSuburbExit = week.borrowers.map((b, i) => {
+      const spread = (i - (totalBorrowers - 1) / 2) * 0.45;
+      return this.townScene?.animateBorrowerWalk(
+        b.id,
+        { x: suburbEntry.x + spread, z: suburbEntry.z + spread * 0.2 },
+        0.55 / SPEED_LEVELS[this.speedIndex],
+      );
     });
-    await Promise.all(travelWalks.filter(Boolean));
-    await this._wait(200);
+    await Promise.all(toSuburbExit.filter(Boolean));
+    const crossBridge = week.borrowers.map((b, i) => {
+      const spread = (i - (totalBorrowers - 1) / 2) * 0.35;
+      return this.townScene?.animateBorrowerWalk(
+        b.id,
+        { x: bridgeMidpoint.x + spread, z: bridgeMidpoint.z + spread * 0.2 },
+        0.65 / SPEED_LEVELS[this.speedIndex],
+      );
+    });
+    await Promise.all(crossBridge.filter(Boolean));
+    const intoCore = week.borrowers.map((b, i) => {
+      const spread = (i - (totalBorrowers - 1) / 2) * 0.6;
+      return this.townScene?.animateBorrowerWalk(
+        b.id,
+        { x: junction.x + spread, z: junction.z },
+        0.8 / SPEED_LEVELS[this.speedIndex],
+      );
+    });
+    await Promise.all(intoCore.filter(Boolean));
+    await this._wait(180);
 
     // ---- EVALUATION ----
     this._setPhase('EVALUATION');
@@ -453,58 +525,61 @@ class App {
       const lender = lenders.find(l => l.id === dec.lender_id);
       this._logEvent('loan', `${lender?.name || dec.lender_id} ${verb} ${bName}`);
     }
-    await this._wait(1200);
+    await this._wait(1100);
 
     // ---- ALLOCATION ----
     this._setPhase('ALLOCATION');
-    const bookedSet = new Set(week.booked_loans.map(l => l.borrower_id));
-    const lenderQueues = {};  // lenderIndex → count
+    const lenderQueues = this._buildLenderQueuesFromActiveBorrowers();
     const allocWalks = [];
-
-    const rejectTarget = this.layout?.spawnPoint || { x: 0, z: -10 };
+    const rejectTarget = this.layout?.spawnPoint || { x: -8, z: -8 };
     for (const b of week.borrowers) {
       const loan = week.booked_loans.find(l => l.borrower_id === b.id);
       if (loan) {
-        // Funded — walk from junction along +X to winning lender's building
         const lenderIdx = lenders.findIndex(l => l.id === loan.lender_id);
-        if (lenderIdx >= 0 && this.townScene?.layout?.buildings?.[lenderIdx]) {
-          const bld = this.townScene.layout.buildings[lenderIdx];
+        if (lenderIdx >= 0) {
           const queueCount = lenderQueues[lenderIdx] || 0;
           lenderQueues[lenderIdx] = queueCount + 1;
-          const sign = Math.sign(bld.z) || 1;
-          const queueZ = sign * (Math.abs(bld.z) - queueCount * 0.6);
-          allocWalks.push(
-            this.townScene.animateBorrowerWalk(b.id, { x: bld.x, z: queueZ }, 0.8 / SPEED_LEVELS[this.speedIndex])
-          );
+          const target = this._queuePositionForLender(lenderIdx, queueCount);
+          if (target) {
+            allocWalks.push(
+              this.townScene?.animateBorrowerWalk(b.id, target, 0.85 / SPEED_LEVELS[this.speedIndex]),
+            );
+          }
+          const active = this.activeBorrowers.get(b.id) || { id: b.id, name: b.name, amount: b.amount };
+          active.lenderId = loan.lender_id;
+          active.lenderIndex = lenderIdx;
+          active.state = 'active';
+          active.bookedPrincipal = loan.principal;
+          active.bookedRate = loan.interest_rate;
+          this.activeBorrowers.set(b.id, active);
+          this.townScene?.setBorrowerLabelVisible(b.id, false);
+          if (active.trueOutcome === 'fraud') this.townScene?.setBorrowerState(b.id, 'fraud');
         }
         const lender = lenders.find(l => l.id === loan.lender_id);
         this._logEvent('loan', `BOOKED: ${b.name} \u2192 ${lender?.name || loan.lender_id} ($${fmtNum(loan.principal)} @ ${loan.interest_rate.toFixed(1)}%)`);
       } else {
-        // Rejected — walk back toward residential zone and fade
         if (this.townScene) {
-          const walkOff = this.townScene.animateBorrowerWalk(b.id, rejectTarget, 0.6 / SPEED_LEVELS[this.speedIndex])
+          const walkOff = this.townScene
+            .animateBorrowerWalk(b.id, rejectTarget, 0.6 / SPEED_LEVELS[this.speedIndex])
             .then(() => this.townScene.fadeBorrower(b.id, 400 / SPEED_LEVELS[this.speedIndex]));
           allocWalks.push(walkOff);
         }
+        this.activeBorrowers.delete(b.id);
         this._logEvent('loan', `REJECTED: ${b.name} — no winning offer`);
       }
     }
-    await Promise.all(allocWalks);
+    await Promise.all(allocWalks.filter(Boolean));
+    this._updateSignpostBorrowerStacks();
 
     // ---- WEEK SUMMARY ----
     this._setPhase('WEEK SUMMARY');
     this.townScene?.resetBuildings();
     this._renderLeaderboard(this.currentWeek);
-
-    // Update bank signposts with approval rate + P&L
-    for (let i = 0; i < lenders.length; i++) {
-      const snap = week.lender_snapshots[lenders[i].id];
-      if (snap) {
-        const totalDec = (snap.deals_won || 0) + (snap.deals_rejected || 0) + (snap.deals_lost || 0);
-        const approvalRate = totalDec > 0 ? ((snap.deals_won || 0) / totalDec) * 100 : null;
-        this.townScene?.updateSignpost(i, snap.name, approvalRate, snap.net_pnl);
-      }
-    }
+    this._updateSignpostsFromWeek(week);
+    await this._syncPersistentBorrowersFromWeek(week);
+    this._renderLenderVisualStates(week);
+    if (this.selectedLenderIndex !== null) this._showDetail(this.selectedLenderIndex);
+    this._renderLosPanel();
 
     this._logEvent('system', `Week ${week.week} complete: ${week.booked_loans.length} loans booked`);
 
@@ -549,17 +624,28 @@ class App {
     this.dom.progressBar.style.width = '0%';
     this.townScene?.clearBorrowers();
     this.townScene?.resetBuildings();
+    this.activeBorrowers.clear();
+    this.pendingBorrowerRemovals.clear();
+    this.selectedLenderIndex = null;
     this._renderLeaderboard(-1);
     this._clearTimeline();
     this._buildTimeline();
+    this.eventLogEntries = [];
     this.dom.eventLogBody.innerHTML = '';
+    this.logDetailLevel = 'all';
+    this.showLosDetail = false;
+    if (this.dom.toggleLosDetail) this.dom.toggleLosDetail.checked = false;
+    this._applyEventLogFilters();
+    this._renderLosPanel();
     this.dom.detailPanel.innerHTML = '<div class="detail-placeholder">Click a building to inspect</div>';
 
     // Reset bank signposts
     if (this.season && this.townScene) {
       for (let i = 0; i < this.season.lenders.length; i++) {
         this.townScene.updateSignpost(i, this.season.lenders[i].name, null, null);
+        this.townScene.updateLenderBorrowerStack(i, []);
       }
+      this._renderLenderVisualStates();
     }
   }
 
@@ -583,6 +669,7 @@ class App {
     if (tab === 'game' && this.townScene) this.townScene._onResize();
     if (tab === 'stats' && this.season) renderStats(this.dom.statsContent, this.season);
     if (tab === 'dashboard') this._updateDashboard2d();
+    if (tab === 'game') this._renderLosPanel();
     if (tab === 'elo') this._loadElo();
   }
 
@@ -640,6 +727,260 @@ class App {
     this.dom.progressBar.style.width = `${pct}%`;
   }
 
+  _updateSignpostsFromWeek(week) {
+    if (!week || !this.townScene || !this.season) return;
+    for (let i = 0; i < this.season.lenders.length; i++) {
+      const snap = week.lender_snapshots?.[this.season.lenders[i].id];
+      if (!snap) continue;
+      const totalDec = (snap.deals_won || 0) + (snap.deals_rejected || 0) + (snap.deals_lost || 0);
+      const approvalRate = totalDec > 0 ? ((snap.deals_won || 0) / totalDec) * 100 : null;
+      this.townScene.updateSignpost(i, snap.name, approvalRate, snap.net_pnl);
+    }
+    this._updateSignpostBorrowerStacks();
+  }
+
+  _buildLenderQueuesFromActiveBorrowers() {
+    const counts = {};
+    for (const b of this.activeBorrowers.values()) {
+      if (b.lenderIndex === null || b.lenderIndex === undefined) continue;
+      if (b.state !== 'active') continue;
+      counts[b.lenderIndex] = (counts[b.lenderIndex] || 0) + 1;
+    }
+    return counts;
+  }
+
+  _queuePositionForLender(lenderIndex, queueCount) {
+    const bld = this.townScene?.layout?.buildings?.[lenderIndex];
+    if (!bld) return null;
+    const side = Math.sign(bld.z) || 1;
+    const row = Math.floor(queueCount / 2);
+    const lane = queueCount % 2 === 0 ? -0.22 : 0.22;
+    return {
+      x: bld.x + lane,
+      z: bld.z - side * (0.65 + row * 0.5),
+    };
+  }
+
+  _updateSignpostBorrowerStacks() {
+    if (!this.townScene || !this.season) return;
+    const namesByLender = new Map();
+    for (const b of this.activeBorrowers.values()) {
+      if (b.lenderIndex === null || b.lenderIndex === undefined) continue;
+      if (b.state !== 'active') continue;
+      if (!namesByLender.has(b.lenderIndex)) namesByLender.set(b.lenderIndex, []);
+      namesByLender.get(b.lenderIndex).push(b.name || b.id);
+    }
+    for (let i = 0; i < this.season.lenders.length; i++) {
+      this.townScene.updateLenderBorrowerStack(i, namesByLender.get(i) || []);
+    }
+  }
+
+  async _syncPersistentBorrowersFromWeek(week) {
+    if (!this.townScene || !week || !this.season) return;
+    const activeByBorrower = new Map();
+    const queueCounts = {};
+
+    for (let lenderIndex = 0; lenderIndex < this.season.lenders.length; lenderIndex++) {
+      const lender = this.season.lenders[lenderIndex];
+      const snap = week.lender_snapshots?.[lender.id];
+      const activeLoans = snap?.active_loans_detail || [];
+      for (const loan of activeLoans) {
+        const queueCount = queueCounts[lenderIndex] || 0;
+        queueCounts[lenderIndex] = queueCount + 1;
+        activeByBorrower.set(loan.borrower_id, {
+          id: loan.borrower_id,
+          name: loan.borrower_name || loan.borrower_id,
+          lenderId: lender.id,
+          lenderIndex,
+          state: 'active',
+          queueCount,
+        });
+      }
+    }
+
+    // Fallback path when this export predates active-loan detail.
+    if (!activeByBorrower.size) {
+      for (const borrowerId of this.pendingBorrowerRemovals) {
+        if (this.townScene.borrowerMeshes.has(borrowerId)) {
+          this.townScene.fadeBorrower(borrowerId, 300 / SPEED_LEVELS[this.speedIndex]);
+        }
+        this.activeBorrowers.delete(borrowerId);
+      }
+      this.pendingBorrowerRemovals.clear();
+      this._updateSignpostBorrowerStacks();
+      return;
+    }
+
+    const ensureAndMove = [];
+    for (const [borrowerId, next] of activeByBorrower.entries()) {
+      const current = this.activeBorrowers.get(borrowerId) || next;
+      current.name = current.name || next.name;
+      current.lenderId = next.lenderId;
+      current.lenderIndex = next.lenderIndex;
+      current.state = 'active';
+      this.activeBorrowers.set(borrowerId, current);
+      const target = this._queuePositionForLender(next.lenderIndex, next.queueCount);
+      if (!this.townScene.borrowerMeshes.has(borrowerId)) {
+        ensureAndMove.push(
+          this.townScene.addBorrower(
+            borrowerId,
+            this.assetLoader,
+            { name: current.name, amount: 0, state: current.trueOutcome === 'fraud' ? 'fraud' : 'incoming' },
+            0,
+            1,
+            target || this.layout?.spawnPoint || { x: -8, z: -8 },
+          ).then(() => {
+            this.townScene.setBorrowerLabelVisible(borrowerId, false);
+            if (current.trueOutcome === 'fraud') this.townScene.setBorrowerState(borrowerId, 'fraud');
+            if (target) return this.townScene.animateBorrowerWalk(borrowerId, target, 0.4 / SPEED_LEVELS[this.speedIndex]);
+            return Promise.resolve();
+          }),
+        );
+      } else if (target) {
+        ensureAndMove.push(this.townScene.animateBorrowerWalk(borrowerId, target, 0.4 / SPEED_LEVELS[this.speedIndex]));
+        this.townScene.setBorrowerLabelVisible(borrowerId, false);
+      }
+    }
+    await Promise.all(ensureAndMove.filter(Boolean));
+
+    const staleBorrowers = [];
+    for (const [borrowerId, state] of this.activeBorrowers.entries()) {
+      if (!activeByBorrower.has(borrowerId) && state.state !== 'incoming') {
+        staleBorrowers.push(borrowerId);
+      }
+    }
+    await Promise.all(staleBorrowers.map(async borrowerId => {
+      if (this.townScene.borrowerMeshes.has(borrowerId)) {
+        await this.townScene.fadeBorrower(borrowerId, 320 / SPEED_LEVELS[this.speedIndex]);
+      }
+      this.activeBorrowers.delete(borrowerId);
+    }));
+    this.pendingBorrowerRemovals.clear();
+    this._updateSignpostBorrowerStacks();
+  }
+
+  _applyBorrowerStateFromEvents(events) {
+    for (const evt of events || []) {
+      const name = this._extractBorrowerNameFromEvent(evt);
+      if (!name) continue;
+      const borrowerId = this._findBorrowerIdByName(name);
+      if (!borrowerId) continue;
+
+      if (/DEFAULT:/i.test(evt)) {
+        this.pendingBorrowerRemovals.add(borrowerId);
+        const state = this.activeBorrowers.get(borrowerId);
+        if (state) state.state = 'defaulted';
+        this.townScene?.setBorrowerState(borrowerId, 'defaulted');
+        continue;
+      }
+      if (/FRAUD/i.test(evt)) {
+        const state = this.activeBorrowers.get(borrowerId);
+        if (state) state.state = 'fraud';
+        this.townScene?.setBorrowerState(borrowerId, 'fraud');
+        continue;
+      }
+      if (/REPAID:|PREPAID:/i.test(evt)) {
+        this.pendingBorrowerRemovals.add(borrowerId);
+        const state = this.activeBorrowers.get(borrowerId);
+        if (state) state.state = 'repaid';
+        this.townScene?.setBorrowerState(borrowerId, 'repaid');
+      }
+    }
+  }
+
+  _extractBorrowerNameFromEvent(evt) {
+    if (!evt) return null;
+    const matched = evt.match(/^(?:DEFAULT|PAYMENT|REPAID|PREPAID):\s*([^\u2014(\[]+)/i);
+    if (!matched) return null;
+    return (matched[1] || '').trim();
+  }
+
+  _findBorrowerIdByName(name) {
+    const normalized = (name || '').trim().toLowerCase();
+    if (!normalized) return null;
+    for (const [id, b] of this.activeBorrowers.entries()) {
+      if ((b.name || '').trim().toLowerCase() === normalized) return id;
+    }
+    return null;
+  }
+
+  _renderLenderVisualStates(week = null) {
+    if (!this.townScene || !this.season) return;
+    const idx = this.currentWeek;
+    const snapshots = (idx >= 0 && idx < this.season.weeks.length)
+      ? this.season.weeks[idx]?.lender_snapshots || {}
+      : {};
+    const stats = this.season.lenders.map(l => ({ ...l, ...(snapshots[l.id] || {}) }));
+    const winnerId = stats.length ? [...stats].sort((a, b) => b.net_pnl - a.net_pnl)[0].id : null;
+    for (let i = 0; i < stats.length; i++) {
+      const s = stats[i];
+      const cap = Math.max(1, s.total_capital || 1);
+      const leverage = (s.deployed || 0) / cap;
+      const bankrupt = (s.effective_capital != null && s.effective_capital <= cap * 0.08) ||
+        (s.net_pnl || 0) < -cap * 0.4;
+      this.townScene.updateLenderVisualState(i, {
+        bankrupt,
+        highlyLeveraged: leverage > 0.82,
+        winner: s.id === winnerId,
+      });
+    }
+  }
+
+  _renderLosPanel() {
+    if (!this.dom.losPanel || !this.dom.losPanelBody || !this.season) return;
+    const visible = this.showLosDetail && this.currentWeek >= 0 && this.currentWeek < this.season.weeks.length;
+    this.dom.losPanel.hidden = !visible;
+    if (!visible) return;
+
+    const week = this.season.weeks[this.currentWeek];
+    const decisions = week?.decisions || [];
+    this.dom.losPanelBody.innerHTML = '';
+    if (!decisions.length) {
+      this.dom.losPanelBody.innerHTML = '<div class="los-empty">No LOS decisions in this step</div>';
+      return;
+    }
+
+    for (const dec of decisions) {
+      const borrower = week.borrowers?.find(b => b.id === dec.borrower_id);
+      const lender = this.season.lenders.find(l => l.id === dec.lender_id);
+      const los = dec.los_detail || null;
+      const card = document.createElement('div');
+      card.className = 'los-card';
+      const steps = los?.trace?.steps || [];
+      const financials = los?.inputs?.financials || null;
+      const banking = los?.inputs?.banking || null;
+      const business = los?.inputs?.business || null;
+      const rationale = los?.decision?.rationale?.summary || dec.reasoning || '';
+      card.innerHTML = `
+        <div class="los-card-top">
+          <span class="los-card-borrower">${esc(borrower?.name || dec.borrower_id)}</span>
+          <span class="los-card-lender">${esc(lender?.name || dec.lender_id)}</span>
+          <span class="los-card-decision ${dec.decision === 'APPROVE' ? 'approve' : 'reject'}">${esc(dec.decision || '?')}</span>
+        </div>
+        <div class="los-card-meta">
+          <span>Steps: ${steps.length}</span>
+          <span>Tokens: ${fmtNum(los?.trace?.cost?.tokens_in || dec.tokens_in || 0)} / ${fmtNum(los?.trace?.cost?.tokens_out || dec.tokens_out || 0)}</span>
+          <span>Cost: $${(los?.trace?.cost?.estimated_cost_usd || dec.cost_usd || 0).toFixed(4)}</span>
+        </div>
+        <div class="los-card-rationale">${esc(rationale || 'No rationale available')}</div>
+        ${financials ? `<div class="los-card-inputs">Financials: Rev $${fmtNum(financials.revenue_ttm || 0)}, Net $${fmtNum(financials.net_income || 0)}, Margin ${((financials.gross_margin || 0) * 100).toFixed(1)}%</div>` : ''}
+        ${banking ? `<div class="los-card-inputs">Banking: Deposits $${fmtNum(banking.total_deposits_12m || 0)}, Withdrawals $${fmtNum(banking.total_withdrawals_12m || 0)}, Avg Bal $${fmtNum(banking.avg_daily_balance_90d || 0)}</div>` : ''}
+        ${business ? `<div class="los-card-inputs">Business: ${esc(business.company_name || '')} (${esc(business.industry || '')}) ${business.years_trading || 0}y</div>` : ''}
+        ${los?.inputs?.raw_documents?.length ? `<div class="los-card-inputs">Docs: ${esc(los.inputs.raw_documents.map(d => `${d.doc_id || 'doc'}:${d.type || 'unknown'}`).join(', '))}</div>` : ''}
+        ${los?.inputs?.missing_info?.length ? `<div class="los-card-inputs">Missing: ${esc(los.inputs.missing_info.join(', '))}</div>` : ''}
+        ${steps.length ? `<div class="los-card-steps">${steps.map(step => {
+          const detailBits = [];
+          if (step.name) detailBits.push(step.name);
+          if (step.content) detailBits.push(step.content);
+          if (step.args && Object.keys(step.args).length) detailBits.push(`args=${JSON.stringify(step.args)}`);
+          if (step.result && Object.keys(step.result).length) detailBits.push(`result=${JSON.stringify(step.result)}`);
+          return `<div class="los-step"><span class="los-step-type">${esc(step.type || 'step')}</span><span class="los-step-name">${esc(detailBits.join(' | ') || '—')}</span></div>`;
+        }).join('')}</div>` : '<div class="los-card-inputs">No LOS trace steps exported</div>'}
+      `;
+      this.dom.losPanelBody.appendChild(card);
+    }
+  }
+
   // ==== Leaderboard ====
 
   _renderLeaderboard(upToWeekIndex) {
@@ -667,6 +1008,7 @@ class App {
       card.className = 'lb-card';
 
       const lenderIdx = this.season.lenders.findIndex(l => l.id === s.id);
+      card.classList.toggle('selected', lenderIdx === this.selectedLenderIndex);
       card.addEventListener('click', (e) => {
         e.stopPropagation();
         if (lenderIdx >= 0) this._showDetail(lenderIdx);
@@ -702,6 +1044,7 @@ class App {
     if (!this.season) return;
     const lender = this.season.lenders[lenderIndex];
     if (!lender) return;
+    this.selectedLenderIndex = lenderIndex;
 
     this.townScene?.highlightBuilding(lenderIndex);
 
@@ -745,6 +1088,18 @@ class App {
       </div>
     `;
 
+    const activeLoanDetail = s.active_loans_detail || s.active_loans || [];
+    if (activeLoanDetail.length > 0) {
+      html += `<div class="detail-section-title">Active Borrowers</div><div class="borrower-grid">`;
+      for (const loan of activeLoanDetail) {
+        html += `<div class="borrower-cell">
+          <span class="borrower-cell-id">${esc(loan.borrower_name || loan.borrower_id)}</span>
+          <span class="borrower-cell-state state-won">$${fmtNum(loan.remaining_balance || 0)}</span>
+        </div>`;
+      }
+      html += `</div>`;
+    }
+
     // Per-week P&L sparkline (text-based)
     if (lender.weekly_snapshots?.length > 0) {
       html += `<div class="detail-section-title">Weekly P&L</div><div class="sparkline-row">`;
@@ -780,17 +1135,53 @@ class App {
   // ==== Event Log ====
 
   _logEvent(type, message) {
+    const raw = message || '';
+    const derivedType = type || this._eventTypeForMessage(raw);
     const entry = document.createElement('div');
-    entry.className = `event-entry event-${type}`;
+    entry.className = `event-entry event-${derivedType}`;
     const time = new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
-    entry.innerHTML = `<span class="event-time">${time}</span> <span class="event-msg">${esc(message)}</span>`;
-    this.dom.eventLogBody.appendChild(entry);
+    entry.dataset.eventType = derivedType;
+    entry.dataset.message = raw;
+    entry.innerHTML = `<span class="event-time">${time}</span> <span class="event-msg">${esc(raw)}</span>`;
+    this.eventLogEntries.push(entry);
+    this._applyEventLogFilters();
+  }
+
+  _applyEventLogFilters() {
+    if (!this.dom.eventLogBody) return;
+    this.dom.eventLogBody.innerHTML = '';
+    for (const btn of [this.dom.logLevelAll, this.dom.logLevelNb, this.dom.logLevelLoans]) {
+      if (!btn) continue;
+      btn.classList.toggle('active', btn.dataset.level === this.logDetailLevel);
+    }
+    for (const entry of this.eventLogEntries) {
+      const type = entry.dataset.eventType || 'system';
+      const message = entry.dataset.message || '';
+      if (!this._eventMatchesLogLevel(type, message)) continue;
+      this.dom.eventLogBody.appendChild(entry);
+    }
     this.dom.eventLogBody.scrollTop = this.dom.eventLogBody.scrollHeight;
   }
 
+  _eventMatchesLogLevel(type, message) {
+    if (this.logDetailLevel === 'all') return true;
+    if (this.logDetailLevel === 'nb') {
+      if (type === 'loan') return false;
+      return true;
+    }
+    if (this.logDetailLevel === 'loans') {
+      return type === 'loan' || type === 'payment' || type === 'error' ||
+        /BOOKED|REJECTED|APPROVE|REJECT|DEFAULT|PAYMENT|REPAID|PREPAID/i.test(message);
+    }
+    return true;
+  }
+
   _eventTypeForMessage(evt) {
+    if (!evt) return 'system';
     if (evt.includes('DEFAULT')) return 'error';
     if (evt.startsWith('REPAID') || evt.startsWith('PREPAID') || evt.startsWith('PAYMENT')) return 'payment';
+    if (/Capital decay|\[Bandwidth\]|\[BANDWIDTH_LIMIT\]/i.test(evt)) return 'system';
+    if (/LOS|underwrite|tool_call|rationale/i.test(evt)) return 'los';
     return 'loan';
   }
 
@@ -877,6 +1268,7 @@ class App {
           cost_usd: dec.cost_usd || 0,
           tool_calls_count: dec.tool_calls || 0,
           chain_of_thought: dec.chain_of_thought || '',
+          los_detail: dec.los_detail || null,
           true_outcome: borrower?.true_outcome || 'unknown',
         });
         this._assignColor(lender?.name);
@@ -924,7 +1316,8 @@ class App {
       if (decision && decision !== 'ERROR' && t.decision !== decision) return false;
       if (search) {
         const haystack = [t.lender_name, t.borrower_name, t.model, t.decision,
-          t.system_prompt, t.user_prompt, t.raw_response, t.error, t.reasoning
+          t.system_prompt, t.user_prompt, t.raw_response, t.error, t.reasoning,
+          t.los_detail ? JSON.stringify(t.los_detail) : ''
         ].filter(Boolean).join(' ').toLowerCase();
         if (!haystack.includes(search)) return false;
       }
@@ -1054,6 +1447,30 @@ class App {
         `;
         return el;
       }, false));
+    }
+
+    // LOS execution details (if exported)
+    if (trace.los_detail) {
+      const los = trace.los_detail;
+      if (los.inputs) {
+        body.appendChild(this._makeSection('LOS Inputs', () => pre(JSON.stringify(los.inputs, null, 2), 'json-block'), false));
+      }
+      if (los.trace?.steps?.length) {
+        body.appendChild(this._makeSection(`LOS Steps (${los.trace.steps.length})`, () => {
+          const wrap = document.createElement('div');
+          wrap.className = 'los-step-list';
+          for (const step of los.trace.steps) {
+            const row = document.createElement('div');
+            row.className = 'los-step-row';
+            row.innerHTML = `<span class="los-step-type">${esc(step.type || 'step')}</span><span class="los-step-name">${esc(step.name || step.content || '')}</span>`;
+            wrap.appendChild(row);
+          }
+          return wrap;
+        }, true));
+      }
+      if (los.decision) {
+        body.appendChild(this._makeSection('LOS Decision Detail', () => pre(JSON.stringify(los.decision, null, 2), 'json-block'), false));
+      }
     }
 
     // Original trace data (from file-based traces)

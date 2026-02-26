@@ -42,6 +42,16 @@ export class AssetLoader {
     }
     const gltf = await this.cache.get(url);
     const clone = gltf.scene.clone(true);
+    // Ensure each instance has unique materials so per-building highlight
+    // state does not leak across clones that shared material references.
+    clone.traverse(node => {
+      if (!node.isMesh || !node.material) return;
+      if (Array.isArray(node.material)) {
+        node.material = node.material.map(m => m.clone());
+      } else {
+        node.material = node.material.clone();
+      }
+    });
     return { scene: clone, animations: gltf.animations };
   }
 
