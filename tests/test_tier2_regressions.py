@@ -220,8 +220,13 @@ class Tier2RegressionTests(unittest.TestCase):
 
         model_ids = [m["model_id"] for m in record["models"]]
         self.assertEqual(len(model_ids), len(set(model_ids)))
-        self.assertIn("::LND-001", model_ids[0])
-        self.assertIn("::LND-002", model_ids[1])
+        self.assertEqual(
+            model_ids,
+            [
+                "meta-llama/llama-3.3-70b-instruct",
+                "meta-llama/llama-3.3-70b-instruct::2",
+            ],
+        )
         self.assertEqual(record["season_week"], 1)
         self.assertEqual(record["season_match_type"], "weekly")
 
