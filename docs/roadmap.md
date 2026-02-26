@@ -78,3 +78,14 @@ Mock mode auto-generates tools. Live mode has a `pass` statement. `LenderToolkit
 **1 → 2 → 3** (one session, pure fixes) → **4 → 7** (close the data flywheel) → **5 → 6** (activate dead features) → **8 → 9** (make seasons interesting) → rest as research appetite allows.
 
 Items 1-3 are quick fixes that unblock everything downstream. Item 4 is probably the single highest-leverage new feature — it turns every season week into Elo training data.
+
+---
+
+## Tier 3 Strategic Improvements (PR #33)
+
+| Improvement | Status | Assessment | Action |
+|---|---|---|---|
+| Phased pipeline arrival | Implemented | Week cohorts now support configurable intra-week phases for pipeline pressure. | Added `arrival_phases` to season config/CLI and phase metadata to exports. |
+| Deep-underwrite bandwidth limits | Implemented | Previously, lenders could effectively deep-underwrite every borrower each week. | Added `deep_uw_slots_per_week` cap and automatic deferral of excess approvals. |
+| Borrower maturation visibility | Improved | Core payment progression existed, but exports/briefings had limited visibility into cumulative loan progress. | Added richer active-loan history and payment-progress details in reports/JSON. |
+| Competitive refinancing | Not implemented | No dedicated refinance round exists yet in the season loop. | Next step: add post-origination refinance round with eligibility and transfer rules. |

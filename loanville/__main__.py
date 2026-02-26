@@ -294,6 +294,10 @@ def main() -> None:
                         help="Enable custom tool creation in season mode")
     parser.add_argument("--months-per-week", type=int, default=2,
                         help="Months of loan aging per season week (default: 2)")
+    parser.add_argument("--arrival-phases", type=int, default=1,
+                        help="Number of intra-week arrival phases for the cohort (default: 1)")
+    parser.add_argument("--deep-uw-slots", type=int, default=0,
+                        help="Weekly cap on deep-underwrite approvals per lender in season mode; 0 disables cap")
     parser.add_argument("--info-asymmetry",
                         choices=["none", "partial_statements", "redacted"],
                         default="none",
@@ -350,6 +354,8 @@ def main() -> None:
             speed_scoring=args.speed_scoring,
             custom_tools=args.custom_tools,
             economics=economics,
+            arrival_phases=args.arrival_phases,
+            deep_uw_slots_per_week=args.deep_uw_slots,
             info_asymmetry=args.info_asymmetry,
         )
         lenders = get_lenders()

@@ -274,6 +274,11 @@ class SeasonConfig:
     # per-lender.
     info_asymmetry: str = "none"  # none | partial_statements | redacted
 
+    # Strategic pipeline pressure (post-v1 roadmap item): optional phase-based
+    # arrival and a weekly cap on full deep-underwrite capacity.
+    arrival_phases: int = 1
+    deep_uw_slots_per_week: int = 0  # 0 disables cap (unlimited)
+
     def __post_init__(self) -> None:
         if self.weeks <= 0:
             raise ValueError("weeks must be > 0")
@@ -291,6 +296,10 @@ class SeasonConfig:
             raise ValueError(
                 f"info_asymmetry must be one of {valid_asymmetry}, got '{self.info_asymmetry}'"
             )
+        if self.arrival_phases <= 0:
+            raise ValueError("arrival_phases must be > 0")
+        if self.deep_uw_slots_per_week < 0:
+            raise ValueError("deep_uw_slots_per_week must be >= 0")
 
 
 @dataclass
@@ -319,6 +328,9 @@ class SeasonLenderState:
     adaptation_score: float = 0.0
     # Speed tracking
     speed_wins: int = 0
+    # Bandwidth / pipeline tracking
+    deep_uw_deferred: int = 0
+    weekly_deep_uw_used: list[int] = field(default_factory=list)
     # Custom tools
     custom_tools: list = field(default_factory=list)
     # Weekly snapshots for analytics

@@ -22,6 +22,10 @@ from .models import (
     WeekResult,
 )
 
+BANDWIDTH_LIMIT_REASON = (
+    "[BANDWIDTH_LIMIT] Deferred after skim due to deep-underwrite slot cap."
+)
+
 
 # ---------------------------------------------------------------------------
 # Display helpers
@@ -45,6 +49,10 @@ def _print_season_header(config: SeasonConfig) -> None:
         flags.append(f"capital-decay({config.capital_decay_rate:.1%}/wk)")
     if config.info_asymmetry != "none":
         flags.append(f"info-asymmetry({config.info_asymmetry})")
+    if config.arrival_phases > 1:
+        flags.append(f"arrival-phases({config.arrival_phases})")
+    if config.deep_uw_slots_per_week > 0:
+        flags.append(f"deep-uw-slots({config.deep_uw_slots_per_week}/wk)")
     if flags:
         print(f"  Features: {', '.join(flags)}")
     print("=" * 70)
@@ -222,6 +230,83 @@ class SeasonEngine:
             if not state.eliminated
         }
 
+    def _assign_arrival_phases(self, cohort) -> dict[str, int]:
+        """Map borrower_id -> phase index (1-based)."""
+        if self.config.arrival_phases <= 1 or not cohort:
+            return {b.id: 1 for b in cohort}
+
+        phase_map: dict[str, int] = {}
+        total = len(cohort)
+        phases = min(self.config.arrival_phases, total)
+        for idx, borrower in enumerate(cohort):
+            phase = min(phases, (idx * phases // total) + 1)
+            phase_map[borrower.id] = phase
+        return phase_map
+
+    def _print_arrival_schedule(self, cohort, phase_map: dict[str, int]) -> None:
+        if self.config.arrival_phases <= 1:
+            return
+        print(f"\n  Intra-week arrival phases ({self.config.arrival_phases}):")
+        for phase in range(1, self.config.arrival_phases + 1):
+            ids = [b.id for b in cohort if phase_map.get(b.id, 1) == phase]
+            if ids:
+                print(f"    Phase {phase}: {', '.join(ids)}")
+
+    def _enforce_deep_uw_slots(
+        self,
+        engine: SimulationEngine,
+        phase_map: dict[str, int],
+    ) -> dict[str, int]:
+        """Convert excess approvals to rejects based on phase-priority slots."""
+        slots = self.config.deep_uw_slots_per_week
+        if slots <= 0:
+            return {}
+
+        borrower_order = {b.id: i for i, b in enumerate(engine.borrowers)}
+        used_per_lender: dict[str, int] = {}
+
+        print(f"\n  [Bandwidth] Deep-underwrite cap active: {slots} slot(s) per lender.")
+        for lender in engine.lenders:
+            decisions = engine.all_decisions.get(lender.id, [])
+            approvals = [
+                d for d in decisions if d.decision == "APPROVE" and d.term_sheet
+            ]
+            if len(approvals) <= slots:
+                used_per_lender[lender.id] = len(approvals)
+                print(
+                    f"    {lender.name}: {len(approvals)} approval(s), "
+                    "no deferrals."
+                )
+                continue
+
+            ranked = sorted(
+                approvals,
+                key=lambda d: (
+                    phase_map.get(d.borrower_id, 1),
+                    borrower_order.get(d.borrower_id, 10**6),
+                ),
+            )
+            keep_ids = {d.borrower_id for d in ranked[:slots]}
+            deferred = 0
+            for decision in decisions:
+                if (
+                    decision.decision == "APPROVE"
+                    and decision.term_sheet
+                    and decision.borrower_id not in keep_ids
+                ):
+                    decision.decision = "REJECT"
+                    decision.term_sheet = None
+                    decision.reasoning = BANDWIDTH_LIMIT_REASON
+                    deferred += 1
+
+            used_per_lender[lender.id] = slots
+            print(
+                f"    {lender.name}: deferred {deferred} approval(s) "
+                f"to stay within {slots} slot(s)."
+            )
+
+        return used_per_lender
+
     # ------------------------------------------------------------------
     # Main season loop
     # ------------------------------------------------------------------
@@ -264,6 +349,8 @@ class SeasonEngine:
             # 4. Generate cohort
             cohort = generate_cohort(week, self.config, self.used_static_ids)
             _print_cohort_summary(week, cohort)
+            phase_map = self._assign_arrival_phases(cohort)
+            self._print_arrival_schedule(cohort, phase_map)
 
             # 5. Build week lenders (inject briefing + available capital)
             #    Only include active (non-eliminated) lenders
@@ -278,6 +365,7 @@ class SeasonEngine:
             # 6. Run origination via SimulationEngine
             engine = SimulationEngine(cohort, week_lenders, **self.engine_kwargs)
             await engine.run_origination()
+            slots_used = self._enforce_deep_uw_slots(engine, phase_map)
 
             # 7. Adjudicate with season capital + optional speed scoring
             capital = self._get_remaining_capital()
@@ -289,12 +377,12 @@ class SeasonEngine:
             )
 
             # 8. Ingest results
-            week_result = self._ingest_results(week, engine)
+            week_result = self._ingest_results(week, engine, slots_used)
             week_result.events = events
             self.week_results.append(week_result)
 
             # 8b. Capture per-week detail for JSON export
-            self._capture_week_detail(week, cohort, engine, events)
+            self._capture_week_detail(week, cohort, engine, events, phase_map, slots_used)
             self._capture_week_match_data(week, engine)
 
             # 9. Snapshot utilization + weekly analytics
@@ -463,6 +551,15 @@ class SeasonEngine:
                 f"Deployed Capital: ${state.deployed_capital:,.0f}",
                 f"Active Loans: {len(state.active_loans)}",
             ]
+            if self.config.arrival_phases > 1:
+                lines.append(
+                    f"Pipeline this week: {self.config.arrival_phases} arrival phases."
+                )
+            if self.config.deep_uw_slots_per_week > 0:
+                lines.append(
+                    "Deep-underwrite capacity cap: "
+                    f"{self.config.deep_uw_slots_per_week} approvals/week."
+                )
 
             if state.active_loans:
                 lines.append("Current Portfolio:")
@@ -470,7 +567,8 @@ class SeasonEngine:
                     lines.append(
                         f"  - {loan.borrower_name} ({loan.sector}): "
                         f"${loan.remaining_balance:,.0f} remaining, "
-                        f"{loan.months_elapsed}/{loan.term_months} months"
+                        f"{loan.months_elapsed}/{loan.term_months} months, "
+                        f"${loan.total_interest_collected:,.0f} interest collected"
                     )
 
             if state.sector_exposure:
@@ -702,7 +800,12 @@ class SeasonEngine:
     # Result ingestion
     # ------------------------------------------------------------------
 
-    def _ingest_results(self, week: int, engine: SimulationEngine) -> WeekResult:
+    def _ingest_results(
+        self,
+        week: int,
+        engine: SimulationEngine,
+        slots_used: dict[str, int] | None = None,
+    ) -> WeekResult:
         """Convert booked loans to ActiveLoans, update state."""
         loans_booked = 0
         tool_counts = self._extract_tool_counts(engine)
@@ -763,6 +866,11 @@ class SeasonEngine:
         for lender in self.base_lenders:
             state = self.lender_states[lender.id]
             decisions = engine.all_decisions.get(lender.id, [])
+            approvals = sum(1 for d in decisions if d.decision == "APPROVE")
+            used = approvals
+            if slots_used is not None:
+                used = slots_used.get(lender.id, approvals)
+            state.weekly_deep_uw_used.append(used)
             # Accumulate token/cost stats
             lc = lender_costs.get(lender.id, {})
             state.cumulative_tokens_in += lc.get("tokens_in", 0)
@@ -770,7 +878,13 @@ class SeasonEngine:
             state.cumulative_cost_usd += lc.get("cost_usd", 0.0)
             for d in decisions:
                 state.total_evaluations += 1
-                state.total_tool_calls += tool_counts.get((lender.id, d.borrower_id), 0)
+                bandwidth_limited = d.reasoning.startswith("[BANDWIDTH_LIMIT]")
+                if bandwidth_limited:
+                    state.deep_uw_deferred += 1
+                    decision_tool_calls = 0
+                else:
+                    decision_tool_calls = tool_counts.get((lender.id, d.borrower_id), 0)
+                state.total_tool_calls += decision_tool_calls
                 if d.decision != "APPROVE":
                     state.deals_rejected += 1
                 elif d.borrower_id in booked_bids:
@@ -1005,8 +1119,18 @@ class SeasonEngine:
             "runs": copy.deepcopy(engine.runs),
         })
 
-    def _capture_week_detail(self, week: int, cohort, engine, events: list[str]) -> None:
+    def _capture_week_detail(
+        self,
+        week: int,
+        cohort,
+        engine,
+        events: list[str],
+        phase_map: dict[str, int] | None = None,
+        slots_used: dict[str, int] | None = None,
+    ) -> None:
         """Capture JSON-serializable per-week detail for the web viewer."""
+        phase_map = phase_map or {}
+        slots_used = slots_used or {}
         borrowers = []
         for b in cohort:
             borrowers.append({
@@ -1015,6 +1139,7 @@ class SeasonEngine:
                 "sector": b.dossier.sector,
                 "amount": b.dossier.loan_request_amount,
                 "true_outcome": b.true_outcome,
+                "arrival_phase": phase_map.get(b.id, 1),
             })
 
         decisions = []
@@ -1024,6 +1149,7 @@ class SeasonEngine:
                     "lender_id": lender_id,
                     "borrower_id": d.borrower_id,
                     "decision": d.decision,
+                    "bandwidth_limited": d.reasoning.startswith("[BANDWIDTH_LIMIT]"),
                     "reasoning": d.reasoning[:200] if d.reasoning else "",
                     "term_sheet": {
                         "amount": d.term_sheet.loan_amount,
@@ -1066,6 +1192,8 @@ class SeasonEngine:
                 "cumulative_workout_cost": round(state.cumulative_workout_cost, 2),
                 "defaults": sum(1 for o in state.resolved_loans if o.defaulted),
                 "frauds_funded": sum(1 for o in state.resolved_loans if o.was_fraud),
+                "deep_uw_deferred": state.deep_uw_deferred,
+                "deep_uw_used_this_week": slots_used.get(lid, 0),
                 "tokens_in": state.cumulative_tokens_in,
                 "tokens_out": state.cumulative_tokens_out,
                 "cost_usd": round(state.cumulative_cost_usd, 4),
@@ -1077,6 +1205,11 @@ class SeasonEngine:
             "decisions": decisions,
             "booked_loans": booked,
             "events": events,
+            "bandwidth": {
+                "arrival_phases": self.config.arrival_phases,
+                "deep_uw_slots_per_week": self.config.deep_uw_slots_per_week,
+                "slots_used": slots_used,
+            },
             "lender_snapshots": lender_snapshots,
         })
 
@@ -1101,6 +1234,7 @@ class SeasonEngine:
                 "cumulative_workout_cost": round(state.cumulative_workout_cost, 2),
                 "defaults": sum(1 for o in state.resolved_loans if o.defaulted),
                 "frauds_funded": sum(1 for o in state.resolved_loans if o.was_fraud),
+                "deep_uw_deferred": state.deep_uw_deferred,
                 "tokens_in": state.cumulative_tokens_in,
                 "tokens_out": state.cumulative_tokens_out,
                 "cost_usd": round(state.cumulative_cost_usd, 4),
@@ -1144,6 +1278,22 @@ class SeasonEngine:
                 "frauds_funded": sum(1 for o in state.resolved_loans if o.was_fraud),
                 "weekly_utilization": [round(u, 4) for u in state.weekly_utilization],
                 "weekly_snapshots": state.weekly_snapshots,
+                "deep_uw_deferred": state.deep_uw_deferred,
+                "weekly_deep_uw_used": state.weekly_deep_uw_used,
+                "active_loans": [
+                    {
+                        "loan_id": l.loan_id,
+                        "borrower_id": l.borrower_id,
+                        "borrower_name": l.borrower_name,
+                        "status": l.status,
+                        "months_elapsed": l.months_elapsed,
+                        "term_months": l.term_months,
+                        "remaining_balance": round(l.remaining_balance, 2),
+                        "total_interest_collected": round(l.total_interest_collected, 2),
+                        "total_principal_repaid": round(l.total_principal_repaid, 2),
+                    }
+                    for l in state.active_loans
+                ],
                 "tokens_in": state.cumulative_tokens_in,
                 "tokens_out": state.cumulative_tokens_out,
                 "cost_usd": round(state.cumulative_cost_usd, 4),
@@ -1157,6 +1307,8 @@ class SeasonEngine:
                 "months_per_week": self.config.months_per_week,
                 "season_mix": self.config.season_mix,
                 "seed": self.config.seed,
+                "arrival_phases": self.config.arrival_phases,
+                "deep_uw_slots_per_week": self.config.deep_uw_slots_per_week,
             },
             "lenders": lenders,
             "weeks": self.week_details,
@@ -1190,6 +1342,16 @@ class SeasonEngine:
             print(f"    Avg Utilization: {avg_util:.1%}")
             print(f"    Concentration Violation Weeks: "
                   f"{state.weeks_with_concentration_violations}")
+            if self.config.deep_uw_slots_per_week > 0:
+                avg_slots = (
+                    sum(state.weekly_deep_uw_used) / len(state.weekly_deep_uw_used)
+                    if state.weekly_deep_uw_used
+                    else 0.0
+                )
+                print(
+                    f"    Deep UW (avg/week): {avg_slots:.1f} "
+                    f"| Deferred: {state.deep_uw_deferred}"
+                )
 
             # Loan breakdown
             resolved = state.resolved_loans
