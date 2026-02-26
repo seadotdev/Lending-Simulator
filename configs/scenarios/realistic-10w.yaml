@@ -1,0 +1,10 @@
+weeks: 10
+cohort_size: 10
+months_per_week: 2
+season_mix: realistic
+arrival_phases: 1
+deep_uw_slots_per_week: 0
+info_asymmetry: none
+data_mode: full
+speed_scoring: false
+custom_tools: false

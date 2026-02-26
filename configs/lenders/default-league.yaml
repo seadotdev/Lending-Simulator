@@ -1,0 +1,10 @@
+- id: LND-001
+  model: deepseek/deepseek-chat-v3-0324
+- id: LND-002
+  model: qwen/qwen3-235b-a22b
+- id: LND-003
+  model: meta-llama/llama-3.3-70b-instruct
+- id: LND-004
+  model: qwen/qwen3-30b-a3b
+- id: LND-005
+  model: meta-llama/llama-3.3-70b-instruct
