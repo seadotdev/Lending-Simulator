@@ -21,6 +21,7 @@ import asyncio
 import json
 import logging
 import math
+import re
 import time
 import uuid
 from typing import Optional
@@ -152,6 +153,8 @@ def serialize_policy(lender: LenderConfig) -> dict:
         "total_capital": lender.total_capital,
         "sector_limits": lender.sector_limits,
     }
+    if lender.policy_params:
+        policy["params"] = dict(lender.policy_params)
 
     # Include existing portfolio for portfolio-fit analysis
     if lender.existing_portfolio:
@@ -520,6 +523,26 @@ def _map_los_response(
 
 
 LLM_FAILURE_PREFIX = "LLM evaluation failed:"
+PASS_PREFIX = "[PASS]"
+_OFFER_VALID_RE = re.compile(r"(?:offer_valid_weeks|OFFER_VALID_WEEKS)\s*[:=]\s*(\d+)")
+
+
+def _extract_offer_valid_weeks(run: UnderwritingRun, fallback: int = 1) -> int:
+    """Best-effort extraction from LOS decision metadata."""
+    conditions = getattr(run.decision, "conditions", None) or []
+    for cond in conditions:
+        if not isinstance(cond, str):
+            continue
+        m = _OFFER_VALID_RE.search(cond)
+        if m:
+            return max(1, int(m.group(1)))
+
+    summary = getattr(getattr(run.decision, "rationale", None), "summary", "") or ""
+    m = _OFFER_VALID_RE.search(summary)
+    if m:
+        return max(1, int(m.group(1)))
+
+    return max(1, int(fallback))
 
 
 def run_to_decision(run: UnderwritingRun) -> LenderDecision:
@@ -532,8 +555,10 @@ def run_to_decision(run: UnderwritingRun) -> LenderDecision:
     prefixed with "[LLM_ERROR]" so callers can distinguish infrastructure
     failures from real rejections.
     """
-    decision_str = "APPROVE" if run.decision.action == "approve" else "REJECT"
+    action = (run.decision.action or "").lower()
+    decision_str = "APPROVE" if action == "approve" else "REJECT"
     reasoning = run.decision.rationale.summary or ""
+    offer_valid_weeks = 1
 
     # Detect LLM infrastructure failures masquerading as declines
     if reasoning.startswith(LLM_FAILURE_PREFIX):
@@ -545,12 +570,20 @@ def run_to_decision(run: UnderwritingRun) -> LenderDecision:
 
     term_sheet = None
 
-    if run.decision.action == "approve":
+    is_pass = action == "refer" and reasoning.strip().upper().startswith(PASS_PREFIX)
+    if is_pass:
+        decision_str = "PASS"
+
+    if action == "approve":
         params = run.policy.params or {}
         requested_amount = float(getattr(run.case, "requested_amount", 0.0) or 0.0)
         requested_tenor = int(getattr(run.case, "requested_tenor_months", 24) or 24)
         max_single_loan = float(params.get("max_single_loan", requested_amount) or requested_amount)
         target_yield_pct = float(params.get("target_yield_pct", 10.0) or 10.0)
+        offer_valid_weeks = _extract_offer_valid_weeks(
+            run,
+            fallback=int(params.get("offer_validity_weeks", 1) or 1),
+        )
 
         # APR: decimal -> percentage
         apr_raw = run.decision.terms.apr
@@ -585,7 +618,7 @@ def run_to_decision(run: UnderwritingRun) -> LenderDecision:
             decision_str = "REJECT"
             reasoning = (reasoning + " [SYSTEM: Invalid term sheet values]").strip()
 
-    if term_sheet is None:
+    if term_sheet is None and decision_str == "APPROVE":
         decision_str = "REJECT"
 
     # Extract lender_id from policy
@@ -600,6 +633,7 @@ def run_to_decision(run: UnderwritingRun) -> LenderDecision:
         decision=decision_str,
         reasoning=reasoning,
         term_sheet=term_sheet,
+        offer_valid_weeks=offer_valid_weeks,
     )
 
 

@@ -341,13 +341,18 @@ class SimulationEngine:
         for lender in self.lenders:
             decisions = self.all_decisions[lender.id]
             approvals = sum(1 for d in decisions if d.decision == "APPROVE")
+            passes = sum(1 for d in decisions if d.decision == "PASS")
             llm_errors = sum(1 for d in decisions if d.reasoning.startswith("[LLM_ERROR]"))
-            rejections = len(decisions) - approvals
+            rejections = len(decisions) - approvals - passes
             print(f"  {lender.name} ({lender.model}):")
             error_str = f" | LLM Errors: {llm_errors}" if llm_errors else ""
-            print(f"    Approved: {approvals} | Rejected: {rejections}{error_str}")
+            print(f"    Approved: {approvals} | Rejected: {rejections} | Passed: {passes}{error_str}")
             for d in decisions:
-                status = "APPROVED" if d.decision == "APPROVE" else "REJECTED"
+                status = (
+                    "APPROVED" if d.decision == "APPROVE"
+                    else "PASSED" if d.decision == "PASS"
+                    else "REJECTED"
+                )
                 bname = borrower_names.get(d.borrower_id, d.borrower_id)
                 rate_str = ""
                 if d.term_sheet:
