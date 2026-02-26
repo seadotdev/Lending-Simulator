@@ -47,6 +47,72 @@ The standout result is **Llama 3.3 70B**: it missed every bad business with bank
 
 **Nemotron 49B** bucked the trend — better at spotting bad businesses from raw statements (1 miss) than from quarterly financials (2 misses). This suggests some architectures extract more signal from transactional patterns than structured summaries, though Nemotron's advantage reversed on overall P&L once fraud losses were factored in.
 
+### Replication (Run 2)
+
+A second independent run of the same experiment confirmed the original findings. All four directional results replicated:
+
+| Model | Run 1 Score (Stmts → Fin) | Run 2 Score (Stmts → Fin) | Direction |
+|---|---|---|---|
+| DeepSeek v3 | -80% → -30% (Fin +50pp) | -67% → -29% (Fin +38pp) | Financials win (both) |
+| Llama 3.3 70B | -49% → -31% (Fin +18pp) | -89% → -32% (Fin +56pp) | Financials win (both) |
+| **Nemotron 49B** | **-30% → -58% (Stmt +28pp)** | **-39% → -57% (Stmt +18pp)** | **Statements win (both)** |
+| Qwen3 30B | -45% → -39% (Fin +6pp) | -54% → -42% (Fin +13pp) | Financials win (both) |
+
+Detection rates (catch %) also replicated: Nemotron 49B caught 79% with statements vs 71% with financials (run 2), remaining the only model where raw bank statements outperform structured financials. Llama 70B again showed the most dramatic gap — 46% catch with statements vs 92% with financials.
+
+The effect sizes vary between runs (expected with stochastic LLM outputs), but the rank ordering is stable: Nemotron 49B is consistently the only exception to the financials-win pattern.
+
 ### Implication
 
 For production underwriting pipelines focused on credit quality (not fraud), structured financial summaries should be the primary input. Raw bank statements add value for fraud detection (see data mode design in the [benchmark doc](elo-vs-raroc-benchmark.md#42-data-modes)) but can actually hurt business credit assessment by overwhelming models with noise.
+
+---
+
+## 2. Nemotron 49B's Bank Statement Advantage Does Not Generalise Across the Family
+
+**Experiment**: [`test_nemotron_generalization.py`](../test_nemotron_generalization.py) — runs the same `statements_inline` vs `quarterly_only` comparison across the Nemotron model family to test whether the 49B's unusual raw-statement advantage (Section 1) is a family-level architectural trait.
+
+**Models tested**: Nemotron Ultra 253B, Nemotron Nano 9B (free tier). The 70B, 49B, 30B, and 12B VL models failed mid-experiment due to OpenRouter weekly key limits. The 49B's original data (Section 1) provides a third reference point.
+
+**Finding**: The 49B's raw-statement advantage is specific to that model, not a Nemotron family trait. The 253B Ultra shows the standard pattern (financials strongly beat statements), and the 9B Nano shows no difference on bad detection, with financials slightly ahead on fraud and overall score.
+
+### Bad Business Detection (3 lenders × 4 bad = 12 decisions)
+
+| Model | Params | Bank Stmts Catch | Financials Catch | Winner |
+|---|---|---|---|---|
+| Nemotron Ultra 253B | 253B | 9/12 (75%) | 11/12 (92%) | **Financials** (+17pp) |
+| Nemotron Super 49B* | 49B | 3/4 (75%)* | 2/4 (50%)* | **Statements** (+25pp) |
+| Nemotron Nano 9B | 9B | 11/12 (92%) | 11/12 (92%) | Tie |
+
+*49B data from original experiment (Section 1), single-lender view (4 decisions, not 12).
+
+### Fraud Detection
+
+| Model | Params | Bank Stmts Catch | Financials Catch | Winner |
+|---|---|---|---|---|
+| Nemotron Ultra 253B | 253B | 8/12 (67%) | **12/12 (100%)** | **Financials** (+33pp) |
+| Nemotron Nano 9B | 9B | 6/12 (50%) | 7/12 (58%) | Financials (+8pp) |
+
+### Overall Score
+
+| Model | Params | Bank Stmts Score | Financials Score | Delta |
+|---|---|---|---|---|
+| Nemotron Ultra 253B | 253B | -54.48% | **-28.44%** | Financials +26pp |
+| Nemotron Super 49B* | 49B | -$490K P&L | -$1,082K P&L | **Statements better** |
+| Nemotron Nano 9B | 9B | -67.93% | **-51.36%** | Financials +17pp |
+
+### What This Means
+
+The 49B Super's raw-statement advantage appears to be model-specific rather than architectural. Across the Nemotron family:
+
+- **253B Ultra** follows the standard pattern: structured financials dominate for both credit quality (+17pp) and fraud detection (+33pp). Its financials-mode performance was strong — only 1 default, zero frauds funded, and a manageable -$80K P&L across $3M deployed.
+- **9B Nano** shows no meaningful difference on bad business detection (both modes catch 92%), but struggles badly with false positives (48–52% FP rate) and fraud detection (50–58%) regardless of mode. At -51% to -68% scores, it is well below the -10% reject-all baseline and not useful for underwriting in either mode.
+- **49B Super** remains the only Nemotron model where raw bank statements outperform structured financials on credit quality. One possible explanation: the 49B's architecture (Llama 3.3 base with Nemotron fine-tuning) hits a sweet spot where the model is large enough to process transaction-level patterns but not so large that it over-indexes on the noise.
+
+### Size Floor
+
+The 9B Nano can produce valid underwriting decisions (correct JSON format, approve/reject with reasoning), but its 48–52% false positive rate makes it unusable — it rejects half the good businesses. It scores -51% to -68%, far below the -10% reject-all baseline. The minimum useful Nemotron size for this task appears to be above 9B, likely at the 49B+ tier based on the original experiment data.
+
+### Incomplete Models
+
+The 70B Instruct, 30B Nano, and 12B VL Nano could not be tested due to API key weekly spending limits. The 12B VL is a vision-language model that may behave differently on text-only financial analysis. Re-running with a fresh key would fill these gaps and clarify whether the pattern is strictly 49B-specific or shared by any mid-size Nemotron variant.
