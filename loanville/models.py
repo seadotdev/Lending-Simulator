@@ -251,7 +251,7 @@ class SeasonConfig:
     weeks: int = 10
     cohort_size: int = 5
     months_per_week: int = 2
-    season_mix: str = "realistic"  # gentle | realistic | adversarial | escalating
+    season_mix: str = "realistic"  # gentle | realistic | adversarial | stress | escalating
     seed: int = 42
     speed_scoring: bool = True
     custom_tools: bool = True
