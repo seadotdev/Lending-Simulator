@@ -1,0 +1,3 @@
+[submodule "open-los"]
+	path = open-los
+	url = https://github.com/seadotdev/open-los.git

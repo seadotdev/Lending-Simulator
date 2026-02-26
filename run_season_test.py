@@ -87,6 +87,7 @@ season = SeasonEngine(
     lenders=lenders,
     mock=False,
     data_mode="lite",
+    los_mode="full",
 )
 asyncio.run(season.run_season())
 

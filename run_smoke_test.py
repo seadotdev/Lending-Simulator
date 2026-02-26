@@ -7,9 +7,7 @@ whether failures are model issues or competitive dynamics.
 """
 
 import asyncio
-import json
 import os
-import sys
 import time
 
 from dotenv import load_dotenv
@@ -18,11 +16,6 @@ load_dotenv(os.path.expanduser("~/.env"))
 from loanville.data import get_lenders, get_borrowers
 from loanville.models import ECONOMICS_PRESETS, LenderConfig
 from loanville.engine import SimulationEngine
-
-API_KEY = os.environ.get("OPENROUTER_API_KEY", "")
-if not API_KEY:
-    print("ERROR: OPENROUTER_API_KEY not set. Add it to ~/.env")
-    sys.exit(1)
 
 # Models to smoke test — mix of known-good, known-bad, and untested
 MODELS = [
@@ -91,9 +84,9 @@ for model_id, display_name in MODELS:
         engine = SimulationEngine(
             borrowers=test_borrowers,
             lenders=[lender],
-            openrouter_api_key=API_KEY,
             mock=False,
             data_mode="lite",
+            los_mode="full",
             economics=economics,
         )
         asyncio.run(engine.run_origination())

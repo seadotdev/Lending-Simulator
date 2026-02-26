@@ -52,7 +52,7 @@
 #        OPENROUTER_API_KEY=sk-or-v1-...
 #
 #   2. Node.js (for Open LOS):
-#        cd ../open-los && npm install
+#        git submodule update --init && cd open-los && npm install
 #
 #   3. Python deps (for Loanville):
 #        cd ../loanville2 && pip install -r requirements.txt
@@ -72,7 +72,12 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-LOS_DIR="$(cd "$SCRIPT_DIR/../open-los" && pwd)"
+# Prefer submodule (./open-los), fall back to sibling (../open-los)
+if [ -d "$SCRIPT_DIR/open-los" ]; then
+    LOS_DIR="$(cd "$SCRIPT_DIR/open-los" && pwd)"
+else
+    LOS_DIR="$(cd "$SCRIPT_DIR/../open-los" && pwd)"
+fi
 LOS_PORT=3000
 LOS_PID=""
 

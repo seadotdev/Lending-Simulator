@@ -12,7 +12,6 @@ All under $0.20/M input — very cheap to run.
 
 import asyncio
 import os
-import sys
 import time
 
 from dotenv import load_dotenv
@@ -22,11 +21,6 @@ from loanville.data import get_lenders
 from loanville.models import ECONOMICS_PRESETS, SeasonConfig
 from loanville.scoring import score_season, print_season_report
 from loanville.season import SeasonEngine
-
-API_KEY = os.environ.get("OPENROUTER_API_KEY", "")
-if not API_KEY:
-    print("ERROR: OPENROUTER_API_KEY not set. Add it to ~/.env")
-    sys.exit(1)
 
 # ── Config ────────────────────────────────────────────────────────────────
 MODEL_A = "qwen/qwen3-next-80b-a3b-instruct"
@@ -81,9 +75,9 @@ t0 = time.time()
 season = SeasonEngine(
     config=config,
     lenders=lenders,
-    openrouter_api_key=API_KEY,
     mock=False,
     data_mode="lite",
+    los_mode="full",
 )
 asyncio.run(season.run_season())
 
