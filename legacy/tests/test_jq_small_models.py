@@ -67,7 +67,7 @@ def get_test_borrowers(full_pool: bool):
     return [b for b in all_borrowers if b.id in target_ids]
 
 
-async def test_single_evaluation(client, model_id, borrower, lender, data_mode, semaphore):
+async def run_single_evaluation(client, model_id, borrower, lender, data_mode, semaphore):
     """Run a single model evaluation and capture detailed results."""
     clear_call_traces()
 
@@ -129,7 +129,7 @@ async def run_model_test(client, model_id, tier, desc, borrowers, semaphore):
     # Test in full mode (jq available)
     for borrower in borrowers:
         clear_call_traces()
-        r = await test_single_evaluation(
+        r = await run_single_evaluation(
             client, model_id, borrower, lender, "full", semaphore,
         )
         results.append(r)
@@ -145,7 +145,7 @@ async def run_model_test(client, model_id, tier, desc, borrowers, semaphore):
     # Test in quarterly_only mode (no jq) for comparison
     for borrower in borrowers:
         clear_call_traces()
-        r = await test_single_evaluation(
+        r = await run_single_evaluation(
             client, model_id, borrower, lender, "quarterly_only", semaphore,
         )
         results.append(r)

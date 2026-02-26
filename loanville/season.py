@@ -552,17 +552,8 @@ class SeasonEngine:
         for lender in self.base_lenders:
             state = self.lender_states[lender.id]
             briefing = briefings.get(lender.id, "")
-            tool_context = self._build_tool_context(lender.id)
             toolkit = self.toolkits[lender.id]
             tool_definitions = toolkit.get_tool_definitions()
-
-            persona_sections = []
-            if briefing:
-                persona_sections.append(briefing)
-            if tool_context:
-                persona_sections.append(tool_context)
-            persona_sections.append(lender.persona)
-            persona = "\n\n".join(persona_sections)
 
             # Build existing_portfolio from static base book + active season loans
             existing = copy.deepcopy(lender.existing_portfolio)
@@ -577,10 +568,30 @@ class SeasonEngine:
                         months_remaining=loan.term_months - loan.months_elapsed,
                     ))
 
+            persona_parts = []
+            if briefing:
+                persona_parts.append(briefing)
+            if toolkit.tools:
+                tool_lines = [
+                    "--- CUSTOM TOOLKIT ---",
+                    "You have lender-specific custom tools from prior weeks.",
+                    "Call these tools when relevant instead of repeating manual analysis:",
+                ]
+                for tool in toolkit.tools:
+                    tool_lines.append(
+                        f"- {tool.name}: {tool.description} "
+                        f"(implementation hint: {tool.implementation})"
+                    )
+                tool_lines.append(
+                    "If a tool directly answers the question, prefer using it before finalizing terms."
+                )
+                persona_parts.append("\n".join(tool_lines))
+            persona_parts.append(lender.persona)
+
             week_lender = LenderConfig(
                 id=lender.id,
                 name=lender.name,
-                persona=persona,
+                persona="\n\n".join(p for p in persona_parts if p),
                 model=lender.model,
                 target_yield_pct=lender.target_yield_pct,
                 max_single_loan=lender.max_single_loan,
@@ -641,10 +652,9 @@ class SeasonEngine:
             if self.engine_kwargs.get("mock"):
                 self._mock_tooling(toolkit, state, week)
             else:
-                # Live mode: build a tooling prompt from performance data
-                # and inject it alongside the lender persona in the next
-                # evaluation round.  Actual LLM call deferred to origination.
-                pass
+                # Until a dedicated live tooling call is implemented, apply the
+                # same deterministic heuristics so toolkits evolve in live mode.
+                self._mock_tooling(toolkit, state, week)
 
             # Keep season scoring state in sync with the toolkit registry.
             state.custom_tools = list(toolkit.tools)
