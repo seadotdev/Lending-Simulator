@@ -84,6 +84,8 @@ class LenderConfig:
     total_capital: float
     sector_limits: dict  # sector -> max fraction (0.0 to 1.0)
     existing_portfolio: list[ExistingLoan] = field(default_factory=list)
+    # Optional per-lender custom tool definitions (season mode).
+    custom_tools: list[dict] = field(default_factory=list)
 
 
 @dataclass
