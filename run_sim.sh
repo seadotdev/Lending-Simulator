@@ -141,10 +141,19 @@ if $MOCK; then
 fi
 
 # ── Verify API key ──────────────────────────────────────────────────────────
-if [[ -z "${OPENROUTER_API_KEY:-}" ]]; then
-    echo "ERROR: OPENROUTER_API_KEY not found."
-    echo "Add it to ~/.env:"
-    echo "  echo 'OPENROUTER_API_KEY=sk-or-v1-...' >> ~/.env"
+# At least one LLM provider key must be set
+HAS_KEY=false
+[[ -n "${OPENROUTER_API_KEY:-}" ]] && HAS_KEY=true
+[[ -n "${ANTHROPIC_API_KEY:-}" ]] && HAS_KEY=true
+[[ -n "${OPENAI_API_KEY:-}" ]] && HAS_KEY=true
+[[ -n "${AI_GATEWAY_API_KEY:-}" ]] && HAS_KEY=true
+if ! $HAS_KEY; then
+    echo "ERROR: No LLM provider API key found."
+    echo "Set at least one in ~/.env:"
+    echo "  OPENROUTER_API_KEY=sk-or-v1-..."
+    echo "  ANTHROPIC_API_KEY=sk-ant-..."
+    echo "  OPENAI_API_KEY=sk-..."
+    echo "  AI_GATEWAY_API_KEY=..."
     echo ""
     echo "Or run in mock mode:  ./run_sim.sh --mock"
     exit 1
@@ -175,7 +184,18 @@ echo "  Starting Open LOS on port $LOS_PORT..."
 echo "═══════════════════════════════════════════════════════════════"
 
 export PORT="$LOS_PORT"
-export OPENROUTER_API_KEY="${OPENROUTER_API_KEY}"
+# Forward all provider keys to the LOS process
+[[ -n "${OPENROUTER_API_KEY:-}" ]] && export OPENROUTER_API_KEY="${OPENROUTER_API_KEY}"
+[[ -n "${ANTHROPIC_API_KEY:-}" ]] && export ANTHROPIC_API_KEY="${ANTHROPIC_API_KEY}"
+[[ -n "${OPENAI_API_KEY:-}" ]] && export OPENAI_API_KEY="${OPENAI_API_KEY}"
+[[ -n "${AI_GATEWAY_API_KEY:-}" ]] && export AI_GATEWAY_API_KEY="${AI_GATEWAY_API_KEY}"
+# Forward optional LLM routing config
+[[ -n "${LOS_DEFAULT_PROVIDER:-}" ]] && export LOS_DEFAULT_PROVIDER="${LOS_DEFAULT_PROVIDER}"
+[[ -n "${LOS_DEFAULT_MODEL:-}" ]] && export LOS_DEFAULT_MODEL="${LOS_DEFAULT_MODEL}"
+[[ -n "${LOS_LLM_ROUTES:-}" ]] && export LOS_LLM_ROUTES="${LOS_LLM_ROUTES}"
+[[ -n "${LOS_OPENROUTER_BASE_URL:-}" ]] && export LOS_OPENROUTER_BASE_URL="${LOS_OPENROUTER_BASE_URL}"
+[[ -n "${LOS_VERCEL_BASE_URL:-}" ]] && export LOS_VERCEL_BASE_URL="${LOS_VERCEL_BASE_URL}"
+[[ -n "${OPENAI_BASE_URL:-}" ]] && export OPENAI_BASE_URL="${OPENAI_BASE_URL}"
 
 cd "$LOS_DIR"
 npm run start --workspace=packages/api &

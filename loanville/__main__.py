@@ -261,7 +261,7 @@ def main() -> None:
     parser.add_argument("--los-url", default="http://localhost:3000",
                         help="Open LOS API URL (default: http://localhost:3000)")
     parser.add_argument("--los-provider", default="anthropic",
-                        choices=["openrouter", "anthropic"],
+                        choices=["openrouter", "anthropic", "openai", "vercel"],
                         help="LLM provider for LOS evaluation (default: anthropic)")
     parser.add_argument("--los-mode", default="rules_only",
                         choices=["full", "rules_only"],
@@ -492,6 +492,36 @@ def main() -> None:
         match_path, lb_path = emit_and_update(record)
         print(f"\n  Leaderboard: match → {match_path.name}")
         print(f"  Leaderboard: standings → {lb_path.name}")
+
+    # Export to web viewer (same format as season mode)
+    import json
+    from datetime import datetime
+    sim_json = engine.to_json()
+    web_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "web")
+    seasons_dir = os.path.join(web_dir, "seasons")
+    if os.path.isdir(web_dir):
+        os.makedirs(seasons_dir, exist_ok=True)
+        ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+        lender_names = "-".join(l.name.split()[0] for l in lenders[:3])
+        mode_tag = "mock" if mock else args.los_provider
+        filename = f"{ts}_{lender_names}_{mode_tag}.json"
+        filepath = os.path.join(seasons_dir, filename)
+        with open(filepath, "w") as f:
+            json.dump(sim_json, f, indent=2)
+        # Rebuild index
+        all_files = sorted(
+            [f for f in os.listdir(seasons_dir) if f.endswith(".json") and f != "index.json"],
+            reverse=True,
+        )
+        with open(os.path.join(seasons_dir, "index.json"), "w") as f:
+            json.dump(all_files, f, indent=2)
+        print(f"\nWeb viewer: seasons/{filename}")
+
+    if args.json:
+        import json as json_mod
+        with open(args.json, "w") as f:
+            json_mod.dump(engine.to_json(), f, indent=2)
+        print(f"Data exported to: {args.json}")
 
     print("\nSimulation complete.\n")
 

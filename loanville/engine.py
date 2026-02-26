@@ -846,6 +846,161 @@ class SimulationEngine:
     # ------------------------------------------------------------------
     # Full run
     # ------------------------------------------------------------------
+    def to_json(self) -> dict:
+        """Export simulation as a season-compatible JSON dict for the web viewer.
+
+        Wraps the single run as a 1-week season so the existing web viewer
+        can render it without changes.
+        """
+        borrower_map = {b.id: b for b in self.borrowers}
+        lender_map = {l.id: l for l in self.lenders}
+
+        # Build outcome index
+        outcome_map: dict[str, LoanOutcome] = {}
+        for loan in self.booked_loans:
+            outcome = next((o for o in self.loan_outcomes if o.loan_id == loan.id), None)
+            if outcome:
+                outcome_map[loan.lender_id] = outcome
+
+        # Lender summaries
+        lenders_json = []
+        for lender in self.lenders:
+            decisions = self.all_decisions.get(lender.id, [])
+            approvals = [d for d in decisions if d.decision == "APPROVE"]
+            rejections = [d for d in decisions if d.decision != "APPROVE"]
+            won = [l for l in self.booked_loans if l.lender_id == lender.id]
+            lost_count = len(approvals) - len(won)
+            outcomes = [o for o in self.loan_outcomes if o.lender_id == lender.id]
+            interest = sum(o.total_interest_paid for o in outcomes)
+            fees = sum(o.total_fees_paid for o in outcomes)
+            losses = sum(o.principal_lost for o in outcomes)
+            deployed = sum(l.principal for l in won)
+            defaults = sum(1 for o in outcomes if o.defaulted)
+            frauds = sum(1 for o in outcomes if o.was_fraud)
+
+            # Token/cost from runs
+            lender_runs = [r for r in self.runs if lender.id in r.policy.policy_id]
+            tokens_in = sum(r.trace.cost.tokens_in for r in lender_runs)
+            tokens_out = sum(r.trace.cost.tokens_out for r in lender_runs)
+            cost_usd = sum(r.trace.cost.estimated_cost_usd for r in lender_runs)
+
+            lenders_json.append({
+                "id": lender.id,
+                "name": lender.name,
+                "model": lender.model,
+                "total_capital": lender.total_capital,
+                "net_pnl": round(interest + fees - losses, 2),
+                "deployed": round(deployed, 2),
+                "deals_won": len(won),
+                "deals_rejected": len(rejections),
+                "deals_lost": lost_count,
+                "cumulative_interest": round(interest, 2),
+                "cumulative_losses": round(losses, 2),
+                "cumulative_fees": round(fees, 2),
+                "defaults": defaults,
+                "frauds_funded": frauds,
+                "weekly_utilization": [round(deployed / lender.total_capital, 4)] if lender.total_capital > 0 else [0],
+                "weekly_snapshots": [],
+                "tokens_in": tokens_in,
+                "tokens_out": tokens_out,
+                "cost_usd": round(cost_usd, 4),
+            })
+
+        # Week detail (single week)
+        borrowers_json = [{
+            "id": b.id,
+            "name": b.dossier.company_name,
+            "sector": b.dossier.sector,
+            "amount": b.dossier.loan_request_amount,
+            "true_outcome": b.true_outcome,
+        } for b in self.borrowers]
+
+        decisions_json = []
+        for lender_id, decs in self.all_decisions.items():
+            for d in decs:
+                decisions_json.append({
+                    "lender_id": lender_id,
+                    "borrower_id": d.borrower_id,
+                    "decision": d.decision,
+                    "reasoning": d.reasoning[:200] if d.reasoning else "",
+                    "term_sheet": {
+                        "amount": d.term_sheet.loan_amount,
+                        "rate": d.term_sheet.interest_rate,
+                        "term_months": d.term_sheet.term_months,
+                    } if d.term_sheet else None,
+                })
+
+        booked_json = [{
+            "id": loan.id,
+            "borrower_id": loan.borrower_id,
+            "borrower_name": loan.borrower_name,
+            "lender_id": loan.lender_id,
+            "sector": loan.sector,
+            "principal": loan.principal,
+            "interest_rate": loan.interest_rate,
+            "term_months": loan.term_months,
+        } for loan in self.booked_loans]
+
+        lender_snapshots = {}
+        for lender in self.lenders:
+            lid = lender.id
+            l_json = next(l for l in lenders_json if l["id"] == lid)
+            existing_deployed = sum(x.remaining_balance for x in lender.existing_portfolio)
+            lender_snapshots[lid] = {
+                "name": lender.name,
+                "model": lender.model,
+                "net_pnl": l_json["net_pnl"],
+                "deployed": l_json["deployed"],
+                "available": round(lender.total_capital - existing_deployed - l_json["deployed"], 2),
+                "effective_capital": lender.total_capital,
+                "deals_won": l_json["deals_won"],
+                "deals_rejected": l_json["deals_rejected"],
+                "deals_lost": l_json["deals_lost"],
+                "active_loans": l_json["deals_won"],
+                "cumulative_interest": l_json["cumulative_interest"],
+                "cumulative_losses": l_json["cumulative_losses"],
+                "cumulative_fees": l_json["cumulative_fees"],
+                "defaults": l_json["defaults"],
+                "frauds_funded": l_json["frauds_funded"],
+                "tokens_in": l_json["tokens_in"],
+                "tokens_out": l_json["tokens_out"],
+                "cost_usd": l_json["cost_usd"],
+            }
+
+        mix_name = "unknown"
+        # Try to infer mix from borrower composition
+        from collections import Counter
+        outcomes = Counter(b.true_outcome for b in self.borrowers)
+        total = len(self.borrowers)
+        good_pct = outcomes.get("good", 0) / total if total else 0
+        if good_pct >= 0.9:
+            mix_name = "easy"
+        elif good_pct >= 0.7:
+            mix_name = "balanced"
+        else:
+            mix_name = "hard"
+
+        return {
+            "type": "season",
+            "config": {
+                "weeks": 1,
+                "cohort_size": len(self.borrowers),
+                "months_per_week": 2,
+                "season_mix": mix_name,
+                "seed": 0,
+                "mode": "single_run",
+            },
+            "lenders": lenders_json,
+            "weeks": [{
+                "week": 1,
+                "borrowers": borrowers_json,
+                "decisions": decisions_json,
+                "booked_loans": booked_json,
+                "events": [],
+                "lender_snapshots": lender_snapshots,
+            }],
+        }
+
     async def run(self) -> None:
         """Execute the full simulation."""
         await self.run_origination()
