@@ -577,6 +577,8 @@ class App {
       const deployed = s.deployed || 0;
       const raroc = deployed > 0 ? ((s.net_pnl / deployed) * 100).toFixed(1) : '0.0';
 
+      const costStr = s.cost_usd > 0 ? `$${s.cost_usd.toFixed(2)}` : '';
+
       card.innerHTML = `
         <div class="lb-rank">#${rank + 1}</div>
         <div class="lb-info">
@@ -587,6 +589,7 @@ class App {
           <span class="lb-pnl ${pnlClass}">${pnlStr}</span>
           <span class="lb-raroc">RAROC ${raroc}%</span>
           <span class="lb-deals">${s.deals_won}W / ${s.deals_rejected}R</span>
+          ${costStr ? `<span class="lb-cost">${costStr}</span>` : ''}
         </div>
       `;
       this.dom.leaderboard.appendChild(card);
@@ -634,6 +637,11 @@ class App {
         <div class="detail-stat"><span class="detail-stat-label">Interest</span><span class="detail-stat-value positive">$${fmtNum(s.cumulative_interest || 0)}</span></div>
         <div class="detail-stat"><span class="detail-stat-label">Losses</span><span class="detail-stat-value negative">$${fmtNum(s.cumulative_losses || 0)}</span></div>
         <div class="detail-stat"><span class="detail-stat-label">Active Loans</span><span class="detail-stat-value">${s.active_loans || 0}</span></div>
+        ${s.cost_usd > 0 ? `
+        <div class="detail-stat"><span class="detail-stat-label">API Cost</span><span class="detail-stat-value">$${(s.cost_usd || 0).toFixed(2)}</span></div>
+        <div class="detail-stat"><span class="detail-stat-label">Tokens In</span><span class="detail-stat-value">${fmtNum(s.tokens_in || 0)}</span></div>
+        <div class="detail-stat"><span class="detail-stat-label">Tokens Out</span><span class="detail-stat-value">${fmtNum(s.tokens_out || 0)}</span></div>
+        ` : ''}
       </div>
     `;
 

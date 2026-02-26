@@ -443,6 +443,13 @@ body {
   color: var(--text-muted);
 }
 
+.lb-cost {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--text-muted);
+  opacity: 0.7;
+}
+
 /* ---- Detail Panel ---- */
 .detail-panel {
   max-height: 300px;

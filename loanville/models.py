@@ -325,6 +325,10 @@ class SeasonLenderState:
     eliminated_week: int = 0
     # Capital time-value decay accumulator
     cumulative_decay: float = 0.0
+    # Token / cost tracking (from LOS traces)
+    cumulative_tokens_in: int = 0
+    cumulative_tokens_out: int = 0
+    cumulative_cost_usd: float = 0.0
 
 
 @dataclass

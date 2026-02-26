@@ -678,11 +678,30 @@ class SeasonEngine:
             self._recompute_available(state)
             loans_booked += 1
 
+        # Extract per-lender token/cost data from engine runs
+        lender_costs: dict[str, dict] = {}
+        for run in engine.runs:
+            lid = (run.policy.params or {}).get("_lender_id", "")
+            if not lid:
+                pid = run.policy.policy_id or ""
+                parts = pid.split("_", 2)
+                lid = parts[1] if len(parts) >= 2 and parts[0] == "p" else pid
+            if lid and run.trace and run.trace.cost:
+                c = lender_costs.setdefault(lid, {"tokens_in": 0, "tokens_out": 0, "cost_usd": 0.0})
+                c["tokens_in"] += run.trace.cost.tokens_in
+                c["tokens_out"] += run.trace.cost.tokens_out
+                c["cost_usd"] += run.trace.cost.estimated_cost_usd
+
         # Count rejections and losses for each lender
         booked_bids = {loan.borrower_id for loan in engine.booked_loans}
         for lender in self.base_lenders:
             state = self.lender_states[lender.id]
             decisions = engine.all_decisions.get(lender.id, [])
+            # Accumulate token/cost stats
+            lc = lender_costs.get(lender.id, {})
+            state.cumulative_tokens_in += lc.get("tokens_in", 0)
+            state.cumulative_tokens_out += lc.get("tokens_out", 0)
+            state.cumulative_cost_usd += lc.get("cost_usd", 0.0)
             for d in decisions:
                 state.total_evaluations += 1
                 state.total_tool_calls += tool_counts.get((lender.id, d.borrower_id), 0)
@@ -955,6 +974,9 @@ class SeasonEngine:
                 "cumulative_fees": round(state.cumulative_fees, 2),
                 "defaults": sum(1 for o in state.resolved_loans if o.defaulted),
                 "frauds_funded": sum(1 for o in state.resolved_loans if o.was_fraud),
+                "tokens_in": state.cumulative_tokens_in,
+                "tokens_out": state.cumulative_tokens_out,
+                "cost_usd": round(state.cumulative_cost_usd, 4),
             }
 
         self.week_details.append({
@@ -994,6 +1016,9 @@ class SeasonEngine:
                 "frauds_funded": sum(1 for o in state.resolved_loans if o.was_fraud),
                 "weekly_utilization": [round(u, 4) for u in state.weekly_utilization],
                 "weekly_snapshots": state.weekly_snapshots,
+                "tokens_in": state.cumulative_tokens_in,
+                "tokens_out": state.cumulative_tokens_out,
+                "cost_usd": round(state.cumulative_cost_usd, 4),
             })
 
         return {
