@@ -9,6 +9,8 @@
 import { AssetLoader } from './asset-loader.js';
 import { TownScene } from './town-scene.js';
 import { generateLayout } from './town-layout.js';
+import { renderStats } from './stats-dashboard.js';
+import { Dashboard2D } from './dashboard-2d.js';
 
 // ---- Constants ----
 
@@ -42,6 +44,9 @@ class App {
     // Trace viewer state
     this.lenderColorMap = {};
     this.nextColor = 0;
+
+    // 2D Dashboard
+    this.dashboard2d = null;
 
     this.dom = {};
     this._initDOM();
@@ -78,6 +83,7 @@ class App {
       if (data.type === 'season') {
         this._reset();
         this.season = data;
+        this.dashboard2d = null;  // reset so it re-initializes with new season
         const name = url.split('/').pop();
         this._logEvent('system', `Loaded ${name}: ${data.config.weeks} weeks, ${data.lenders.length} lenders`);
         this.dom.dropOverlay.hidden = true;
@@ -86,6 +92,8 @@ class App {
         this.dom.packSelector.hidden = false;
         this._buildTimeline();
         this._renderLeaderboard(-1);
+        // Extract trace-like data from season decisions for hierarchical trace view
+        this._extractSeasonTraces();
         this._switchTab('game');
       }
     } catch (e) {
@@ -99,9 +107,15 @@ class App {
       dropOverlay: $('drop-overlay'),
       fileInput: $('file-input'),
       tabGame: $('tab-game'),
+      tabDashboard: $('tab-dashboard'),
+      tabStats: $('tab-stats'),
       tabTrace: $('tab-trace'),
       pageGame: $('page-game'),
+      pageDashboard: $('page-dashboard'),
+      pageStats: $('page-stats'),
       pageTrace: $('page-trace'),
+      dashboardContent: $('dashboard-content'),
+      statsContent: $('stats-content'),
       townContainer: $('town-container'),
       btnPlay: $('btn-play'),
       btnSpeed: $('btn-speed'),
@@ -156,6 +170,8 @@ class App {
 
     // Tabs
     this.dom.tabGame.addEventListener('click', () => this._switchTab('game'));
+    this.dom.tabDashboard.addEventListener('click', () => this._switchTab('dashboard'));
+    this.dom.tabStats.addEventListener('click', () => this._switchTab('stats'));
     this.dom.tabTrace.addEventListener('click', () => this._switchTab('trace'));
 
     // Playback
@@ -205,11 +221,13 @@ class App {
     this.dom.dropOverlay.hidden = true;
 
     if (this.season) {
+      this.dashboard2d = null;
       await this._initTown();
       this.dom.controlsGroup.hidden = false;
       this.dom.packSelector.hidden = false;
       this._buildTimeline();
       this._renderLeaderboard(-1);
+      this._extractSeasonTraces();
       this._switchTab('game');
     }
     if (this.traces.length) {
@@ -438,6 +456,10 @@ class App {
     }
 
     this._logEvent('system', `Week ${week.week} complete: ${week.booked_loans.length} loans booked`);
+
+    // Sync 2D dashboard if it exists
+    if (this.dashboard2d) this.dashboard2d.setWeek(this.currentWeek);
+
     await this._wait(600);
 
     this.stepping = false;
@@ -497,12 +519,17 @@ class App {
   // ==== UI ====
 
   _switchTab(tab) {
-    const isGame = tab === 'game';
-    this.dom.tabGame.classList.toggle('active', isGame);
-    this.dom.tabTrace.classList.toggle('active', !isGame);
-    this.dom.pageGame.hidden = !isGame;
-    this.dom.pageTrace.hidden = isGame;
-    if (isGame && this.townScene) this.townScene._onResize();
+    this.dom.tabGame.classList.toggle('active', tab === 'game');
+    this.dom.tabDashboard.classList.toggle('active', tab === 'dashboard');
+    this.dom.tabStats.classList.toggle('active', tab === 'stats');
+    this.dom.tabTrace.classList.toggle('active', tab === 'trace');
+    this.dom.pageGame.hidden = tab !== 'game';
+    this.dom.pageDashboard.hidden = tab !== 'dashboard';
+    this.dom.pageStats.hidden = tab !== 'stats';
+    this.dom.pageTrace.hidden = tab !== 'trace';
+    if (tab === 'game' && this.townScene) this.townScene._onResize();
+    if (tab === 'stats' && this.season) renderStats(this.dom.statsContent, this.season);
+    if (tab === 'dashboard') this._updateDashboard2d();
   }
 
   _buildTimeline() {
@@ -719,7 +746,61 @@ class App {
     });
   }
 
+  // ==== 2D Dashboard ====
+
+  _updateDashboard2d() {
+    if (!this.season) return;
+    if (!this.dashboard2d) {
+      this.dashboard2d = new Dashboard2D(this.dom.dashboardContent);
+      this.dashboard2d.setSeason(this.season);
+    }
+    this.dashboard2d.setWeek(this.currentWeek);
+  }
+
   // ==== Trace Viewer ====
+
+  /**
+   * Extract decision data from season JSON into the trace array,
+   * enriched with hierarchy info (week, cost, chain-of-thought).
+   */
+  _extractSeasonTraces() {
+    if (!this.season) return;
+    // Build traces from season decisions (don't duplicate if file-based traces exist)
+    const seasonTraces = [];
+    for (const week of this.season.weeks) {
+      for (const dec of week.decisions) {
+        const lender = this.season.lenders.find(l => l.id === dec.lender_id);
+        const borrower = week.borrowers.find(b => b.id === dec.borrower_id);
+        const trace = {
+          _source: 'season',
+          _week: week.week,
+          lender_name: lender?.name || dec.lender_id,
+          lender_id: dec.lender_id,
+          model: lender?.model || '',
+          borrower_id: dec.borrower_id,
+          borrower_name: borrower?.name || dec.borrower_id,
+          borrower_sector: borrower?.sector || '',
+          borrower_amount: borrower?.amount || 0,
+          true_outcome: borrower?.true_outcome || 'unknown',
+          decision: dec.decision,
+          reasoning: dec.reasoning || '',
+          term_sheet: dec.term_sheet,
+          // Cost/token data (if captured)
+          tokens_in: dec.tokens_in || 0,
+          tokens_out: dec.tokens_out || 0,
+          cost_usd: dec.cost_usd || 0,
+          tool_calls_count: dec.tool_calls || 0,
+          chain_of_thought: dec.chain_of_thought || null,
+        };
+        this._assignColor(trace.lender_name);
+        seasonTraces.push(trace);
+      }
+    }
+    // Prepend season-derived traces (they show in hierarchy view)
+    this.traces = [...seasonTraces, ...this.traces.filter(t => t._source !== 'season')];
+    this._updateTraceFilters();
+    this._renderTraces();
+  }
 
   _updateTraceFilters() {
     const lenders = new Set();
@@ -756,7 +837,8 @@ class App {
       if (decision && decision !== 'ERROR' && t.decision !== decision) return false;
       if (search) {
         const haystack = [t.lender_name, t.borrower_name, t.model, t.decision,
-          t.system_prompt, t.user_prompt, t.raw_response, t.error, t.reasoning
+          t.system_prompt, t.user_prompt, t.raw_response, t.error, t.reasoning,
+          t.chain_of_thought
         ].filter(Boolean).join(' ').toLowerCase();
         if (!haystack.includes(search)) return false;
       }
@@ -769,35 +851,154 @@ class App {
     content.innerHTML = '';
 
     const filtered = this._getFilteredTraces();
-    const byFile = new Map();
-    for (const t of filtered) {
-      const f = t._file || 'unknown';
-      if (!byFile.has(f)) byFile.set(f, []);
-      byFile.get(f).push(t);
+
+    // Check if we have season-sourced traces — use hierarchical view
+    const seasonTraces = filtered.filter(t => t._source === 'season');
+    const fileTraces = filtered.filter(t => t._source !== 'season');
+
+    if (seasonTraces.length > 0) {
+      content.appendChild(this._renderHierarchicalTraces(seasonTraces));
     }
 
-    for (const [fileName, traces] of byFile) {
-      const group = document.createElement('div');
-      group.className = 'file-group';
-
-      const header = document.createElement('div');
-      header.className = 'file-group-header';
-      header.textContent = `${fileName} (${traces.length} traces)`;
-      group.appendChild(header);
-
-      for (const trace of traces) {
-        group.appendChild(this._renderTraceCard(trace));
+    // File-based traces (original flat view)
+    if (fileTraces.length > 0) {
+      const byFile = new Map();
+      for (const t of fileTraces) {
+        const f = t._file || 'unknown';
+        if (!byFile.has(f)) byFile.set(f, []);
+        byFile.get(f).push(t);
       }
-      content.appendChild(group);
+
+      for (const [fileName, traces] of byFile) {
+        const group = document.createElement('div');
+        group.className = 'file-group';
+
+        const header = document.createElement('div');
+        header.className = 'file-group-header';
+        header.textContent = `${fileName} (${traces.length} traces)`;
+        group.appendChild(header);
+
+        for (const trace of traces) {
+          group.appendChild(this._renderTraceCard(trace));
+        }
+        content.appendChild(group);
+      }
     }
 
     const approves = filtered.filter(t => t.decision === 'APPROVE').length;
     const rejects = filtered.filter(t => t.decision === 'REJECT').length;
     const errors = filtered.filter(t => t.error).length;
-    this.dom.traceStats.textContent =
-      `${filtered.length} traces | ${approves} approvals | ${rejects} rejections` +
-      (errors ? ` | ${errors} errors` : '');
+    let statsText = `${filtered.length} traces | ${approves} approvals | ${rejects} rejections`;
+    if (errors) statsText += ` | ${errors} errors`;
+
+    // Cost summary
+    const totalCost = filtered.reduce((s, t) => s + (t.cost_usd || 0), 0);
+    const totalTokens = filtered.reduce((s, t) => s + (t.tokens_in || 0) + (t.tokens_out || 0), 0);
+    if (totalCost > 0) statsText += ` | $${totalCost.toFixed(2)} total cost`;
+    if (totalTokens > 0) statsText += ` | ${fmtNum(totalTokens)} tokens`;
+
+    this.dom.traceStats.textContent = statsText;
     this.dom.traceToolbar.hidden = filtered.length === 0 && this.traces.length === 0;
+  }
+
+  /**
+   * Hierarchical trace view: Season → Week → Lender → Borrower Decision
+   * Collapsible tree structure inspired by Langfuse.
+   */
+  _renderHierarchicalTraces(traces) {
+    const container = document.createElement('div');
+    container.className = 'trace-hierarchy';
+
+    // Group by week
+    const byWeek = new Map();
+    for (const t of traces) {
+      const wk = t._week || 0;
+      if (!byWeek.has(wk)) byWeek.set(wk, []);
+      byWeek.get(wk).push(t);
+    }
+
+    for (const [weekNum, weekTraces] of [...byWeek.entries()].sort((a, b) => a[0] - b[0])) {
+      const weekNode = document.createElement('div');
+      weekNode.className = 'trace-tree-node';
+
+      // Week-level cost summary
+      const weekCost = weekTraces.reduce((s, t) => s + (t.cost_usd || 0), 0);
+      const weekTokens = weekTraces.reduce((s, t) => s + (t.tokens_in || 0) + (t.tokens_out || 0), 0);
+      const weekApprovals = weekTraces.filter(t => t.decision === 'APPROVE').length;
+      const weekRejects = weekTraces.filter(t => t.decision === 'REJECT').length;
+
+      let weekMeta = `${weekTraces.length} decisions | ${weekApprovals} approve | ${weekRejects} reject`;
+      if (weekCost > 0) weekMeta += ` | $${weekCost.toFixed(2)}`;
+      if (weekTokens > 0) weekMeta += ` | ${fmtNum(weekTokens)} tok`;
+
+      const weekHeader = document.createElement('div');
+      weekHeader.className = 'trace-tree-header trace-tree-week';
+      weekHeader.innerHTML = `
+        <span class="trace-tree-arrow">&#x25B6;</span>
+        <span class="trace-tree-icon">&#x1f4c5;</span>
+        <span class="trace-tree-title">Week ${weekNum}</span>
+        <span class="trace-tree-meta">${weekMeta}</span>
+      `;
+
+      const weekBody = document.createElement('div');
+      weekBody.className = 'trace-tree-children';
+
+      weekHeader.addEventListener('click', () => {
+        weekNode.classList.toggle('expanded');
+      });
+
+      // Group by lender within week
+      const byLender = new Map();
+      for (const t of weekTraces) {
+        const ln = t.lender_name;
+        if (!byLender.has(ln)) byLender.set(ln, []);
+        byLender.get(ln).push(t);
+      }
+
+      for (const [lenderName, lenderTraces] of byLender) {
+        const lenderNode = document.createElement('div');
+        lenderNode.className = 'trace-tree-node';
+
+        const color = this.lenderColorMap[lenderName] || '#888';
+        const lenderCost = lenderTraces.reduce((s, t) => s + (t.cost_usd || 0), 0);
+        const lenderApprovals = lenderTraces.filter(t => t.decision === 'APPROVE').length;
+
+        let lenderMeta = `${lenderTraces.length} decisions | ${lenderApprovals} approve`;
+        if (lenderCost > 0) lenderMeta += ` | $${lenderCost.toFixed(2)}`;
+
+        const lenderHeader = document.createElement('div');
+        lenderHeader.className = 'trace-tree-header trace-tree-lender';
+        lenderHeader.innerHTML = `
+          <span class="trace-tree-arrow">&#x25B6;</span>
+          <span class="trace-card-lender-dot" style="background:${color}"></span>
+          <span class="trace-tree-title">${esc(lenderName)}</span>
+          <span class="trace-tree-meta">${lenderMeta}</span>
+        `;
+
+        const lenderBody = document.createElement('div');
+        lenderBody.className = 'trace-tree-children';
+
+        lenderHeader.addEventListener('click', (e) => {
+          e.stopPropagation();
+          lenderNode.classList.toggle('expanded');
+        });
+
+        // Individual borrower decisions
+        for (const trace of lenderTraces) {
+          lenderBody.appendChild(this._renderTraceCard(trace));
+        }
+
+        lenderNode.appendChild(lenderHeader);
+        lenderNode.appendChild(lenderBody);
+        weekBody.appendChild(lenderNode);
+      }
+
+      weekNode.appendChild(weekHeader);
+      weekNode.appendChild(weekBody);
+      container.appendChild(weekNode);
+    }
+
+    return container;
   }
 
   _renderTraceCard(trace) {
@@ -808,6 +1009,22 @@ class App {
     const decisionClass = trace.error ? 'error' : (trace.decision || '').toLowerCase();
     const decisionLabel = trace.error ? 'ERROR' : (trace.decision || '?');
 
+    // Build header with optional cost badge
+    let costBadge = '';
+    if (trace.cost_usd > 0) {
+      costBadge = `<span class="trace-card-cost">$${trace.cost_usd.toFixed(3)}</span>`;
+    }
+    if (trace.tokens_in > 0 || trace.tokens_out > 0) {
+      costBadge += `<span class="trace-card-tokens">${fmtNum(trace.tokens_in + trace.tokens_out)} tok</span>`;
+    }
+
+    // True outcome badge for season traces
+    let outcomeBadge = '';
+    if (trace.true_outcome && trace.true_outcome !== 'unknown') {
+      const outcomeClass = `outcome-${trace.true_outcome}`;
+      outcomeBadge = `<span class="trace-card-outcome ${outcomeClass}">${trace.true_outcome}</span>`;
+    }
+
     const header = document.createElement('div');
     header.className = 'trace-card-header';
     header.innerHTML = `
@@ -816,7 +1033,9 @@ class App {
       <span class="trace-card-lender">${esc(trace.lender_name || trace.lender_id)}</span>
       <span class="trace-card-model">${esc(trace.model || '')}</span>
       <span class="trace-card-borrower">${esc(trace.borrower_name || trace.borrower_id)}</span>
+      ${outcomeBadge}
       <span class="trace-card-decision ${decisionClass}">${decisionLabel}</span>
+      ${costBadge}
     `;
     header.addEventListener('click', () => card.classList.toggle('expanded'));
     card.appendChild(header);
@@ -824,6 +1043,53 @@ class App {
     const body = document.createElement('div');
     body.className = 'trace-card-body';
 
+    // Chain-of-thought / reasoning (show prominently if available)
+    if (trace.chain_of_thought) {
+      body.appendChild(this._makeSection('Chain of Thought', () => {
+        const el = document.createElement('div');
+        el.className = 'trace-cot';
+        el.innerHTML = `<div class="trace-cot-content">${esc(trace.chain_of_thought)}</div>`;
+        return el;
+      }, true));
+    }
+
+    // Reasoning summary
+    if (trace.reasoning) {
+      body.appendChild(this._makeSection('Reasoning', () => pre(trace.reasoning), true));
+    }
+
+    // Term sheet
+    if (trace.term_sheet) {
+      body.appendChild(this._makeSection('Term Sheet', () => {
+        const el = document.createElement('div');
+        el.className = 'trace-term-sheet';
+        el.innerHTML = `
+          <div class="detail-grid">
+            <div class="detail-stat"><span class="detail-stat-label">Amount</span><span class="detail-stat-value">$${fmtNum(trace.term_sheet.amount)}</span></div>
+            <div class="detail-stat"><span class="detail-stat-label">Rate</span><span class="detail-stat-value">${(trace.term_sheet.rate * 100).toFixed(1)}%</span></div>
+            <div class="detail-stat"><span class="detail-stat-label">Term</span><span class="detail-stat-value">${trace.term_sheet.term_months}mo</span></div>
+          </div>
+        `;
+        return el;
+      }, true));
+    }
+
+    // Cost details
+    if (trace.tokens_in > 0 || trace.cost_usd > 0) {
+      body.appendChild(this._makeSection('Cost & Tokens', () => {
+        const el = document.createElement('div');
+        el.className = 'detail-grid';
+        el.innerHTML = `
+          <div class="detail-stat"><span class="detail-stat-label">Cost</span><span class="detail-stat-value">$${(trace.cost_usd || 0).toFixed(4)}</span></div>
+          <div class="detail-stat"><span class="detail-stat-label">Tokens In</span><span class="detail-stat-value">${fmtNum(trace.tokens_in || 0)}</span></div>
+          <div class="detail-stat"><span class="detail-stat-label">Tokens Out</span><span class="detail-stat-value">${fmtNum(trace.tokens_out || 0)}</span></div>
+          <div class="detail-stat"><span class="detail-stat-label">Tool Calls</span><span class="detail-stat-value">${trace.tool_calls_count || 0}</span></div>
+        `;
+        return el;
+      }, false));
+    }
+
+    // Original trace data (from file-based traces)
     if (trace.system_prompt) body.appendChild(this._makeSection('System Prompt', () => pre(trace.system_prompt), false));
     if (trace.user_prompt) body.appendChild(this._makeSection('User Prompt', () => pre(trace.user_prompt), false));
     if (trace.tool_calls?.length) {

@@ -906,10 +906,31 @@ class SeasonEngine:
                 "true_outcome": b.true_outcome,
             })
 
+        # Build cost lookup from engine runs: (lender_id, borrower_id) → cost info
+        cost_lookup: dict[tuple[str, str], dict] = {}
+        for run in engine.runs:
+            lid = (run.policy.params or {}).get("_lender_id", "")
+            bid = run.case.case_id
+            if lid and bid and run.trace:
+                cost_lookup[(lid, bid)] = {
+                    "tokens_in": run.trace.cost.tokens_in,
+                    "tokens_out": run.trace.cost.tokens_out,
+                    "cost_usd": round(run.trace.cost.estimated_cost_usd, 4),
+                    "tool_calls": sum(
+                        1 for s in run.trace.steps
+                        if getattr(s, "type", "") == "tool_call"
+                    ),
+                    "reasoning": next(
+                        (s.content for s in run.trace.steps
+                         if getattr(s, "type", "") == "reasoning" and s.content),
+                        None,
+                    ),
+                }
+
         decisions = []
         for lender_id, decs in engine.all_decisions.items():
             for d in decs:
-                decisions.append({
+                dec_data = {
                     "lender_id": lender_id,
                     "borrower_id": d.borrower_id,
                     "decision": d.decision,
@@ -919,7 +940,17 @@ class SeasonEngine:
                         "rate": d.term_sheet.interest_rate,
                         "term_months": d.term_sheet.term_months,
                     } if d.term_sheet else None,
-                })
+                }
+                # Attach cost/trace metadata if available
+                cost_info = cost_lookup.get((lender_id, d.borrower_id))
+                if cost_info:
+                    dec_data["tokens_in"] = cost_info["tokens_in"]
+                    dec_data["tokens_out"] = cost_info["tokens_out"]
+                    dec_data["cost_usd"] = cost_info["cost_usd"]
+                    dec_data["tool_calls"] = cost_info["tool_calls"]
+                    if cost_info["reasoning"]:
+                        dec_data["chain_of_thought"] = cost_info["reasoning"][:500]
+                decisions.append(dec_data)
 
         booked = []
         for loan in engine.booked_loans:
