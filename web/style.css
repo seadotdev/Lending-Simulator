@@ -1413,3 +1413,75 @@ body {
 
   .controls-group { display: none; }
 }
+
+/* ---- Elo Leaderboard Page ---- */
+.page-elo {
+  height: calc(100vh - var(--topbar-h));
+  overflow-y: auto;
+}
+.page-elo[hidden] { display: none; }
+
+.elo-content {
+  padding: 16px 20px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.elo-filter-bar {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+  padding: 8px 0;
+}
+
+.elo-filter-btn {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  padding: 5px 12px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg-card);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.elo-filter-btn:hover {
+  background: var(--bg-card-hover);
+  border-color: var(--border-light);
+}
+
+.elo-filter-btn.active {
+  background: var(--gold-dim);
+  border-color: var(--gold);
+  color: #fff;
+}
+
+.elo-table td, .elo-table th {
+  white-space: nowrap;
+}
+
+.elo-confusion-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+.elo-match-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.elo-match-item {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-secondary);
+  padding: 4px 8px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+}

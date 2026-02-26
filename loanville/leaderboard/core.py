@@ -153,6 +153,7 @@ def build_match_record(
     mix: str,
     n_borrowers: int,
     timestamp_utc: str | None = None,
+    mock: bool = False,
 ) -> dict:
     """Build a match record from sim results.
 
@@ -165,6 +166,7 @@ def build_match_record(
         mix: Borrower mix name
         n_borrowers: Total borrowers in the match
         timestamp_utc: Optional ISO timestamp (defaults to now)
+        mock: Whether this match used mock (fake) LLM responses
     """
     if timestamp_utc is None:
         timestamp_utc = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
@@ -174,6 +176,7 @@ def build_match_record(
     record = {
         "match_id": match_id,
         "timestamp_utc": timestamp_utc,
+        "mock": mock,
         "mix": mix,
         "n_borrowers": n_borrowers,
         "models": models,
@@ -188,9 +191,23 @@ def build_match_record(
     return record
 
 
-def _lender_model_id(lender) -> str:
-    """Stable unique model key per lender slot (avoids duplicate model IDs)."""
-    return f"{lender.model}::{lender.id}"
+def _lender_model_id(lender, seen: dict | None = None) -> str:
+    """Return raw model ID, deduplicating only when the same model appears twice.
+
+    Args:
+        lender: LenderConfig with .model and .id attributes.
+        seen: Mutable counter dict tracking how many times each raw model
+              has been used in the current match. Pass the same dict for
+              every lender in one match to get ``model::2``, ``model::3``
+              suffixes only when genuinely needed.
+    """
+    raw = lender.model
+    if seen is None:
+        return raw
+    seen[raw] = seen.get(raw, 0) + 1
+    if seen[raw] == 1:
+        return raw
+    return f"{raw}::{seen[raw]}"
 
 
 # ---------------------------------------------------------------------------
@@ -315,6 +332,8 @@ def emit_match_record_from_sim(
 
         result = {
             "model_id": model_id,
+            "lender_id": lender.id,
+            "lender_persona": lender.name,
             "raroc_score": sc.raroc_score if sc else 0.0,
             "deals_won": sc.deals_won if sc else 0,
             "deals_rejected": sc.deals_rejected if sc else 0,
@@ -336,6 +355,7 @@ def emit_match_record_from_sim(
         results=results,
         mix=mix,
         n_borrowers=len(borrowers),
+        mock=getattr(engine, 'mock', False),
     )
 
     return record
@@ -359,8 +379,9 @@ def emit_match_record_from_season(
     """
     from ..scoring import compute_confusion_matrix, compute_loan_payoff
 
+    seen = {}
     models_info = [
-        {"model_id": _lender_model_id(l), "display_name": l.name}
+        {"model_id": _lender_model_id(l, seen), "display_name": l.name}
         for l in lenders
     ]
 
@@ -374,7 +395,7 @@ def emit_match_record_from_season(
             deal_winners[bid] = deal.get("winner")
 
     results = []
-    for lender in lenders:
+    for lender, minfo in zip(lenders, models_info):
         state = season_engine.lender_states[lender.id]
         score = next((s for s in season_scores if s.lender_id == lender.id), None)
 
@@ -433,7 +454,9 @@ def emit_match_record_from_season(
         net_pnl = state.cumulative_interest + state.cumulative_fees - state.cumulative_losses
 
         result = {
-            "model_id": _lender_model_id(lender),
+            "model_id": minfo["model_id"],
+            "lender_id": lender.id,
+            "lender_persona": lender.name,
             "raroc_score": score.final_score if score else 0.0,
             "deals_won": state.deals_won,
             "deals_rejected": state.deals_rejected,
@@ -455,6 +478,7 @@ def emit_match_record_from_season(
         results=results,
         mix=f"season-{mix}",
         n_borrowers=len(season_engine.all_borrowers),
+        mock=season_engine.engine_kwargs.get("mock", False),
     )
 
     return record
@@ -465,6 +489,7 @@ def season_week_to_match_record(
     lenders,
     mix: str,
     economics,
+    mock: bool = False,
 ) -> dict:
     """Convert one completed season week into a leaderboard match record."""
     from ..scoring import compute_confusion_matrix, compute_loan_payoff
@@ -476,7 +501,8 @@ def season_week_to_match_record(
     deal_results = dict(week_data.get("deal_results", {}) or {})
     runs = list(week_data.get("runs", []))
 
-    models_info = [{"model_id": _lender_model_id(l), "display_name": l.name} for l in lenders]
+    seen = {}
+    models_info = [{"model_id": _lender_model_id(l, seen), "display_name": l.name} for l in lenders]
     benchmark_rate_per_dollar = economics.risk_free_rate * (economics.sim_horizon_months / 12.0)
 
     winner_by_bid = {
@@ -503,7 +529,7 @@ def season_week_to_match_record(
             c["cost_usd"] += run.trace.cost.estimated_cost_usd
 
     results = []
-    for lender in lenders:
+    for lender, minfo in zip(lenders, models_info):
         decisions = list(all_decisions.get(lender.id, []))
         decision_map = {d.borrower_id: d for d in decisions}
         cm = compute_confusion_matrix(decisions, borrowers)
@@ -576,7 +602,9 @@ def season_week_to_match_record(
         week_cost = weekly_costs.get(lender.id, {})
 
         results.append({
-            "model_id": _lender_model_id(lender),
+            "model_id": minfo["model_id"],
+            "lender_id": lender.id,
+            "lender_persona": lender.name,
             "raroc_score": raroc_like,
             "deals_won": len(won_loans),
             "deals_rejected": max(0, decisions_rejected - deals_errored),
@@ -597,6 +625,7 @@ def season_week_to_match_record(
         results=results,
         mix=f"season-{mix}-week-{week:02d}",
         n_borrowers=len(borrowers),
+        mock=mock,
     )
     record["season_week"] = week
     record["season_match_type"] = "weekly"
@@ -605,6 +634,7 @@ def season_week_to_match_record(
 
 def emit_match_records_from_season_weeks(season_engine, lenders, mix: str) -> list[dict]:
     """Build one leaderboard match record per completed season week."""
+    mock = season_engine.engine_kwargs.get("mock", False)
     records = []
     for week_data in getattr(season_engine, "weekly_match_data", []):
         records.append(
@@ -613,6 +643,7 @@ def emit_match_records_from_season_weeks(season_engine, lenders, mix: str) -> li
                 lenders=lenders,
                 mix=mix,
                 economics=season_engine.config.economics,
+                mock=mock,
             )
         )
     return records
@@ -726,6 +757,111 @@ def load_all_matches() -> list[dict]:
 # Leaderboard computation
 # ---------------------------------------------------------------------------
 
+def _replay_elo_for_matches(matches: list[dict], config: dict) -> list[dict]:
+    """Replay Elo on a filtered subset of matches, returning standings."""
+    k = config.get("k", DEFAULT_K)
+    initial_elo = config.get("initial_elo", INITIAL_ELO)
+
+    all_models = {}
+    for match in matches:
+        for m in match.get("models", []):
+            mid = m["model_id"]
+            if mid not in all_models:
+                all_models[mid] = mid.split("/")[-1]
+
+    if not all_models:
+        return []
+
+    profit_ratings = {mid: float(initial_elo) for mid in all_models}
+    credit_ratings = {mid: float(initial_elo) for mid in all_models}
+    dealshare_ratings = {mid: float(initial_elo) for mid in all_models}
+    match_counts = {mid: 0 for mid in all_models}
+    total_net_pnl = {mid: 0.0 for mid in all_models}
+
+    for match in matches:
+        elo_results = match_to_elo_results(match)
+        if len(elo_results) < 2:
+            continue
+        for r in elo_results:
+            mid = r["model"]
+            profit_ratings.setdefault(mid, float(initial_elo))
+            credit_ratings.setdefault(mid, float(initial_elo))
+            dealshare_ratings.setdefault(mid, float(initial_elo))
+            match_counts.setdefault(mid, 0)
+            total_net_pnl.setdefault(mid, 0.0)
+
+        dealshare_ratings = update_dealshare_elo(dealshare_ratings, elo_results, k=k)
+        profit_ratings = update_profit_elo(profit_ratings, elo_results, k=k)
+        credit_ratings = update_credit_elo(credit_ratings, elo_results, k=k)
+
+        for r in match.get("results", []):
+            mid = r["model_id"]
+            match_counts[mid] = match_counts.get(mid, 0) + 1
+            total_net_pnl[mid] = total_net_pnl.get(mid, 0.0) + r.get("net_pnl", 0.0)
+
+    composite = compute_composite_elo(profit_ratings, credit_ratings, dealshare_ratings)
+    standings = []
+    for mid in all_models:
+        n = match_counts.get(mid, 0)
+        standings.append({
+            "model_id": mid,
+            "display_name": all_models[mid],
+            "composite_elo": round(composite.get(mid, initial_elo), 1),
+            "profit_elo": round(profit_ratings.get(mid, initial_elo), 1),
+            "credit_elo": round(credit_ratings.get(mid, initial_elo), 1),
+            "dealshare_elo": round(dealshare_ratings.get(mid, initial_elo), 1),
+            "matches_played": n,
+            "avg_net_pnl": round(total_net_pnl.get(mid, 0.0) / n, 2) if n > 0 else 0.0,
+        })
+    standings.sort(key=lambda s: s["composite_elo"], reverse=True)
+    return standings
+
+
+def _compute_sub_leaderboards(valid_matches: list[dict], config: dict) -> dict:
+    """Compute sub-leaderboard views: by_lender and by_match_type."""
+    # --- by_lender: group matches by lender_id found in results ---
+    # Collect all lender keys: "LND-XXX (Persona Name)"
+    lender_keys: dict[str, list[dict]] = {}
+    for match in valid_matches:
+        for r in match.get("results", []):
+            lid = r.get("lender_id", "")
+            persona = r.get("lender_persona", "")
+            if lid:
+                key = f"{lid} ({persona})" if persona else lid
+                lender_keys.setdefault(key, set()).add(id(match))
+
+    # For each lender key, filter matches that contain that lender
+    lender_match_map: dict[str, list[dict]] = {}
+    for match in valid_matches:
+        for r in match.get("results", []):
+            lid = r.get("lender_id", "")
+            persona = r.get("lender_persona", "")
+            if lid:
+                key = f"{lid} ({persona})" if persona else lid
+                lender_match_map.setdefault(key, [])
+                if match not in lender_match_map[key]:
+                    lender_match_map[key].append(match)
+
+    by_lender = {}
+    for key, matches in lender_match_map.items():
+        by_lender[key] = _replay_elo_for_matches(matches, config)
+
+    # --- by_match_type: season vs single ---
+    season_matches = [m for m in valid_matches if str(m.get("mix", "")).startswith("season-")]
+    single_matches = [m for m in valid_matches if not str(m.get("mix", "")).startswith("season-")]
+
+    by_match_type = {}
+    if season_matches:
+        by_match_type["season"] = _replay_elo_for_matches(season_matches, config)
+    if single_matches:
+        by_match_type["single"] = _replay_elo_for_matches(single_matches, config)
+
+    return {
+        "by_lender": by_lender,
+        "by_match_type": by_match_type,
+    }
+
+
 def compute_leaderboard(matches: list[dict] | None = None, config: dict | None = None) -> dict:
     """Compute full leaderboard by replaying all matches chronologically.
 
@@ -747,17 +883,12 @@ def compute_leaderboard(matches: list[dict] | None = None, config: dict | None =
             valid_matches.append(match)
 
     # Collect all model IDs seen — use model short name for display
-    # (persona names like "Heritage Trust Bank" vary across match types)
     all_models = {}  # model_id -> display_name
     for match in valid_matches:
         for m in match.get("models", []):
             mid = m["model_id"]
             if mid not in all_models:
-                if "::" in mid:
-                    base, lender_slot = mid.split("::", 1)
-                    all_models[mid] = f"{base.split('/')[-1]}:{lender_slot}"
-                else:
-                    all_models[mid] = mid.split("/")[-1]
+                all_models[mid] = mid.split("/")[-1]
 
     # Init ratings
     profit_ratings = {mid: float(initial_elo) for mid in all_models}
@@ -766,6 +897,7 @@ def compute_leaderboard(matches: list[dict] | None = None, config: dict | None =
 
     # Track per-model aggregates
     match_counts = {mid: 0 for mid in all_models}
+    mock_match_counts = {mid: 0 for mid in all_models}
     total_net_pnl = {mid: 0.0 for mid in all_models}
     total_tokens_in = {mid: 0 for mid in all_models}
     total_tokens_out = {mid: 0 for mid in all_models}
@@ -807,9 +939,12 @@ def compute_leaderboard(matches: list[dict] | None = None, config: dict | None =
         credit_ratings = update_credit_elo(credit_ratings, elo_results, k=k)
 
         # Aggregate stats
+        is_mock = match.get("mock", False)
         for r in match.get("results", []):
             mid = r["model_id"]
             match_counts[mid] = match_counts.get(mid, 0) + 1
+            if is_mock:
+                mock_match_counts[mid] = mock_match_counts.get(mid, 0) + 1
             total_net_pnl[mid] = total_net_pnl.get(mid, 0.0) + r.get("net_pnl", 0.0)
             total_tokens_in[mid] = total_tokens_in.get(mid, 0) + r.get("tokens_in", 0)
             total_tokens_out[mid] = total_tokens_out.get(mid, 0) + r.get("tokens_out", 0)
@@ -870,6 +1005,7 @@ def compute_leaderboard(matches: list[dict] | None = None, config: dict | None =
             "credit_elo": round(credit_ratings.get(mid, initial_elo), 1),
             "dealshare_elo": round(dealshare_ratings.get(mid, initial_elo), 1),
             "matches_played": n,
+            "mock_matches": mock_match_counts.get(mid, 0),
             "avg_net_pnl": round(total_net_pnl.get(mid, 0.0) / n, 2) if n > 0 else 0.0,
             "confusion_agg": agg_confusion.get(mid, {}),
             "rate_analysis": {
@@ -890,6 +1026,9 @@ def compute_leaderboard(matches: list[dict] | None = None, config: dict | None =
     # Sort by Composite Elo descending (single-number ranking)
     standings.sort(key=lambda s: s["composite_elo"], reverse=True)
 
+    # ---- Sub-leaderboards ----
+    sub_leaderboards = _compute_sub_leaderboards(valid_matches, config)
+
     return {
         "computed_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "n_matches": len(match_ids),
@@ -901,6 +1040,7 @@ def compute_leaderboard(matches: list[dict] | None = None, config: dict | None =
             "composite_weights": COMPOSITE_WEIGHTS,
         },
         "standings": standings,
+        "sub_leaderboards": sub_leaderboards,
         "match_ids": match_ids,
         "elo_history": elo_history,
     }

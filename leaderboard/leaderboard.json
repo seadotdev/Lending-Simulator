@@ -1,6 +1,6 @@
 {
-  "computed_at": "2026-02-26T10:59:04Z",
-  "n_matches": 14,
+  "computed_at": "2026-02-26T13:37:07Z",
+  "n_matches": 11,
   "config": {
     "k": 32,
     "initial_elo": 1500,
@@ -16,19 +16,55 @@
     {
       "model_id": "deepseek/deepseek-chat-v3-0324",
       "display_name": "deepseek-chat-v3-0324",
-      "composite_elo": 1510.6,
-      "profit_elo": 1527.3,
-      "credit_elo": 1507.8,
-      "dealshare_elo": 1473.0,
-      "matches_played": 5,
-      "avg_net_pnl": -93428.22,
+      "composite_elo": 1508.4,
+      "profit_elo": 1524.4,
+      "credit_elo": 1503.6,
+      "dealshare_elo": 1475.6,
+      "matches_played": 4,
+      "mock_matches": 0,
+      "avg_net_pnl": -116785.27,
       "confusion_agg": {
         "good": {
-          "approved": 65,
+          "approved": 45,
           "rejected": 0
         },
         "bad": {
-          "approved": 5,
+          "approved": 3,
+          "rejected": 4
+        },
+        "fraud": {
+          "approved": 0,
+          "rejected": 4
+        }
+      },
+      "rate_analysis": {
+        "avg_rate_good": 14.02,
+        "avg_rate_bad": 14.57,
+        "n_good_offers": 45,
+        "n_bad_offers": 3
+      },
+      "total_tokens_in": 0,
+      "total_tokens_out": 0,
+      "total_cost_usd": 0.0,
+      "avg_cost_per_decision": 0.0
+    },
+    {
+      "model_id": "meta-llama/llama-3.3-70b-instruct",
+      "display_name": "llama-3.3-70b-instruct",
+      "composite_elo": 1506.9,
+      "profit_elo": 1520.3,
+      "credit_elo": 1502.8,
+      "dealshare_elo": 1479.7,
+      "matches_played": 4,
+      "mock_matches": 0,
+      "avg_net_pnl": 137082.35,
+      "confusion_agg": {
+        "good": {
+          "approved": 41,
+          "rejected": 4
+        },
+        "bad": {
+          "approved": 0,
           "rejected": 7
         },
         "fraud": {
@@ -37,32 +73,138 @@
         }
       },
       "rate_analysis": {
-        "avg_rate_good": 14.01,
-        "avg_rate_bad": 14.34,
-        "n_good_offers": 65,
-        "n_bad_offers": 5
+        "avg_rate_good": 11.06,
+        "avg_rate_bad": null,
+        "n_good_offers": 41,
+        "n_bad_offers": 0
       },
-      "total_tokens_in": 185619,
-      "total_tokens_out": 2921,
-      "total_cost_usd": 0.6007,
-      "avg_cost_per_decision": 0.0353
+      "total_tokens_in": 0,
+      "total_tokens_out": 0,
+      "total_cost_usd": 0.0,
+      "avg_cost_per_decision": 0.0
+    },
+    {
+      "model_id": "openai/gpt-4.1-nano",
+      "display_name": "gpt-4.1-nano",
+      "composite_elo": 1506.7,
+      "profit_elo": 1501.8,
+      "credit_elo": 1515.8,
+      "dealshare_elo": 1505.1,
+      "matches_played": 5,
+      "mock_matches": 0,
+      "avg_net_pnl": 520725.14,
+      "confusion_agg": {
+        "good": {
+          "approved": 128,
+          "rejected": 0
+        },
+        "bad": {
+          "approved": 2,
+          "rejected": 30
+        },
+        "fraud": {
+          "approved": 0,
+          "rejected": 0
+        }
+      },
+      "rate_analysis": {
+        "avg_rate_good": 10.53,
+        "avg_rate_bad": 10.5,
+        "n_good_offers": 128,
+        "n_bad_offers": 2
+      },
+      "total_tokens_in": 0,
+      "total_tokens_out": 0,
+      "total_cost_usd": 0.0,
+      "avg_cost_per_decision": 0.0
     },
     {
       "model_id": "qwen/qwen3-next-80b-a3b-instruct",
       "display_name": "qwen3-next-80b-a3b-instruct",
-      "composite_elo": 1506.0,
-      "profit_elo": 1501.2,
-      "credit_elo": 1511.5,
-      "dealshare_elo": 1509.7,
-      "matches_played": 4,
-      "avg_net_pnl": 288878.73,
+      "composite_elo": 1506.3,
+      "profit_elo": 1505.4,
+      "credit_elo": 1507.7,
+      "dealshare_elo": 1506.4,
+      "matches_played": 2,
+      "mock_matches": 0,
+      "avg_net_pnl": 311727.94,
       "confusion_agg": {
         "good": {
-          "approved": 80,
+          "approved": 40,
           "rejected": 0
         },
         "bad": {
-          "approved": 12,
+          "approved": 8,
+          "rejected": 2
+        },
+        "fraud": {
+          "approved": 0,
+          "rejected": 0
+        }
+      },
+      "rate_analysis": {
+        "avg_rate_good": 9.49,
+        "avg_rate_bad": 10.75,
+        "n_good_offers": 40,
+        "n_bad_offers": 8
+      },
+      "total_tokens_in": 0,
+      "total_tokens_out": 0,
+      "total_cost_usd": 0.0,
+      "avg_cost_per_decision": 0.0
+    },
+    {
+      "model_id": "deepseek/deepseek-r1",
+      "display_name": "deepseek-r1",
+      "composite_elo": 1503.0,
+      "profit_elo": 1504.5,
+      "credit_elo": 1500.6,
+      "dealshare_elo": 1502.7,
+      "matches_played": 1,
+      "mock_matches": 0,
+      "avg_net_pnl": 593302.36,
+      "confusion_agg": {
+        "good": {
+          "approved": 19,
+          "rejected": 1
+        },
+        "bad": {
+          "approved": 1,
+          "rejected": 4
+        },
+        "fraud": {
+          "approved": 0,
+          "rejected": 0
+        }
+      },
+      "rate_analysis": {
+        "avg_rate_good": 8.0,
+        "avg_rate_bad": 8.0,
+        "n_good_offers": 19,
+        "n_bad_offers": 1
+      },
+      "total_tokens_in": 0,
+      "total_tokens_out": 0,
+      "total_cost_usd": 0.0,
+      "avg_cost_per_decision": 0.0
+    },
+    {
+      "model_id": "z-ai/glm-4.7-flash",
+      "display_name": "glm-4.7-flash",
+      "composite_elo": 1501.5,
+      "profit_elo": 1504.0,
+      "credit_elo": 1496.0,
+      "dealshare_elo": 1503.5,
+      "matches_played": 2,
+      "mock_matches": 0,
+      "avg_net_pnl": 288271.16,
+      "confusion_agg": {
+        "good": {
+          "approved": 20,
+          "rejected": 20
+        },
+        "bad": {
+          "approved": 2,
           "rejected": 8
         },
         "fraud": {
@@ -71,178 +213,8 @@
         }
       },
       "rate_analysis": {
-        "avg_rate_good": 10.28,
-        "avg_rate_bad": 10.88,
-        "n_good_offers": 80,
-        "n_bad_offers": 12
-      },
-      "total_tokens_in": 214645,
-      "total_tokens_out": 4548,
-      "total_cost_usd": 0.7122,
-      "avg_cost_per_decision": 0.0174
-    },
-    {
-      "model_id": "openai/gpt-4.1-nano",
-      "display_name": "gpt-4.1-nano",
-      "composite_elo": 1504.9,
-      "profit_elo": 1496.9,
-      "credit_elo": 1515.5,
-      "dealshare_elo": 1509.3,
-      "matches_played": 8,
-      "avg_net_pnl": 393408.06,
-      "confusion_agg": {
-        "good": {
-          "approved": 184,
-          "rejected": 4
-        },
-        "bad": {
-          "approved": 7,
-          "rejected": 40
-        },
-        "fraud": {
-          "approved": 0,
-          "rejected": 0
-        }
-      },
-      "rate_analysis": {
-        "avg_rate_good": 10.73,
-        "avg_rate_bad": 11.21,
-        "n_good_offers": 184,
-        "n_bad_offers": 7
-      },
-      "total_tokens_in": 189063,
-      "total_tokens_out": 3068,
-      "total_cost_usd": 0.6132,
-      "avg_cost_per_decision": 0.0061
-    },
-    {
-      "model_id": "meta-llama/llama-3.3-70b-instruct",
-      "display_name": "llama-3.3-70b-instruct",
-      "composite_elo": 1503.3,
-      "profit_elo": 1517.1,
-      "credit_elo": 1493.6,
-      "dealshare_elo": 1483.0,
-      "matches_played": 6,
-      "avg_net_pnl": 123344.74,
-      "confusion_agg": {
-        "good": {
-          "approved": 63,
-          "rejected": 22
-        },
-        "bad": {
-          "approved": 3,
-          "rejected": 14
-        },
-        "fraud": {
-          "approved": 0,
-          "rejected": 4
-        }
-      },
-      "rate_analysis": {
-        "avg_rate_good": 11.09,
-        "avg_rate_bad": 10.5,
-        "n_good_offers": 63,
-        "n_bad_offers": 3
-      },
-      "total_tokens_in": 21339,
-      "total_tokens_out": 459,
-      "total_cost_usd": 0.0709,
-      "avg_cost_per_decision": 0.0011
-    },
-    {
-      "model_id": "deepseek/deepseek-r1",
-      "display_name": "deepseek-r1",
-      "composite_elo": 1502.2,
-      "profit_elo": 1502.3,
-      "credit_elo": 1500.3,
-      "dealshare_elo": 1504.9,
-      "matches_played": 2,
-      "avg_net_pnl": 352233.09,
-      "confusion_agg": {
-        "good": {
-          "approved": 35,
-          "rejected": 5
-        },
-        "bad": {
-          "approved": 5,
-          "rejected": 5
-        },
-        "fraud": {
-          "approved": 0,
-          "rejected": 0
-        }
-      },
-      "rate_analysis": {
-        "avg_rate_good": 8.55,
-        "avg_rate_bad": 8.86,
-        "n_good_offers": 35,
-        "n_bad_offers": 5
-      },
-      "total_tokens_in": 170896,
-      "total_tokens_out": 12273,
-      "total_cost_usd": 0.6968,
-      "avg_cost_per_decision": 0.0249
-    },
-    {
-      "model_id": "z-ai/glm-4.7-flash",
-      "display_name": "glm-4.7-flash",
-      "composite_elo": 1502.1,
-      "profit_elo": 1505.6,
-      "credit_elo": 1496.4,
-      "dealshare_elo": 1501.5,
-      "matches_played": 3,
-      "avg_net_pnl": 247442.12,
-      "confusion_agg": {
-        "good": {
-          "approved": 40,
-          "rejected": 20
-        },
-        "bad": {
-          "approved": 4,
-          "rejected": 11
-        },
-        "fraud": {
-          "approved": 0,
-          "rejected": 0
-        }
-      },
-      "rate_analysis": {
-        "avg_rate_good": 10.45,
-        "avg_rate_bad": 11.0,
-        "n_good_offers": 40,
-        "n_bad_offers": 4
-      },
-      "total_tokens_in": 0,
-      "total_tokens_out": 0,
-      "total_cost_usd": 0.0,
-      "avg_cost_per_decision": 0.0
-    },
-    {
-      "model_id": "qwen/qwen3-30b-a3b",
-      "display_name": "qwen3-30b-a3b",
-      "composite_elo": 1500.9,
-      "profit_elo": 1503.2,
-      "credit_elo": 1500.0,
-      "dealshare_elo": 1496.7,
-      "matches_played": 1,
-      "avg_net_pnl": 0.0,
-      "confusion_agg": {
-        "good": {
-          "approved": 20,
-          "rejected": 0
-        },
-        "bad": {
-          "approved": 2,
-          "rejected": 3
-        },
-        "fraud": {
-          "approved": 0,
-          "rejected": 0
-        }
-      },
-      "rate_analysis": {
-        "avg_rate_good": 14.0,
-        "avg_rate_bad": 14.0,
+        "avg_rate_good": 7.9,
+        "avg_rate_bad": 9.0,
         "n_good_offers": 20,
         "n_bad_offers": 2
       },
@@ -259,6 +231,7 @@
       "credit_elo": 1499.7,
       "dealshare_elo": 1500.1,
       "matches_played": 1,
+      "mock_matches": 0,
       "avg_net_pnl": 271988.41,
       "confusion_agg": {
         "good": {
@@ -288,54 +261,21 @@
     {
       "model_id": "z-ai/glm-4-32b",
       "display_name": "glm-4-32b",
-      "composite_elo": 1500.0,
-      "profit_elo": 1501.1,
-      "credit_elo": 1500.6,
-      "dealshare_elo": 1496.2,
-      "matches_played": 2,
-      "avg_net_pnl": -93860.88,
-      "confusion_agg": {
-        "good": {
-          "approved": 40,
-          "rejected": 0
-        },
-        "bad": {
-          "approved": 6,
-          "rejected": 4
-        },
-        "fraud": {
-          "approved": 0,
-          "rejected": 0
-        }
-      },
-      "rate_analysis": {
-        "avg_rate_good": 11.96,
-        "avg_rate_bad": 12.42,
-        "n_good_offers": 40,
-        "n_bad_offers": 6
-      },
-      "total_tokens_in": 0,
-      "total_tokens_out": 0,
-      "total_cost_usd": 0.0,
-      "avg_cost_per_decision": 0.0
-    },
-    {
-      "model_id": "nvidia/llama-3.3-nemotron-super-49b-v1.5",
-      "display_name": "llama-3.3-nemotron-super-49b-v1.5",
-      "composite_elo": 1497.8,
+      "composite_elo": 1498.8,
       "profit_elo": 1497.5,
-      "credit_elo": 1503.3,
-      "dealshare_elo": 1490.6,
-      "matches_played": 7,
-      "avg_net_pnl": 241248.58,
+      "credit_elo": 1500.4,
+      "dealshare_elo": 1499.5,
+      "matches_played": 1,
+      "mock_matches": 0,
+      "avg_net_pnl": -187721.77,
       "confusion_agg": {
         "good": {
-          "approved": 151,
-          "rejected": 17
+          "approved": 20,
+          "rejected": 0
         },
         "bad": {
-          "approved": 9,
-          "rejected": 33
+          "approved": 4,
+          "rejected": 1
         },
         "fraud": {
           "approved": 0,
@@ -343,10 +283,10 @@
         }
       },
       "rate_analysis": {
-        "avg_rate_good": 13.79,
-        "avg_rate_bad": 14.44,
-        "n_good_offers": 151,
-        "n_bad_offers": 9
+        "avg_rate_good": 9.93,
+        "avg_rate_bad": 11.62,
+        "n_good_offers": 20,
+        "n_bad_offers": 4
       },
       "total_tokens_in": 0,
       "total_tokens_out": 0,
@@ -361,6 +301,7 @@
       "credit_elo": 1500.2,
       "dealshare_elo": 1508.3,
       "matches_played": 1,
+      "mock_matches": 0,
       "avg_net_pnl": 258562.17,
       "confusion_agg": {
         "good": {
@@ -395,6 +336,7 @@
       "credit_elo": 1499.7,
       "dealshare_elo": 1497.2,
       "matches_played": 1,
+      "mock_matches": 0,
       "avg_net_pnl": -20603.93,
       "confusion_agg": {
         "good": {
@@ -422,6 +364,41 @@
       "avg_cost_per_decision": 0.0
     },
     {
+      "model_id": "nvidia/llama-3.3-nemotron-super-49b-v1.5",
+      "display_name": "llama-3.3-nemotron-super-49b-v1.5",
+      "composite_elo": 1495.3,
+      "profit_elo": 1489.9,
+      "credit_elo": 1503.4,
+      "dealshare_elo": 1496.7,
+      "matches_played": 5,
+      "mock_matches": 0,
+      "avg_net_pnl": 337748.01,
+      "confusion_agg": {
+        "good": {
+          "approved": 111,
+          "rejected": 17
+        },
+        "bad": {
+          "approved": 5,
+          "rejected": 27
+        },
+        "fraud": {
+          "approved": 0,
+          "rejected": 0
+        }
+      },
+      "rate_analysis": {
+        "avg_rate_good": 13.0,
+        "avg_rate_bad": 13.2,
+        "n_good_offers": 111,
+        "n_bad_offers": 5
+      },
+      "total_tokens_in": 0,
+      "total_tokens_out": 0,
+      "total_cost_usd": 0.0,
+      "avg_cost_per_decision": 0.0
+    },
+    {
       "model_id": "minimax/minimax-01",
       "display_name": "minimax-01",
       "composite_elo": 1495.0,
@@ -429,6 +406,7 @@
       "credit_elo": 1492.9,
       "dealshare_elo": 1495.1,
       "matches_played": 1,
+      "mock_matches": 0,
       "avg_net_pnl": 0.0,
       "confusion_agg": {
         "good": {
@@ -458,20 +436,21 @@
     {
       "model_id": "google/gemini-2.5-flash",
       "display_name": "gemini-2.5-flash",
-      "composite_elo": 1482.6,
-      "profit_elo": 1464.3,
-      "credit_elo": 1478.6,
-      "dealshare_elo": 1534.5,
-      "matches_played": 8,
-      "avg_net_pnl": 313641.39,
+      "composite_elo": 1483.6,
+      "profit_elo": 1468.7,
+      "credit_elo": 1477.3,
+      "dealshare_elo": 1530.2,
+      "matches_played": 7,
+      "mock_matches": 0,
+      "avg_net_pnl": 315527.98,
       "confusion_agg": {
         "good": {
-          "approved": 119,
+          "approved": 99,
           "rejected": 45
         },
         "bad": {
-          "approved": 5,
-          "rejected": 32
+          "approved": 3,
+          "rejected": 29
         },
         "fraud": {
           "approved": 3,
@@ -479,10 +458,10 @@
         }
       },
       "rate_analysis": {
-        "avg_rate_good": 7.48,
-        "avg_rate_bad": 9.16,
-        "n_good_offers": 119,
-        "n_bad_offers": 8
+        "avg_rate_good": 6.97,
+        "avg_rate_bad": 8.88,
+        "n_good_offers": 99,
+        "n_bad_offers": 6
       },
       "total_tokens_in": 0,
       "total_tokens_out": 0,
@@ -490,6 +469,155 @@
       "avg_cost_per_decision": 0.0
     }
   ],
+  "sub_leaderboards": {
+    "by_lender": {},
+    "by_match_type": {
+      "season": [
+        {
+          "model_id": "openai/gpt-4.1-nano",
+          "display_name": "gpt-4.1-nano",
+          "composite_elo": 1507.7,
+          "profit_elo": 1504.7,
+          "credit_elo": 1516.3,
+          "dealshare_elo": 1502.3,
+          "matches_played": 5,
+          "avg_net_pnl": 520725.14
+        },
+        {
+          "model_id": "qwen/qwen3-next-80b-a3b-instruct",
+          "display_name": "qwen3-next-80b-a3b-instruct",
+          "composite_elo": 1506.3,
+          "profit_elo": 1505.4,
+          "credit_elo": 1507.7,
+          "dealshare_elo": 1506.3,
+          "matches_played": 2,
+          "avg_net_pnl": 311727.94
+        },
+        {
+          "model_id": "deepseek/deepseek-r1",
+          "display_name": "deepseek-r1",
+          "composite_elo": 1503.0,
+          "profit_elo": 1504.5,
+          "credit_elo": 1500.6,
+          "dealshare_elo": 1502.7,
+          "matches_played": 1,
+          "avg_net_pnl": 593302.36
+        },
+        {
+          "model_id": "z-ai/glm-4.7-flash",
+          "display_name": "glm-4.7-flash",
+          "composite_elo": 1501.5,
+          "profit_elo": 1504.1,
+          "credit_elo": 1496.0,
+          "dealshare_elo": 1503.4,
+          "matches_played": 2,
+          "avg_net_pnl": 288271.16
+        },
+        {
+          "model_id": "google/gemini-2.5-pro",
+          "display_name": "gemini-2.5-pro",
+          "composite_elo": 1500.0,
+          "profit_elo": 1500.1,
+          "credit_elo": 1499.7,
+          "dealshare_elo": 1500.1,
+          "matches_played": 1,
+          "avg_net_pnl": 271988.41
+        },
+        {
+          "model_id": "z-ai/glm-4-32b",
+          "display_name": "glm-4-32b",
+          "composite_elo": 1498.8,
+          "profit_elo": 1497.5,
+          "credit_elo": 1500.4,
+          "dealshare_elo": 1499.4,
+          "matches_played": 1,
+          "avg_net_pnl": -187721.77
+        },
+        {
+          "model_id": "meta-llama/llama-3.1-405b-instruct",
+          "display_name": "llama-3.1-405b-instruct",
+          "composite_elo": 1497.0,
+          "profit_elo": 1495.4,
+          "credit_elo": 1499.7,
+          "dealshare_elo": 1497.2,
+          "matches_played": 1,
+          "avg_net_pnl": -20603.93
+        },
+        {
+          "model_id": "nvidia/llama-3.3-nemotron-super-49b-v1.5",
+          "display_name": "llama-3.3-nemotron-super-49b-v1.5",
+          "composite_elo": 1496.3,
+          "profit_elo": 1492.7,
+          "credit_elo": 1503.9,
+          "dealshare_elo": 1493.9,
+          "matches_played": 5,
+          "avg_net_pnl": 337748.01
+        },
+        {
+          "model_id": "minimax/minimax-01",
+          "display_name": "minimax-01",
+          "composite_elo": 1495.0,
+          "profit_elo": 1496.3,
+          "credit_elo": 1492.9,
+          "dealshare_elo": 1495.1,
+          "matches_played": 1,
+          "avg_net_pnl": 0.0
+        },
+        {
+          "model_id": "google/gemini-2.5-flash",
+          "display_name": "gemini-2.5-flash",
+          "composite_elo": 1494.4,
+          "profit_elo": 1499.3,
+          "credit_elo": 1482.8,
+          "dealshare_elo": 1499.6,
+          "matches_played": 4,
+          "avg_net_pnl": 325741.23
+        }
+      ],
+      "single": [
+        {
+          "model_id": "deepseek/deepseek-chat-v3-0324",
+          "display_name": "deepseek-chat-v3-0324",
+          "composite_elo": 1508.4,
+          "profit_elo": 1524.4,
+          "credit_elo": 1503.6,
+          "dealshare_elo": 1475.6,
+          "matches_played": 4,
+          "avg_net_pnl": -116785.27
+        },
+        {
+          "model_id": "meta-llama/llama-3.3-70b-instruct",
+          "display_name": "llama-3.3-70b-instruct",
+          "composite_elo": 1506.9,
+          "profit_elo": 1520.3,
+          "credit_elo": 1502.8,
+          "dealshare_elo": 1479.7,
+          "matches_played": 4,
+          "avg_net_pnl": 137082.35
+        },
+        {
+          "model_id": "qwen/qwen3-235b-a22b",
+          "display_name": "qwen3-235b-a22b",
+          "composite_elo": 1497.6,
+          "profit_elo": 1491.7,
+          "credit_elo": 1500.2,
+          "dealshare_elo": 1508.3,
+          "matches_played": 1,
+          "avg_net_pnl": 258562.17
+        },
+        {
+          "model_id": "google/gemini-2.5-flash",
+          "display_name": "gemini-2.5-flash",
+          "composite_elo": 1487.1,
+          "profit_elo": 1463.5,
+          "credit_elo": 1493.4,
+          "dealshare_elo": 1536.5,
+          "matches_played": 3,
+          "avg_net_pnl": 301910.32
+        }
+      ]
+    }
+  },
   "match_ids": [
     "2026-02-25T07-44-42_6b6d78",
     "2026-02-25T07-44-55_c002ce",
@@ -501,10 +629,7 @@
     "2026-02-25T16-32-42_e95d7e",
     "2026-02-25T18-02-04_36f033",
     "2026-02-25T19-17-24_3a51a5",
-    "2026-02-25T19-30-47_343dac",
-    "2026-02-26T09-14-18_e3a475",
-    "2026-02-26T09-14-52_7e04e7",
-    "2026-02-26T10-12-08_0c4b90"
+    "2026-02-25T19-30-47_343dac"
   ],
   "elo_history": {
     "deepseek/deepseek-chat-v3-0324": [
@@ -573,24 +698,6 @@
         "profit_elo": 1524.4,
         "credit_elo": 1503.6,
         "dealshare_elo": 1475.6
-      },
-      {
-        "match_id": "2026-02-26T09-14-18_e3a475",
-        "profit_elo": 1524.4,
-        "credit_elo": 1503.6,
-        "dealshare_elo": 1475.6
-      },
-      {
-        "match_id": "2026-02-26T09-14-52_7e04e7",
-        "profit_elo": 1524.4,
-        "credit_elo": 1503.6,
-        "dealshare_elo": 1475.6
-      },
-      {
-        "match_id": "2026-02-26T10-12-08_0c4b90",
-        "profit_elo": 1527.3,
-        "credit_elo": 1507.8,
-        "dealshare_elo": 1473.0
       }
     ],
     "google/gemini-2.5-flash": [
@@ -659,24 +766,6 @@
         "profit_elo": 1468.7,
         "credit_elo": 1477.3,
         "dealshare_elo": 1530.2
-      },
-      {
-        "match_id": "2026-02-26T09-14-18_e3a475",
-        "profit_elo": 1464.3,
-        "credit_elo": 1478.6,
-        "dealshare_elo": 1534.5
-      },
-      {
-        "match_id": "2026-02-26T09-14-52_7e04e7",
-        "profit_elo": 1464.3,
-        "credit_elo": 1478.6,
-        "dealshare_elo": 1534.5
-      },
-      {
-        "match_id": "2026-02-26T10-12-08_0c4b90",
-        "profit_elo": 1464.3,
-        "credit_elo": 1478.6,
-        "dealshare_elo": 1534.5
       }
     ],
     "meta-llama/llama-3.3-70b-instruct": [
@@ -745,24 +834,6 @@
         "profit_elo": 1520.3,
         "credit_elo": 1502.8,
         "dealshare_elo": 1479.7
-      },
-      {
-        "match_id": "2026-02-26T09-14-18_e3a475",
-        "profit_elo": 1516.1,
-        "credit_elo": 1502.6,
-        "dealshare_elo": 1483.8
-      },
-      {
-        "match_id": "2026-02-26T09-14-52_7e04e7",
-        "profit_elo": 1516.1,
-        "credit_elo": 1502.6,
-        "dealshare_elo": 1483.8
-      },
-      {
-        "match_id": "2026-02-26T10-12-08_0c4b90",
-        "profit_elo": 1517.1,
-        "credit_elo": 1493.6,
-        "dealshare_elo": 1483.0
       }
     ],
     "qwen/qwen3-235b-a22b": [
@@ -828,24 +899,6 @@
       },
       {
         "match_id": "2026-02-25T19-30-47_343dac",
-        "profit_elo": 1491.7,
-        "credit_elo": 1500.2,
-        "dealshare_elo": 1508.3
-      },
-      {
-        "match_id": "2026-02-26T09-14-18_e3a475",
-        "profit_elo": 1491.7,
-        "credit_elo": 1500.2,
-        "dealshare_elo": 1508.3
-      },
-      {
-        "match_id": "2026-02-26T09-14-52_7e04e7",
-        "profit_elo": 1491.7,
-        "credit_elo": 1500.2,
-        "dealshare_elo": 1508.3
-      },
-      {
-        "match_id": "2026-02-26T10-12-08_0c4b90",
         "profit_elo": 1491.7,
         "credit_elo": 1500.2,
         "dealshare_elo": 1508.3
@@ -917,24 +970,6 @@
         "profit_elo": 1489.9,
         "credit_elo": 1503.4,
         "dealshare_elo": 1496.7
-      },
-      {
-        "match_id": "2026-02-26T09-14-18_e3a475",
-        "profit_elo": 1493.7,
-        "credit_elo": 1503.2,
-        "dealshare_elo": 1493.6
-      },
-      {
-        "match_id": "2026-02-26T09-14-52_7e04e7",
-        "profit_elo": 1497.5,
-        "credit_elo": 1503.3,
-        "dealshare_elo": 1490.6
-      },
-      {
-        "match_id": "2026-02-26T10-12-08_0c4b90",
-        "profit_elo": 1497.5,
-        "credit_elo": 1503.3,
-        "dealshare_elo": 1490.6
       }
     ],
     "openai/gpt-4.1-nano": [
@@ -1003,24 +1038,6 @@
         "profit_elo": 1501.8,
         "credit_elo": 1515.8,
         "dealshare_elo": 1505.1
-      },
-      {
-        "match_id": "2026-02-26T09-14-18_e3a475",
-        "profit_elo": 1503.3,
-        "credit_elo": 1514.9,
-        "dealshare_elo": 1503.2
-      },
-      {
-        "match_id": "2026-02-26T09-14-52_7e04e7",
-        "profit_elo": 1500.4,
-        "credit_elo": 1514.3,
-        "dealshare_elo": 1505.9
-      },
-      {
-        "match_id": "2026-02-26T10-12-08_0c4b90",
-        "profit_elo": 1496.9,
-        "credit_elo": 1515.5,
-        "dealshare_elo": 1509.3
       }
     ],
     "meta-llama/llama-3.1-405b-instruct": [
@@ -1086,24 +1103,6 @@
       },
       {
         "match_id": "2026-02-25T19-30-47_343dac",
-        "profit_elo": 1495.4,
-        "credit_elo": 1499.7,
-        "dealshare_elo": 1497.2
-      },
-      {
-        "match_id": "2026-02-26T09-14-18_e3a475",
-        "profit_elo": 1495.4,
-        "credit_elo": 1499.7,
-        "dealshare_elo": 1497.2
-      },
-      {
-        "match_id": "2026-02-26T09-14-52_7e04e7",
-        "profit_elo": 1495.4,
-        "credit_elo": 1499.7,
-        "dealshare_elo": 1497.2
-      },
-      {
-        "match_id": "2026-02-26T10-12-08_0c4b90",
         "profit_elo": 1495.4,
         "credit_elo": 1499.7,
         "dealshare_elo": 1497.2
@@ -1175,24 +1174,6 @@
         "profit_elo": 1504.5,
         "credit_elo": 1500.6,
         "dealshare_elo": 1502.7
-      },
-      {
-        "match_id": "2026-02-26T09-14-18_e3a475",
-        "profit_elo": 1504.5,
-        "credit_elo": 1500.6,
-        "dealshare_elo": 1502.7
-      },
-      {
-        "match_id": "2026-02-26T09-14-52_7e04e7",
-        "profit_elo": 1504.5,
-        "credit_elo": 1500.6,
-        "dealshare_elo": 1502.7
-      },
-      {
-        "match_id": "2026-02-26T10-12-08_0c4b90",
-        "profit_elo": 1502.3,
-        "credit_elo": 1500.3,
-        "dealshare_elo": 1504.9
       }
     ],
     "google/gemini-2.5-pro": [
@@ -1258,24 +1239,6 @@
       },
       {
         "match_id": "2026-02-25T19-30-47_343dac",
-        "profit_elo": 1500.1,
-        "credit_elo": 1499.7,
-        "dealshare_elo": 1500.1
-      },
-      {
-        "match_id": "2026-02-26T09-14-18_e3a475",
-        "profit_elo": 1500.1,
-        "credit_elo": 1499.7,
-        "dealshare_elo": 1500.1
-      },
-      {
-        "match_id": "2026-02-26T09-14-52_7e04e7",
-        "profit_elo": 1500.1,
-        "credit_elo": 1499.7,
-        "dealshare_elo": 1500.1
-      },
-      {
-        "match_id": "2026-02-26T10-12-08_0c4b90",
         "profit_elo": 1500.1,
         "credit_elo": 1499.7,
         "dealshare_elo": 1500.1
@@ -1347,24 +1310,6 @@
         "profit_elo": 1505.4,
         "credit_elo": 1507.7,
         "dealshare_elo": 1506.4
-      },
-      {
-        "match_id": "2026-02-26T09-14-18_e3a475",
-        "profit_elo": 1505.4,
-        "credit_elo": 1507.7,
-        "dealshare_elo": 1506.4
-      },
-      {
-        "match_id": "2026-02-26T09-14-52_7e04e7",
-        "profit_elo": 1499.3,
-        "credit_elo": 1507.5,
-        "dealshare_elo": 1511.9
-      },
-      {
-        "match_id": "2026-02-26T10-12-08_0c4b90",
-        "profit_elo": 1501.2,
-        "credit_elo": 1511.5,
-        "dealshare_elo": 1509.7
       }
     ],
     "z-ai/glm-4.7-flash": [
@@ -1433,24 +1378,6 @@
         "profit_elo": 1504.0,
         "credit_elo": 1496.0,
         "dealshare_elo": 1503.5
-      },
-      {
-        "match_id": "2026-02-26T09-14-18_e3a475",
-        "profit_elo": 1504.0,
-        "credit_elo": 1496.0,
-        "dealshare_elo": 1503.5
-      },
-      {
-        "match_id": "2026-02-26T09-14-52_7e04e7",
-        "profit_elo": 1505.6,
-        "credit_elo": 1496.4,
-        "dealshare_elo": 1501.5
-      },
-      {
-        "match_id": "2026-02-26T10-12-08_0c4b90",
-        "profit_elo": 1505.6,
-        "credit_elo": 1496.4,
-        "dealshare_elo": 1501.5
       }
     ],
     "minimax/minimax-01": [
@@ -1516,24 +1443,6 @@
       },
       {
         "match_id": "2026-02-25T19-30-47_343dac",
-        "profit_elo": 1496.3,
-        "credit_elo": 1492.9,
-        "dealshare_elo": 1495.1
-      },
-      {
-        "match_id": "2026-02-26T09-14-18_e3a475",
-        "profit_elo": 1496.3,
-        "credit_elo": 1492.9,
-        "dealshare_elo": 1495.1
-      },
-      {
-        "match_id": "2026-02-26T09-14-52_7e04e7",
-        "profit_elo": 1496.3,
-        "credit_elo": 1492.9,
-        "dealshare_elo": 1495.1
-      },
-      {
-        "match_id": "2026-02-26T10-12-08_0c4b90",
         "profit_elo": 1496.3,
         "credit_elo": 1492.9,
         "dealshare_elo": 1495.1
@@ -1605,110 +1514,6 @@
         "profit_elo": 1497.5,
         "credit_elo": 1500.4,
         "dealshare_elo": 1499.5
-      },
-      {
-        "match_id": "2026-02-26T09-14-18_e3a475",
-        "profit_elo": 1497.5,
-        "credit_elo": 1500.4,
-        "dealshare_elo": 1499.5
-      },
-      {
-        "match_id": "2026-02-26T09-14-52_7e04e7",
-        "profit_elo": 1501.1,
-        "credit_elo": 1500.6,
-        "dealshare_elo": 1496.2
-      },
-      {
-        "match_id": "2026-02-26T10-12-08_0c4b90",
-        "profit_elo": 1501.1,
-        "credit_elo": 1500.6,
-        "dealshare_elo": 1496.2
-      }
-    ],
-    "qwen/qwen3-30b-a3b": [
-      {
-        "match_id": "2026-02-25T07-44-42_6b6d78",
-        "profit_elo": 1500.0,
-        "credit_elo": 1500.0,
-        "dealshare_elo": 1500.0
-      },
-      {
-        "match_id": "2026-02-25T07-44-55_c002ce",
-        "profit_elo": 1500.0,
-        "credit_elo": 1500.0,
-        "dealshare_elo": 1500.0
-      },
-      {
-        "match_id": "2026-02-25T08-03-50_bae019",
-        "profit_elo": 1500.0,
-        "credit_elo": 1500.0,
-        "dealshare_elo": 1500.0
-      },
-      {
-        "match_id": "2026-02-25T08-05-53_f6dc61",
-        "profit_elo": 1500.0,
-        "credit_elo": 1500.0,
-        "dealshare_elo": 1500.0
-      },
-      {
-        "match_id": "2026-02-25T14-50-03_1bd434",
-        "profit_elo": 1500.0,
-        "credit_elo": 1500.0,
-        "dealshare_elo": 1500.0
-      },
-      {
-        "match_id": "2026-02-25T14-54-22_cabc6d",
-        "profit_elo": 1500.0,
-        "credit_elo": 1500.0,
-        "dealshare_elo": 1500.0
-      },
-      {
-        "match_id": "2026-02-25T16-17-07_c09879",
-        "profit_elo": 1500.0,
-        "credit_elo": 1500.0,
-        "dealshare_elo": 1500.0
-      },
-      {
-        "match_id": "2026-02-25T16-32-42_e95d7e",
-        "profit_elo": 1500.0,
-        "credit_elo": 1500.0,
-        "dealshare_elo": 1500.0
-      },
-      {
-        "match_id": "2026-02-25T18-02-04_36f033",
-        "profit_elo": 1500.0,
-        "credit_elo": 1500.0,
-        "dealshare_elo": 1500.0
-      },
-      {
-        "match_id": "2026-02-25T19-17-24_3a51a5",
-        "profit_elo": 1500.0,
-        "credit_elo": 1500.0,
-        "dealshare_elo": 1500.0
-      },
-      {
-        "match_id": "2026-02-25T19-30-47_343dac",
-        "profit_elo": 1500.0,
-        "credit_elo": 1500.0,
-        "dealshare_elo": 1500.0
-      },
-      {
-        "match_id": "2026-02-26T09-14-18_e3a475",
-        "profit_elo": 1503.2,
-        "credit_elo": 1500.0,
-        "dealshare_elo": 1496.7
-      },
-      {
-        "match_id": "2026-02-26T09-14-52_7e04e7",
-        "profit_elo": 1503.2,
-        "credit_elo": 1500.0,
-        "dealshare_elo": 1496.7
-      },
-      {
-        "match_id": "2026-02-26T10-12-08_0c4b90",
-        "profit_elo": 1503.2,
-        "credit_elo": 1500.0,
-        "dealshare_elo": 1496.7
       }
     ]
   }

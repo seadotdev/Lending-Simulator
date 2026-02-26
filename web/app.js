@@ -1,7 +1,7 @@
 /**
  * Loanville — 3D Town Visualization + Trace Viewer
  *
- * Loads season JSON (from --json export) and/or trace JSON via drag-and-drop.
+ * Loads season JSON (from --export or auto web/seasons/) and/or trace JSON via drag-and-drop.
  * Season data drives the 3D town game view with playback.
  * Trace data drives the LLM trace inspection tab.
  */
@@ -11,6 +11,7 @@ import { TownScene } from './town-scene.js';
 import { generateLayout } from './town-layout.js';
 import { renderStats } from './stats-dashboard.js';
 import { Dashboard2D } from './dashboard-2d.js';
+import { renderElo } from './elo-dashboard.js';
 
 // ---- Constants ----
 
@@ -141,6 +142,10 @@ class App {
       filterDecision: $('filter-decision'),
       filterSearch: $('filter-search'),
       traceStats: $('trace-stats'),
+      // Elo tab
+      tabElo: $('tab-elo'),
+      pageElo: $('page-elo'),
+      eloContent: $('elo-content'),
     };
   }
 
@@ -172,6 +177,7 @@ class App {
     this.dom.tabDashboard.addEventListener('click', () => this._switchTab('dashboard'));
     this.dom.tabStats.addEventListener('click', () => this._switchTab('stats'));
     this.dom.tabTrace.addEventListener('click', () => this._switchTab('trace'));
+    this.dom.tabElo.addEventListener('click', () => this._switchTab('elo'));
 
     // Playback
     this.dom.btnPlay.addEventListener('click', () => this._togglePlay());
@@ -568,13 +574,34 @@ class App {
     this.dom.tabDashboard.classList.toggle('active', tab === 'dashboard');
     this.dom.tabStats.classList.toggle('active', tab === 'stats');
     this.dom.tabTrace.classList.toggle('active', tab === 'trace');
+    this.dom.tabElo.classList.toggle('active', tab === 'elo');
     this.dom.pageGame.hidden = tab !== 'game';
     this.dom.pageDashboard.hidden = tab !== 'dashboard';
     this.dom.pageStats.hidden = tab !== 'stats';
     this.dom.pageTrace.hidden = tab !== 'trace';
+    this.dom.pageElo.hidden = tab !== 'elo';
     if (tab === 'game' && this.townScene) this.townScene._onResize();
     if (tab === 'stats' && this.season) renderStats(this.dom.statsContent, this.season);
     if (tab === 'dashboard') this._updateDashboard2d();
+    if (tab === 'elo') this._loadElo();
+  }
+
+  async _loadElo() {
+    if (this._eloLoading) return;
+    this._eloLoading = true;
+    try {
+      const resp = await fetch('../leaderboard/leaderboard.json');
+      if (!resp.ok) {
+        this.dom.eloContent.innerHTML = '<div class="stats-empty">No leaderboard data found. Run a match first.</div>';
+        return;
+      }
+      const leaderboard = await resp.json();
+      renderElo(this.dom.eloContent, leaderboard);
+    } catch (e) {
+      this.dom.eloContent.innerHTML = `<div class="stats-empty">Error loading leaderboard: ${e.message}</div>`;
+    } finally {
+      this._eloLoading = false;
+    }
   }
 
   _buildTimeline() {

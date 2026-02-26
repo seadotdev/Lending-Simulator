@@ -304,12 +304,14 @@ def main() -> None:
                         help="Per-lender borrower view differences "
                              "(default: none)")
     # Leaderboard
-    parser.add_argument("--leaderboard", action="store_true",
-                        help="Emit match record to leaderboard after scoring")
+    parser.add_argument("--leaderboard", action="store_true", default=True,
+                        help="Emit match record to leaderboard after scoring (default: on)")
+    parser.add_argument("--no-leaderboard", action="store_false", dest="leaderboard",
+                        help="Disable leaderboard match record emission")
     parser.add_argument("-v", "--verbose", action="store_true",
                         help="Enable detailed logging (LOS calls, per-borrower progress)")
-    parser.add_argument("--json", type=str, default=None, metavar="FILE",
-                        help="Export season results to JSON file (for web viewer)")
+    parser.add_argument("--export", type=str, default=None, metavar="FILE",
+                        help="Save an extra copy of season results JSON to FILE")
     args = parser.parse_args()
 
     # Handle `view` subcommand
@@ -401,10 +403,11 @@ def main() -> None:
             aggregate_path = write_match_record(aggregate_record)
             lb_path = write_leaderboard(compute_leaderboard())
 
-            print(f"\n  Leaderboard: wrote {len(weekly_paths)} weekly match record(s)")
+            mock_tag = " [MOCK]" if mock else ""
+            print(f"\n  Leaderboard{mock_tag}: wrote {len(weekly_paths)} weekly match record(s)")
             if weekly_paths:
-                print(f"  Leaderboard: latest weekly -> {weekly_paths[-1].name}")
-            print(f"  Leaderboard: aggregate -> {aggregate_path.name}")
+                print(f"  Leaderboard{mock_tag}: latest weekly -> {weekly_paths[-1].name}")
+            print(f"  Leaderboard{mock_tag}: aggregate -> {aggregate_path.name}")
             print(f"  Leaderboard: standings -> {lb_path.name}")
 
         # JSON export for web viewer
@@ -419,7 +422,8 @@ def main() -> None:
             os.makedirs(seasons_dir, exist_ok=True)
             ts = datetime.now().strftime("%Y%m%d_%H%M%S")
             lender_names = "-".join(l["name"].split()[0] for l in season_json.get("lenders", [])[:3])
-            filename = f"{ts}_{lender_names}.json"
+            mode_tag = "_mock" if mock else ""
+            filename = f"{ts}_{lender_names}{mode_tag}.json"
             filepath = os.path.join(seasons_dir, filename)
             with open(filepath, "w") as f:
                 json.dump(season_json, f, indent=2)
@@ -432,10 +436,10 @@ def main() -> None:
                 json.dump(all_files, f, indent=2)
             print(f"\nSeason data saved to: seasons/{filename}")
 
-        if args.json:
-            with open(args.json, "w") as f:
+        if args.export:
+            with open(args.export, "w") as f:
                 json.dump(season_json, f, indent=2)
-            print(f"Season data also exported to: {args.json}")
+            print(f"Season data also exported to: {args.export}")
 
         print("\nSeason complete.\n")
         return
@@ -477,10 +481,14 @@ def main() -> None:
     if args.leaderboard:
         from .leaderboard import emit_match_record_from_sim, emit_and_update
 
-        models_info = [
-            {"model_id": f"{l.model}::{l.id}", "display_name": l.name}
-            for l in lenders
-        ]
+        # Use raw model IDs; dedup only when the same model appears in multiple slots
+        seen = {}
+        models_info = []
+        for l in lenders:
+            raw = l.model
+            seen[raw] = seen.get(raw, 0) + 1
+            mid = raw if seen[raw] == 1 else f"{raw}::{seen[raw]}"
+            models_info.append({"model_id": mid, "display_name": l.name})
         record = emit_match_record_from_sim(
             lenders=lenders,
             models_info=models_info,
@@ -490,8 +498,9 @@ def main() -> None:
             mix=args.mix,
         )
         match_path, lb_path = emit_and_update(record)
-        print(f"\n  Leaderboard: match → {match_path.name}")
-        print(f"  Leaderboard: standings → {lb_path.name}")
+        mock_tag = " [MOCK]" if mock else ""
+        print(f"\n  Leaderboard{mock_tag}: match → {match_path.name}")
+        print(f"  Leaderboard{mock_tag}: standings → {lb_path.name}")
 
     # Export to web viewer (same format as season mode)
     import json
@@ -517,11 +526,11 @@ def main() -> None:
             json.dump(all_files, f, indent=2)
         print(f"\nWeb viewer: seasons/{filename}")
 
-    if args.json:
+    if args.export:
         import json as json_mod
-        with open(args.json, "w") as f:
+        with open(args.export, "w") as f:
             json_mod.dump(engine.to_json(), f, indent=2)
-        print(f"Data exported to: {args.json}")
+        print(f"Data exported to: {args.export}")
 
     print("\nSimulation complete.\n")
 
