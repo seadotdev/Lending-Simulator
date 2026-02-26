@@ -25,16 +25,17 @@ from .models import (
 # ---------------------------------------------------------------------------
 
 SEASON_MIX = {
-    "gentle":      {"good": 0.70, "bad": 0.20, "fraud": 0.10},
-    "realistic":   {"good": 0.55, "bad": 0.30, "fraud": 0.15},
-    "adversarial": {"good": 0.40, "bad": 0.35, "fraud": 0.25},
+    "gentle":      {"good": 0.95, "bad": 0.05, "fraud": 0.00},
+    "realistic":   {"good": 0.85, "bad": 0.10, "fraud": 0.05},
+    "adversarial": {"good": 0.55, "bad": 0.30, "fraud": 0.15},
+    "stress":      {"good": 0.40, "bad": 0.35, "fraud": 0.25},
 }
 
 ESCALATING_MIXES = [
     # (fraction_of_season, mix)  — boundaries computed from config.weeks
-    (0.30, {"good": 0.80, "bad": 0.15, "fraud": 0.05}),
-    (0.60, {"good": 0.55, "bad": 0.30, "fraud": 0.15}),
-    (1.00, {"good": 0.35, "bad": 0.35, "fraud": 0.30}),
+    (0.30, {"good": 0.90, "bad": 0.10, "fraud": 0.00}),
+    (0.60, {"good": 0.80, "bad": 0.15, "fraud": 0.05}),
+    (1.00, {"good": 0.60, "bad": 0.25, "fraud": 0.15}),
 ]
 
 

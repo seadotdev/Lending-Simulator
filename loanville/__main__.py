@@ -249,8 +249,8 @@ def main() -> None:
                         help="Use mock LLM responses (no API key needed)")
     parser.add_argument("--compare", action="store_true",
                         help="Run frontier-vs-small model comparison (uses mock mode)")
-    parser.add_argument("--mix", choices=list(MIX_PRESETS.keys()), default="easy",
-                        help="Borrower population mix (default: easy)")
+    parser.add_argument("--mix", choices=list(MIX_PRESETS.keys()), default="realistic",
+                        help="Borrower population mix (default: realistic)")
     parser.add_argument("--data-mode",
                         choices=["full", "quarterly_only", "aggregate_only", "statements_inline", "lite"],
                         default="full",
@@ -285,7 +285,7 @@ def main() -> None:
     parser.add_argument("--cohort-size", type=int, default=5,
                         help="Borrowers per week in season mode (default: 5)")
     parser.add_argument("--season-mix",
-                        choices=["gentle", "realistic", "adversarial", "escalating"],
+                        choices=["gentle", "realistic", "adversarial", "stress", "escalating"],
                         default="realistic",
                         help="Season borrower mix (default: realistic)")
     parser.add_argument("--speed-scoring", action="store_true",

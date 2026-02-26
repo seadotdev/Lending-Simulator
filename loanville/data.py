@@ -1906,7 +1906,7 @@ def _build_lenders() -> list[LenderConfig]:
 # Maps mix name -> (good_ids, bad_ids, fraud_ids)
 # IDs are cherry-picked so each preset tells a different story.
 MIX_PRESETS: dict[str, dict[str, list[str]]] = {
-    # ~75% good, ~17% bad, ~8% fraud — realistic commercial pipeline
+    # ~75% good, ~17% bad, ~8% fraud — easy difficulty, few adversarial cases
     "easy": {
         "good":  ["BRW-001", "BRW-002", "BRW-003", "BRW-004", "BRW-005",
                    "BRW-013", "BRW-014", "BRW-015", "BRW-016"],
