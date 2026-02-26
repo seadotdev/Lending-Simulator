@@ -97,7 +97,7 @@ def _run_single(borrowers, lenders, mock=False, data_mode="full",
                  los_url="http://localhost:3000",
                  los_provider="openrouter", los_mode="rules_only",
                  underwrite_only=False, los_model=None,
-                 economics=None):
+                 economics=None, info_asymmetry="none"):
     """Run a single simulation and return (scores, engine)."""
     engine = SimulationEngine(
         borrowers, lenders, mock=mock, data_mode=data_mode,
@@ -105,6 +105,7 @@ def _run_single(borrowers, lenders, mock=False, data_mode="full",
         los_provider=los_provider, los_mode=los_mode,
         underwrite_only=underwrite_only, los_model=los_model,
         economics=economics,
+        info_asymmetry=info_asymmetry,
     )
     asyncio.run(engine.run())
 
@@ -297,6 +298,11 @@ def main() -> None:
                         help="Number of intra-week arrival phases for the cohort (default: 1)")
     parser.add_argument("--deep-uw-slots", type=int, default=0,
                         help="Weekly cap on deep-underwrite approvals per lender in season mode; 0 disables cap")
+    parser.add_argument("--info-asymmetry",
+                        choices=["none", "partial_statements", "redacted"],
+                        default="none",
+                        help="Per-lender borrower view differences "
+                             "(default: none)")
     # Leaderboard
     parser.add_argument("--leaderboard", action="store_true",
                         help="Emit match record to leaderboard after scoring")
@@ -350,6 +356,7 @@ def main() -> None:
             economics=economics,
             arrival_phases=args.arrival_phases,
             deep_uw_slots_per_week=args.deep_uw_slots,
+            info_asymmetry=args.info_asymmetry,
         )
         lenders = get_lenders()
         season = SeasonEngine(
@@ -371,15 +378,33 @@ def main() -> None:
 
         # Leaderboard integration for season mode
         if args.leaderboard:
-            from .leaderboard import emit_match_record_from_season, emit_and_update
-            record = emit_match_record_from_season(
+            from .leaderboard import (
+                compute_leaderboard,
+                emit_match_record_from_season,
+                emit_match_records_from_season_weeks,
+                write_leaderboard,
+                write_match_record,
+            )
+            week_records = emit_match_records_from_season_weeks(
+                season_engine=season,
+                lenders=lenders,
+                mix=args.season_mix,
+            )
+            aggregate_record = emit_match_record_from_season(
                 season_engine=season,
                 season_scores=season_scores,
                 lenders=lenders,
                 mix=args.season_mix,
             )
-            match_path, lb_path = emit_and_update(record)
-            print(f"\n  Leaderboard: match -> {match_path.name}")
+
+            weekly_paths = [write_match_record(r) for r in week_records]
+            aggregate_path = write_match_record(aggregate_record)
+            lb_path = write_leaderboard(compute_leaderboard())
+
+            print(f"\n  Leaderboard: wrote {len(weekly_paths)} weekly match record(s)")
+            if weekly_paths:
+                print(f"  Leaderboard: latest weekly -> {weekly_paths[-1].name}")
+            print(f"  Leaderboard: aggregate -> {aggregate_path.name}")
             print(f"  Leaderboard: standings -> {lb_path.name}")
 
         # JSON export for web viewer
@@ -445,6 +470,7 @@ def main() -> None:
         los_provider=args.los_provider, los_mode=args.los_mode,
         underwrite_only=args.underwrite_only, los_model=args.los_model,
         economics=economics,
+        info_asymmetry=args.info_asymmetry,
     )
 
     # Emit match record to leaderboard
@@ -452,7 +478,7 @@ def main() -> None:
         from .leaderboard import emit_match_record_from_sim, emit_and_update
 
         models_info = [
-            {"model_id": l.model, "display_name": l.name}
+            {"model_id": f"{l.model}::{l.id}", "display_name": l.name}
             for l in lenders
         ]
         record = emit_match_record_from_sim(

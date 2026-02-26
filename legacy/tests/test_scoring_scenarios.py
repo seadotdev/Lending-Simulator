@@ -43,6 +43,18 @@ def run_sim(borrowers, lenders):
     return scores, engine
 
 
+def test_mock_scoring_pipeline_smoke():
+    """Pytest smoke test: mock pipeline runs end-to-end on lite mix."""
+    borrowers = get_borrowers("lite")
+    lenders = get_lenders()
+    for lender in lenders:
+        lender.model = "meta-llama/llama-3.1-8b-instruct"
+    scores, engine = run_sim(borrowers, lenders)
+    assert len(scores) == len(lenders)
+    assert len(engine.booked_loans) >= 0
+    assert all(hasattr(s, "final_adjusted_score") for s in scores)
+
+
 def print_scores(scores, title):
     """Print a concise score table."""
     ranked = sorted(scores, key=lambda x: x.final_adjusted_score, reverse=True)
