@@ -29,6 +29,14 @@ function fmtNum(n) {
   return Math.round(n).toLocaleString('en-US');
 }
 
+function formatRatePercent(rawRate) {
+  if (rawRate == null) return '—';
+  const rate = Number(rawRate);
+  if (!Number.isFinite(rate)) return '—';
+  const percent = rate <= 1 ? rate * 100 : rate;
+  return `${percent.toFixed(1)}%`;
+}
+
 export class Dashboard2D {
   constructor(container) {
     this.container = container;
@@ -138,7 +146,7 @@ export class Dashboard2D {
         </div>
         <div class="dash2d-borrower-flow">
           ${funded
-            ? `<span class="dash2d-arrow funded">→ ${esc(lender?.name || '?')} @ ${(loan.interest_rate * 100).toFixed(1)}%</span>`
+            ? `<span class="dash2d-arrow funded">→ ${esc(lender?.name || '?')} @ ${formatRatePercent(loan.interest_rate)}</span>`
             : `<span class="dash2d-arrow rejected">✗ No offer</span>`
           }
         </div>
@@ -175,12 +183,13 @@ export class Dashboard2D {
         let cellContent = '—';
 
         if (dec) {
+          const rawRate = dec.term_sheet?.rate ?? dec.term_sheet?.interest_rate;
           if (loan) {
             cellClass = 'dash2d-cell-won';
-            cellContent = `${(dec.term_sheet?.rate * 100 || 0).toFixed(1)}%`;
+            cellContent = formatRatePercent(rawRate);
           } else if (dec.decision === 'APPROVE') {
             cellClass = 'dash2d-cell-lost';
-            cellContent = `${(dec.term_sheet?.rate * 100 || 0).toFixed(1)}%`;
+            cellContent = formatRatePercent(rawRate);
           } else {
             cellClass = 'dash2d-cell-reject';
             cellContent = '✗';

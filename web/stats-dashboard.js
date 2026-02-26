@@ -37,6 +37,13 @@ function fmtNum(n) {
   return Math.round(n).toLocaleString('en-US');
 }
 
+function normalizeRatePercent(rawRate) {
+  if (rawRate == null) return null;
+  const rate = Number(rawRate);
+  if (!Number.isFinite(rate)) return null;
+  return rate <= 1 ? rate * 100 : rate;
+}
+
 // ---- Main Render ----
 
 export function renderStats(container, season) {
@@ -305,9 +312,9 @@ function buildRateAnalysis(lenders, weeks) {
         if (d.lender_id !== lender.id || d.decision !== 'APPROVE' || !d.term_sheet) continue;
         const b = w.borrowers.find(b => b.id === d.borrower_id);
         if (!b) continue;
-        const rate = d.term_sheet.rate;
-        if (rate && rates[b.true_outcome]) {
-          rates[b.true_outcome].push(rate * 100);
+        const ratePct = normalizeRatePercent(d.term_sheet.rate ?? d.term_sheet.interest_rate);
+        if (ratePct !== null && rates[b.true_outcome]) {
+          rates[b.true_outcome].push(ratePct);
         }
       }
     }

@@ -313,7 +313,10 @@ class App {
       this.townScene.layout = this.layout;
 
       const names = this.season.lenders.map(l => l.name);
-      await this.townScene.buildTown(this.layout, names, this.assetLoader);
+      const buildResult = await this.townScene.buildTown(this.layout, names, this.assetLoader);
+      if (buildResult?.fallbackUsed) {
+        this._logEvent('system', 'Asset pack not found; rendering fallback town geometry.');
+      }
     } catch (err) {
       console.warn('Asset loading failed, continuing without 3D models:', err);
       // Fallback layout without curated buildings

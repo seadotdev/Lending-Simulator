@@ -21,6 +21,7 @@ export class TownScene {
     this.mouse = new THREE.Vector2();
     this.hoveredBuilding = null;
     this.selectedBuilding = null;
+    this.characterAssetsUnavailable = false;
 
     this.onBuildingClick = null;      // callback(lenderIndex)
     this.onBuildingHover = null;      // callback(lenderIndex|null)
@@ -127,6 +128,9 @@ export class TownScene {
     this.layout = layout;
     const activePack = assetLoader.manifest.activePack;
     const packConfig = assetLoader.getActivePack();
+    this.characterAssetsUnavailable = false;
+    let packAssetsUnavailable = false;
+    let fallbackUsed = false;
 
     // Center camera to see both zones (financial along +X, residential along -Z)
     const fc = layout.financialCenter || { x: 4, z: 0 };
@@ -138,85 +142,142 @@ export class TownScene {
 
     // Roads
     for (const road of layout.roads) {
-      try {
-        const { scene: model } = await assetLoader.loadModel(activePack, road.modelFile);
-        model.position.set(road.x, 0, road.z);
-        model.rotation.y = road.rotation;
-        model.traverse(c => { if (c.isMesh) { c.receiveShadow = true; } });
-        this.scene.add(model);
-      } catch (e) { console.warn('Failed to load road:', e); }
+      let model = null;
+      if (!packAssetsUnavailable) {
+        try {
+          const loaded = await assetLoader.loadModel(activePack, road.modelFile);
+          model = loaded.scene;
+        } catch (e) {
+          packAssetsUnavailable = true;
+          fallbackUsed = true;
+          console.warn('Asset pack unavailable, using fallback geometry:', e);
+        }
+      }
+      if (!model) {
+        model = this._createFallbackRoad(road);
+      }
+      model.position.set(road.x, 0, road.z);
+      model.rotation.y = road.rotation;
+      model.traverse(c => { if (c.isMesh) { c.receiveShadow = true; } });
+      this.scene.add(model);
     }
 
     // Bank buildings (lender-indexed)
     for (const bld of layout.buildings) {
-      try {
-        const { scene: model } = await assetLoader.loadModel(activePack, bld.modelFile);
-        model.position.set(bld.x, 0, bld.z);
-        model.rotation.y = bld.rotation;
-        model.traverse(c => {
-          if (c.isMesh) { c.castShadow = true; c.receiveShadow = true; }
-        });
-        model.userData.lenderIndex = bld.id;
-        this.buildingMeshes.set(bld.id, model);
-        this.scene.add(model);
+      let model = null;
+      if (!packAssetsUnavailable) {
+        try {
+          const loaded = await assetLoader.loadModel(activePack, bld.modelFile);
+          model = loaded.scene;
+        } catch (e) {
+          packAssetsUnavailable = true;
+          fallbackUsed = true;
+          console.warn('Failed to load building assets, using fallback geometry:', e);
+        }
+      }
+      if (!model) {
+        model = this._createFallbackBuilding(bld.id);
+      }
 
-        // Signpost label
-        const name = lenderNames[bld.id] || `Lender ${bld.id}`;
-        const labelDiv = document.createElement('div');
-        labelDiv.className = 'bank-signpost';
-        labelDiv.innerHTML =
-          `<div class="signpost-name">${name}</div>` +
-          `<div class="signpost-stats">` +
-          `<div class="signpost-stat"><div class="signpost-stat-label">Approve</div><div class="signpost-stat-value">—</div></div>` +
-          `<div class="signpost-stat"><div class="signpost-stat-label">P&L</div><div class="signpost-stat-value">—</div></div>` +
-          `</div>`;
-        const label = new CSS2DObject(labelDiv);
-        label.position.set(0, 2.5, 0);
-        model.add(label);
-        this.buildingLabels.set(bld.id, label);
-      } catch (e) { console.warn('Failed to load building:', e); }
+      model.position.set(bld.x, 0, bld.z);
+      model.rotation.y = bld.rotation;
+      model.traverse(c => {
+        if (c.isMesh) { c.castShadow = true; c.receiveShadow = true; }
+      });
+      model.userData.lenderIndex = bld.id;
+      this.buildingMeshes.set(bld.id, model);
+      this.scene.add(model);
+
+      // Signpost label
+      const name = lenderNames[bld.id] || `Lender ${bld.id}`;
+      const labelDiv = document.createElement('div');
+      labelDiv.className = 'bank-signpost';
+      labelDiv.innerHTML =
+        `<div class="signpost-name">${name}</div>` +
+        `<div class="signpost-stats">` +
+        `<div class="signpost-stat"><div class="signpost-stat-label">Approve</div><div class="signpost-stat-value">—</div></div>` +
+        `<div class="signpost-stat"><div class="signpost-stat-label">P&L</div><div class="signpost-stat-value">—</div></div>` +
+        `</div>`;
+      const label = new CSS2DObject(labelDiv);
+      label.position.set(0, 2.5, 0);
+      model.add(label);
+      this.buildingLabels.set(bld.id, label);
     }
 
     // Decorative town buildings (residential zone)
     if (layout.townBuildings) {
       for (const bld of layout.townBuildings) {
-        try {
-          const { scene: model } = await assetLoader.loadModel(activePack, bld.modelFile);
-          model.position.set(bld.x, 0, bld.z);
-          model.rotation.y = bld.rotation;
-          model.traverse(c => {
-            if (c.isMesh) { c.castShadow = true; c.receiveShadow = true; }
-          });
-          this.scene.add(model);
-        } catch (e) { /* skip missing town buildings */ }
+        let model = null;
+        if (!packAssetsUnavailable) {
+          try {
+            const loaded = await assetLoader.loadModel(activePack, bld.modelFile);
+            model = loaded.scene;
+          } catch (e) {
+            packAssetsUnavailable = true;
+            fallbackUsed = true;
+          }
+        }
+        if (!model) {
+          model = this._createFallbackTownBuilding();
+        }
+        model.position.set(bld.x, 0, bld.z);
+        model.rotation.y = bld.rotation;
+        model.traverse(c => {
+          if (c.isMesh) { c.castShadow = true; c.receiveShadow = true; }
+        });
+        this.scene.add(model);
       }
     }
 
     // Vehicles (parked cars in residential zone)
     if (layout.vehicles) {
       for (const veh of layout.vehicles) {
-        try {
-          const { scene: model } = await assetLoader.loadModel(activePack, veh.modelFile);
-          model.position.set(veh.x, 0, veh.z);
-          model.rotation.y = veh.rotation;
-          model.traverse(c => { if (c.isMesh) { c.castShadow = true; } });
-          this.scene.add(model);
-        } catch (e) { /* skip missing vehicle models */ }
+        let model = null;
+        if (!packAssetsUnavailable) {
+          try {
+            const loaded = await assetLoader.loadModel(activePack, veh.modelFile);
+            model = loaded.scene;
+          } catch (e) {
+            packAssetsUnavailable = true;
+            fallbackUsed = true;
+          }
+        }
+        if (!model) {
+          model = this._createFallbackVehicle();
+        }
+        model.position.set(veh.x, 0, veh.z);
+        model.rotation.y = veh.rotation;
+        model.traverse(c => { if (c.isMesh) { c.castShadow = true; } });
+        this.scene.add(model);
       }
     }
 
     // Props
     for (const prop of layout.props) {
-      const propFile = packConfig.props?.[prop.propType];
-      if (!propFile) continue;
-      try {
-        const { scene: model } = await assetLoader.loadModel(activePack, propFile);
-        model.position.set(prop.x, 0, prop.z);
-        model.rotation.y = prop.rotation;
-        model.traverse(c => { if (c.isMesh) { c.castShadow = true; } });
-        this.scene.add(model);
-      } catch (e) { /* skip missing props */ }
+      const propFile = packConfig?.props?.[prop.propType];
+      let model = null;
+      if (propFile && !packAssetsUnavailable) {
+        try {
+          const loaded = await assetLoader.loadModel(activePack, propFile);
+          model = loaded.scene;
+        } catch (e) {
+          packAssetsUnavailable = true;
+          fallbackUsed = true;
+        }
+      }
+      if (!model) {
+        model = this._createFallbackProp(prop.propType);
+      }
+      model.position.set(prop.x, 0, prop.z);
+      model.rotation.y = prop.rotation;
+      model.traverse(c => { if (c.isMesh) { c.castShadow = true; } });
+      this.scene.add(model);
     }
+
+    if (packAssetsUnavailable) {
+      this.characterAssetsUnavailable = true;
+    }
+    return { fallbackUsed };
   }
 
   async addBorrower(borrowerId, assetLoader, borrowerInfo, spawnIndex, spawnTotal, spawnPos) {
@@ -227,48 +288,59 @@ export class TownScene {
     const charFile = chars[Math.abs(hashStr(borrowerId)) % chars.length];
     const charPackName = assetLoader.getCharacterPackName();
 
-    try {
-      const { scene: model, animations } = await assetLoader.loadModel(charPackName, charFile);
-      model.scale.setScalar(0.35);
-
-      // Spawn at explicit position, or fall back to residential road spread
-      if (spawnPos) {
-        const spread = (spawnIndex - (spawnTotal - 1) / 2) * 0.6;
-        model.position.set(spawnPos.x + spread, 0, spawnPos.z);
-      } else {
-        const totalLength = this.layout?.totalLength || 10;
-        const spacing = totalLength / (spawnTotal + 1);
-        model.position.set(0, 0, spacing * (spawnIndex + 1));
+    let model = null;
+    let animations = null;
+    if (!this.characterAssetsUnavailable) {
+      try {
+        const loaded = await assetLoader.loadModel(charPackName, charFile);
+        model = loaded.scene;
+        animations = loaded.animations;
+        model.scale.setScalar(0.35);
+      } catch (e) {
+        this.characterAssetsUnavailable = true;
+        console.warn('Character assets unavailable, using fallback borrowers:', e);
       }
-
-      model.userData.borrowerId = borrowerId;
-      this.borrowerMeshes.set(borrowerId, model);
-      this.scene.add(model);
-
-      // Borrower label — placed above character head
-      if (borrowerInfo) {
-        const labelDiv = document.createElement('div');
-        labelDiv.className = 'borrower-label';
-        const name = borrowerInfo.name || borrowerId;
-        const amount = borrowerInfo.amount ? `$${Math.round(borrowerInfo.amount).toLocaleString('en-US')}` : '';
-        labelDiv.textContent = amount ? `${name}\n${amount}` : name;
-        const label = new CSS2DObject(labelDiv);
-        label.position.set(0, 3.5, 0);
-        model.add(label);
-        this.borrowerLabels.set(borrowerId, label);
-      }
-
-      // Try to play idle animation
-      if (animations && animations.length > 0) {
-        const mixer = new THREE.AnimationMixer(model);
-        mixer.clipAction(animations[0]).play();
-        this.mixers.push(mixer);
-      }
-
-      return model;
-    } catch (e) {
-      console.warn('Failed to load borrower:', e);
     }
+
+    if (!model) {
+      model = this._createFallbackBorrower();
+    }
+
+    // Spawn at explicit position, or fall back to residential road spread
+    if (spawnPos) {
+      const spread = (spawnIndex - (spawnTotal - 1) / 2) * 0.6;
+      model.position.set(spawnPos.x + spread, 0, spawnPos.z);
+    } else {
+      const totalLength = this.layout?.totalLength || 10;
+      const spacing = totalLength / (spawnTotal + 1);
+      model.position.set(0, 0, spacing * (spawnIndex + 1));
+    }
+
+    model.userData.borrowerId = borrowerId;
+    this.borrowerMeshes.set(borrowerId, model);
+    this.scene.add(model);
+
+    // Borrower label — placed above character head
+    if (borrowerInfo) {
+      const labelDiv = document.createElement('div');
+      labelDiv.className = 'borrower-label';
+      const name = borrowerInfo.name || borrowerId;
+      const amount = borrowerInfo.amount ? `$${Math.round(borrowerInfo.amount).toLocaleString('en-US')}` : '';
+      labelDiv.textContent = amount ? `${name}\n${amount}` : name;
+      const label = new CSS2DObject(labelDiv);
+      label.position.set(0, 3.5, 0);
+      model.add(label);
+      this.borrowerLabels.set(borrowerId, label);
+    }
+
+    // Try to play idle animation
+    if (animations && animations.length > 0) {
+      const mixer = new THREE.AnimationMixer(model);
+      mixer.clipAction(animations[0]).play();
+      this.mixers.push(mixer);
+    }
+
+    return model;
   }
 
   animateBorrowerWalk(borrowerId, target, duration = 1.0) {
@@ -425,6 +497,159 @@ export class TownScene {
       values[1].textContent = pnl !== null ? pnlStr : '—';
       values[1].className = 'signpost-stat-value ' + (pnl >= 0 ? 'positive' : 'negative');
     }
+  }
+
+  _createFallbackRoad(road) {
+    const group = new THREE.Group();
+    const isJunction = /junction|cross|tsplit/.test(road.modelFile || '');
+    const width = isJunction ? 2.1 : 1.1;
+    const length = isJunction ? 2.1 : 2.0;
+    const asphalt = new THREE.Mesh(
+      new THREE.BoxGeometry(width, 0.04, length),
+      new THREE.MeshStandardMaterial({ color: 0x2a3444, roughness: 0.95, metalness: 0.05 })
+    );
+    asphalt.position.y = 0.02;
+    asphalt.receiveShadow = true;
+    group.add(asphalt);
+
+    if (!isJunction) {
+      const line = new THREE.Mesh(
+        new THREE.BoxGeometry(0.08, 0.01, length * 0.7),
+        new THREE.MeshStandardMaterial({ color: 0xe8a838, roughness: 0.8 })
+      );
+      line.position.y = 0.05;
+      group.add(line);
+    }
+    return group;
+  }
+
+  _createFallbackBuilding(lenderIndex) {
+    const group = new THREE.Group();
+    const height = 1.7 + (lenderIndex % 4) * 0.35;
+    const color = new THREE.Color().setHSL((lenderIndex * 0.17) % 1, 0.35, 0.42);
+
+    const tower = new THREE.Mesh(
+      new THREE.BoxGeometry(1.3, height, 1.3),
+      new THREE.MeshStandardMaterial({ color, roughness: 0.8, metalness: 0.1 })
+    );
+    tower.position.y = height / 2;
+    tower.castShadow = true;
+    tower.receiveShadow = true;
+    group.add(tower);
+
+    const roof = new THREE.Mesh(
+      new THREE.ConeGeometry(0.95, 0.6, 4),
+      new THREE.MeshStandardMaterial({ color: 0xd9c38a, roughness: 0.85 })
+    );
+    roof.position.y = height + 0.3;
+    roof.rotation.y = Math.PI / 4;
+    roof.castShadow = true;
+    group.add(roof);
+
+    const door = new THREE.Mesh(
+      new THREE.BoxGeometry(0.28, 0.6, 0.04),
+      new THREE.MeshStandardMaterial({ color: 0x111a2a, roughness: 0.9 })
+    );
+    door.position.set(0, 0.3, 0.67);
+    group.add(door);
+    return group;
+  }
+
+  _createFallbackTownBuilding() {
+    const group = new THREE.Group();
+    const width = 1.1 + Math.random() * 0.4;
+    const depth = 1.1 + Math.random() * 0.4;
+    const height = 1.1 + Math.random() * 1.0;
+    const body = new THREE.Mesh(
+      new THREE.BoxGeometry(width, height, depth),
+      new THREE.MeshStandardMaterial({ color: 0x55627a, roughness: 0.9, metalness: 0.05 })
+    );
+    body.position.y = height / 2;
+    body.castShadow = true;
+    body.receiveShadow = true;
+    group.add(body);
+    return group;
+  }
+
+  _createFallbackVehicle() {
+    const group = new THREE.Group();
+    const body = new THREE.Mesh(
+      new THREE.BoxGeometry(0.9, 0.25, 1.5),
+      new THREE.MeshStandardMaterial({ color: 0x5c7ea3, roughness: 0.75, metalness: 0.2 })
+    );
+    body.position.y = 0.2;
+    body.castShadow = true;
+    group.add(body);
+
+    const cab = new THREE.Mesh(
+      new THREE.BoxGeometry(0.75, 0.25, 0.7),
+      new THREE.MeshStandardMaterial({ color: 0xa7b7cc, roughness: 0.7, metalness: 0.2 })
+    );
+    cab.position.set(0, 0.38, -0.15);
+    cab.castShadow = true;
+    group.add(cab);
+    return group;
+  }
+
+  _createFallbackProp(propType) {
+    const group = new THREE.Group();
+    if (propType === 'streetlight') {
+      const pole = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.04, 0.05, 1.2, 8),
+        new THREE.MeshStandardMaterial({ color: 0x9aa0b0, roughness: 0.6, metalness: 0.3 })
+      );
+      pole.position.y = 0.6;
+      pole.castShadow = true;
+      group.add(pole);
+
+      const lamp = new THREE.Mesh(
+        new THREE.SphereGeometry(0.08, 10, 8),
+        new THREE.MeshStandardMaterial({ color: 0xe8a838, emissive: 0x2a1a00, emissiveIntensity: 0.8 })
+      );
+      lamp.position.y = 1.2;
+      group.add(lamp);
+      return group;
+    }
+
+    if (propType === 'bench') {
+      const seat = new THREE.Mesh(
+        new THREE.BoxGeometry(0.5, 0.08, 0.18),
+        new THREE.MeshStandardMaterial({ color: 0x7a5a3c, roughness: 0.9 })
+      );
+      seat.position.y = 0.24;
+      seat.castShadow = true;
+      group.add(seat);
+      return group;
+    }
+
+    const bush = new THREE.Mesh(
+      new THREE.SphereGeometry(0.18, 10, 8),
+      new THREE.MeshStandardMaterial({ color: 0x3f6b3d, roughness: 0.95 })
+    );
+    bush.position.y = 0.18;
+    bush.castShadow = true;
+    group.add(bush);
+    return group;
+  }
+
+  _createFallbackBorrower() {
+    const group = new THREE.Group();
+    const body = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.16, 0.2, 0.75, 10),
+      new THREE.MeshStandardMaterial({ color: 0x4a90d9, roughness: 0.85, metalness: 0.05 })
+    );
+    body.position.y = 0.38;
+    body.castShadow = true;
+    group.add(body);
+
+    const head = new THREE.Mesh(
+      new THREE.SphereGeometry(0.16, 12, 10),
+      new THREE.MeshStandardMaterial({ color: 0xe8c8a6, roughness: 0.9 })
+    );
+    head.position.y = 0.9;
+    head.castShadow = true;
+    group.add(head);
+    return group;
   }
 
   dispose() {

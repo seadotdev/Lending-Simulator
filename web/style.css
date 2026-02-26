@@ -1369,6 +1369,27 @@ body {
 }
 
 /* ---- Responsive ---- */
+@media (max-width: 1400px) {
+  .top-bar {
+    gap: 10px;
+    padding: 0 10px;
+  }
+
+  .controls-group .week-label,
+  .controls-group .progress-track,
+  .controls-group .phase-label {
+    display: none;
+  }
+
+  .season-select { max-width: 220px; }
+}
+
+@media (max-width: 1180px) {
+  .pack-label { display: none; }
+  .pack-select { max-width: 120px; }
+  .tab-btn { padding: 6px 10px; }
+}
+
 @media (max-width: 900px) {
   .game-layout {
     grid-template-columns: 1fr;
