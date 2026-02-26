@@ -1,0 +1,213 @@
+{
+  "match_id": "2026-02-26T15-25-46_f1d5b7",
+  "timestamp_utc": "2026-02-26T15:25:46Z",
+  "mock": false,
+  "mix": "season-realistic-week-02",
+  "n_borrowers": 5,
+  "models": [
+    {
+      "model_id": "nvidia/llama-3.3-nemotron-super-49b-v1.5",
+      "display_name": "Heritage Trust Bank [llama-3.3-nemotron-super-49b-v1.5]"
+    },
+    {
+      "model_id": "nvidia/nemotron-nano-9b-v2",
+      "display_name": "Meridian Partners [nemotron-nano-9b-v2]"
+    },
+    {
+      "model_id": "google/gemini-2.5-flash",
+      "display_name": "Pinnacle Finance [gemini-2.5-flash]"
+    }
+  ],
+  "results": [
+    {
+      "model_id": "nvidia/llama-3.3-nemotron-super-49b-v1.5",
+      "lender_id": "LND-002",
+      "lender_persona": "Heritage Trust Bank [llama-3.3-nemotron-super-49b-v1.5]",
+      "raroc_score": 6.925048493283414,
+      "deals_won": 3,
+      "deals_rejected": 2,
+      "deals_errored": 0,
+      "frauds_funded": 0,
+      "defaults": 0,
+      "deployed": 925000.0,
+      "net_pnl": 64056.698562871585,
+      "confusion_matrix": {
+        "good": {
+          "approved": 4,
+          "rejected": 0
+        },
+        "bad": {
+          "approved": 1,
+          "rejected": 0
+        },
+        "fraud": {
+          "approved": 0,
+          "rejected": 0
+        }
+      },
+      "per_borrower": {
+        "BRW-005": {
+          "decision_state": "won",
+          "ground_truth": "good",
+          "utility": 27700.19397313365,
+          "rate_offered": 8.0
+        },
+        "BRW-034": {
+          "decision_state": "won",
+          "ground_truth": "good",
+          "utility": 15581.359109887673,
+          "rate_offered": 8.0
+        },
+        "BRW-017": {
+          "decision_state": "won",
+          "ground_truth": "good",
+          "utility": 20775.14547985026,
+          "rate_offered": 8.0
+        },
+        "BRW-015": {
+          "decision_state": "lost",
+          "ground_truth": "good",
+          "utility": 35000.0,
+          "rate_offered": 8.0
+        },
+        "BRW-023": {
+          "decision_state": "lost",
+          "ground_truth": "bad",
+          "utility": 45000.0,
+          "rate_offered": 8.0
+        }
+      },
+      "tokens_in": 30640,
+      "tokens_out": 4788,
+      "cost_usd": 0.1637
+    },
+    {
+      "model_id": "nvidia/nemotron-nano-9b-v2",
+      "lender_id": "LND-003",
+      "lender_persona": "Meridian Partners [nemotron-nano-9b-v2]",
+      "raroc_score": 0.0,
+      "deals_won": 0,
+      "deals_rejected": 5,
+      "deals_errored": 0,
+      "frauds_funded": 0,
+      "defaults": 0,
+      "deployed": 0,
+      "net_pnl": 0.0,
+      "confusion_matrix": {
+        "good": {
+          "approved": 4,
+          "rejected": 0
+        },
+        "bad": {
+          "approved": 1,
+          "rejected": 0
+        },
+        "fraud": {
+          "approved": 0,
+          "rejected": 0
+        }
+      },
+      "per_borrower": {
+        "BRW-005": {
+          "decision_state": "lost",
+          "ground_truth": "good",
+          "utility": 40000.0,
+          "rate_offered": 10.5
+        },
+        "BRW-034": {
+          "decision_state": "lost",
+          "ground_truth": "good",
+          "utility": 22500.0,
+          "rate_offered": 10.5
+        },
+        "BRW-017": {
+          "decision_state": "lost",
+          "ground_truth": "good",
+          "utility": 30000.0,
+          "rate_offered": 10.5
+        },
+        "BRW-015": {
+          "decision_state": "lost",
+          "ground_truth": "good",
+          "utility": 35000.0,
+          "rate_offered": 11.0
+        },
+        "BRW-023": {
+          "decision_state": "lost",
+          "ground_truth": "bad",
+          "utility": 45000.0,
+          "rate_offered": 10.5
+        }
+      },
+      "tokens_in": 33448,
+      "tokens_out": 4254,
+      "cost_usd": 0.1642
+    },
+    {
+      "model_id": "google/gemini-2.5-flash",
+      "lender_id": "LND-004",
+      "lender_persona": "Pinnacle Finance [gemini-2.5-flash]",
+      "raroc_score": 8.657511389924725,
+      "deals_won": 1,
+      "deals_rejected": 4,
+      "deals_errored": 0,
+      "frauds_funded": 0,
+      "defaults": 0,
+      "deployed": 350000.0,
+      "net_pnl": 30301.289864736533,
+      "confusion_matrix": {
+        "good": {
+          "approved": 4,
+          "rejected": 0
+        },
+        "bad": {
+          "approved": 1,
+          "rejected": 0
+        },
+        "fraud": {
+          "approved": 0,
+          "rejected": 0
+        }
+      },
+      "per_borrower": {
+        "BRW-005": {
+          "decision_state": "lost",
+          "ground_truth": "good",
+          "utility": 40000.0,
+          "rate_offered": 10.5
+        },
+        "BRW-034": {
+          "decision_state": "lost",
+          "ground_truth": "good",
+          "utility": 22500.0,
+          "rate_offered": 10.5
+        },
+        "BRW-017": {
+          "decision_state": "lost",
+          "ground_truth": "good",
+          "utility": 30000.0,
+          "rate_offered": 10.0
+        },
+        "BRW-015": {
+          "decision_state": "won",
+          "ground_truth": "good",
+          "utility": 30301.289864736533,
+          "rate_offered": 10.0
+        },
+        "BRW-023": {
+          "decision_state": "lost",
+          "ground_truth": "bad",
+          "utility": 45000.0,
+          "rate_offered": 11.5
+        }
+      },
+      "tokens_in": 33587,
+      "tokens_out": 396,
+      "cost_usd": 0.1067
+    }
+  ],
+  "validation": {
+    "valid": true,
+    "errors": []
+  }
+}
