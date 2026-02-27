@@ -28,6 +28,9 @@ const PROP_CYCLE = ['streetlight', 'bench', 'bush', 'firehydrant', 'bush', 'benc
 const BORROWER_ROWS = 4;  // industrial suburb rows
 const BRIDGE_TILES = 3;
 
+const HEX_SIZE = 0.52;
+const HEX_CLUSTER_RADIUS_BASE = 4.6;
+
 export function generateLayout(lenderCount, buildingFiles) {
   const BUILDING_FILES = buildingFiles || DEFAULT_BUILDING_FILES;
   const bankRows = Math.ceil(lenderCount / 2);
@@ -201,6 +204,7 @@ export function generateLayout(lenderCount, buildingFiles) {
   const residentialCenter = { x: suburbBaseX - 1, z: suburbBaseZ + TILE_SIZE };
 
   return {
+    type: 'town',
     buildings,
     townBuildings,
     borrowerDistrictBuildings,
@@ -218,5 +222,180 @@ export function generateLayout(lenderCount, buildingFiles) {
     bridgeMidpoint,
     financialCenter,
     residentialCenter,
+  };
+}
+
+function _axialToWorld(q, r, size = HEX_SIZE) {
+  return {
+    x: size * 1.5 * q,
+    z: size * Math.sqrt(3) * (r + q / 2),
+  };
+}
+
+function _hexSpiral(count) {
+  if (count <= 0) return [];
+  const out = [];
+  const dirs = [
+    [1, 0], [0, 1], [-1, 1],
+    [-1, 0], [0, -1], [1, -1],
+  ];
+  let radius = 1;
+  while (out.length < count) {
+    let q = radius;
+    let r = 0;
+    for (let side = 0; side < 6; side++) {
+      const [dq, dr] = dirs[side];
+      for (let step = 0; step < radius; step++) {
+        out.push({ q, r });
+        if (out.length >= count) return out;
+        q += dq;
+        r += dr;
+      }
+    }
+    radius += 1;
+  }
+  return out;
+}
+
+function _portfolioWeights(lenders = [], shareMode = 'capital') {
+  if (shareMode === 'equal') {
+    return lenders.map(() => 1);
+  }
+  if (shareMode === 'capital-soft') {
+    return lenders.map(l => Math.max(1, Math.sqrt(Math.max(1, Number(l?.total_capital) || 1))));
+  }
+  if (shareMode === 'max-loan') {
+    return lenders.map(l => Math.max(1, Number(l?.max_single_loan) || 1));
+  }
+  // Default: capital-proportional.
+  return lenders.map(l => Math.max(1, Number(l?.total_capital) || 1));
+}
+
+function _hexRingForSlots(slotCount) {
+  if (slotCount <= 0) return 0;
+  // Slots are generated ring-by-ring around center, excluding center cell:
+  // total slots up to ring r = 3 * r * (r + 1)
+  return Math.ceil((-1 + Math.sqrt(1 + (4 * slotCount) / 3)) / 2);
+}
+
+function _portfolioShareCounts(lenders = [], totalPotentialBorrowers = 0, shareMode = 'capital') {
+  const lenderCount = lenders.length;
+  if (!lenderCount) return [];
+
+  const target = Math.max(lenderCount, Math.round(totalPotentialBorrowers || 0));
+  const weights = _portfolioWeights(lenders, shareMode);
+  const totalWeight = weights.reduce((acc, v) => acc + v, 0) || lenderCount;
+  const exact = weights.map(w => (w / totalWeight) * target);
+  const counts = exact.map(v => Math.floor(v));
+  const remainders = exact.map((v, i) => ({ i, frac: v - counts[i] }))
+    .sort((a, b) => b.frac - a.frac);
+
+  let assigned = counts.reduce((acc, v) => acc + v, 0);
+
+  // Every lender should have at least one portfolio hex.
+  for (let i = 0; i < lenderCount; i++) {
+    if (counts[i] < 1) {
+      counts[i] = 1;
+      assigned += 1;
+    }
+  }
+
+  let cursor = 0;
+  while (assigned < target) {
+    const idx = remainders[cursor % remainders.length].i;
+    counts[idx] += 1;
+    assigned += 1;
+    cursor += 1;
+  }
+
+  // Trim over-allocation while preserving at least one slot per lender.
+  const reverse = [...remainders].reverse();
+  cursor = 0;
+  while (assigned > target) {
+    const idx = reverse[cursor % reverse.length].i;
+    if (counts[idx] > 1) {
+      counts[idx] -= 1;
+      assigned -= 1;
+    }
+    cursor += 1;
+    if (cursor > reverse.length * 4) break;
+  }
+
+  return counts;
+}
+
+export function generatePortfolioLayout(lenders = [], seasonWeeks = [], options = {}) {
+  const shareMode = options.shareMode || 'capital';
+  const lenderCount = lenders.length;
+  const totalPotentialBorrowers = (seasonWeeks || [])
+    .filter(w => !w?.final_resolution)
+    .reduce((acc, week) => acc + ((week?.borrowers || []).length), 0);
+  const shareCounts = _portfolioShareCounts(lenders, totalPotentialBorrowers, shareMode);
+
+  const buildings = [];
+  const portfolioSlots = [];
+  const portfolioSlotsByLender = {};
+  const maxRing = shareCounts.reduce((acc, c) => Math.max(acc, _hexRingForSlots(c)), 1);
+  const clusterFootprint = maxRing * HEX_SIZE * 1.95 + 0.78; // lender cluster footprint
+  const minCenterDistance = clusterFootprint * 2 + 0.35;
+  const radiusFromArc = lenderCount > 1
+    ? (minCenterDistance / (2 * Math.sin(Math.PI / lenderCount)))
+    : 0;
+  const clusterRadius = Math.max(HEX_CLUSTER_RADIUS_BASE, lenderCount * 1.1, radiusFromArc);
+
+  for (let lenderIndex = 0; lenderIndex < lenderCount; lenderIndex++) {
+    const angle = (Math.PI * 2 * lenderIndex) / Math.max(1, lenderCount) - Math.PI / 2;
+    const centerX = Math.cos(angle) * clusterRadius;
+    const centerZ = Math.sin(angle) * clusterRadius;
+    const slotCount = Math.max(1, shareCounts[lenderIndex] || 1);
+    const axialSlots = _hexSpiral(slotCount);
+
+    buildings.push({
+      id: lenderIndex,
+      x: centerX,
+      z: centerZ,
+      rotation: 0,
+      modelFile: '',
+    });
+
+    const lenderSlots = [];
+    for (let slotIndex = 0; slotIndex < axialSlots.length; slotIndex++) {
+      const axial = axialSlots[slotIndex];
+      const local = _axialToWorld(axial.q, axial.r);
+      const slot = {
+        lenderIndex,
+        slotIndex,
+        x: centerX + local.x,
+        z: centerZ + local.z,
+      };
+      portfolioSlots.push(slot);
+      lenderSlots.push(slot);
+    }
+    portfolioSlotsByLender[lenderIndex] = lenderSlots;
+  }
+
+  return {
+    type: 'portfolio-hex',
+    shareMode,
+    buildings,
+    roads: [],
+    props: [],
+    vehicles: [],
+    townBuildings: [],
+    borrowerDistrictBuildings: [],
+    bridgeRoads: [],
+    borrowerDistrictRoads: [],
+    portfolioSlots,
+    portfolioSlotsByLender,
+    hexRadius: HEX_SIZE,
+    tileSize: 2,
+    totalLength: 0,
+    residentialLength: 0,
+    buildingOffset: 0,
+    spawnPoint: { x: 0, z: -13.5 },
+    suburbEntry: { x: 0, z: -8.5 },
+    bridgeMidpoint: { x: 0, z: -4.0 },
+    financialCenter: { x: 0, z: 0 },
+    residentialCenter: { x: 0, z: 0 },
   };
 }

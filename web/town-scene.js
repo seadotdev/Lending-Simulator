@@ -3,7 +3,8 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
 
 export class TownScene {
-  constructor() {
+  constructor(options = {}) {
+    this.visualizationMode = options.mode || 'town';
     this.renderer = null;
     this.labelRenderer = null;
     this.scene = null;
@@ -15,6 +16,7 @@ export class TownScene {
     this.buildingLabels = new Map();  // lenderIndex → CSS2DObject
     this.buildingStatusBadges = new Map(); // lenderIndex → CSS2DObject
     this.buildingSmokeBadges = new Map();  // lenderIndex → CSS2DObject
+    this.portfolioHexMeshes = new Map();   // lenderIndex → Mesh[]
     this.borrowerMeshes = new Map();  // borrowerId → Group
     this.borrowerLabels = new Map();  // borrowerId → CSS2DObject
     this.borrowerStates = new Map();  // borrowerId → state string
@@ -63,8 +65,9 @@ export class TownScene {
 
     // Scene
     this.scene = new THREE.Scene();
-    this.scene.background = new THREE.Color(0x0f1520);
-    this.scene.fog = new THREE.Fog(0x0f1520, 30, 70);
+    const bgColor = this.visualizationMode === 'portfolio-hex' ? 0x101621 : 0x0f1520;
+    this.scene.background = new THREE.Color(bgColor);
+    this.scene.fog = new THREE.Fog(bgColor, 30, 70);
 
     // Camera (isometric-ish)
     this.camera = new THREE.PerspectiveCamera(45, w / h, 0.1, 150);
@@ -79,13 +82,13 @@ export class TownScene {
     this.controls.maxDistance = 40;
 
     // Lights
-    const ambient = new THREE.AmbientLight(0x404060, 0.6);
+    const ambient = new THREE.AmbientLight(0x404060, this.visualizationMode === 'portfolio-hex' ? 0.72 : 0.6);
     this.scene.add(ambient);
 
-    const hemi = new THREE.HemisphereLight(0x88aacc, 0x443322, 0.5);
+    const hemi = new THREE.HemisphereLight(0x88aacc, 0x443322, this.visualizationMode === 'portfolio-hex' ? 0.55 : 0.5);
     this.scene.add(hemi);
 
-    const dir = new THREE.DirectionalLight(0xffeedd, 1.2);
+    const dir = new THREE.DirectionalLight(0xffeedd, this.visualizationMode === 'portfolio-hex' ? 1.0 : 1.2);
     dir.position.set(6, 12, 8);
     dir.castShadow = true;
     dir.shadow.mapSize.set(2048, 2048);
@@ -103,16 +106,38 @@ export class TownScene {
     gridCanvas.width = 512;
     gridCanvas.height = 512;
     const ctx = gridCanvas.getContext('2d');
-    ctx.fillStyle = '#1a3320';
+    ctx.fillStyle = this.visualizationMode === 'portfolio-hex' ? '#141e2d' : '#1a3320';
     ctx.fillRect(0, 0, 512, 512);
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.06)';
-    ctx.lineWidth = 1;
-    const gridStep = 32;
-    for (let x = 0; x <= 512; x += gridStep) {
-      ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, 512); ctx.stroke();
-    }
-    for (let y = 0; y <= 512; y += gridStep) {
-      ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(512, y); ctx.stroke();
+    if (this.visualizationMode === 'portfolio-hex') {
+      const hexR = 16;
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.055)';
+      ctx.lineWidth = 1;
+      for (let row = -4; row < 28; row++) {
+        for (let col = -4; col < 28; col++) {
+          const cx = col * hexR * 1.5 + ((row % 2) ? hexR * 0.75 : 0);
+          const cy = row * hexR * Math.sqrt(3) / 2;
+          ctx.beginPath();
+          for (let i = 0; i < 6; i++) {
+            const a = Math.PI / 6 + i * Math.PI / 3;
+            const x = cx + Math.cos(a) * hexR;
+            const y = cy + Math.sin(a) * hexR;
+            if (i === 0) ctx.moveTo(x, y);
+            else ctx.lineTo(x, y);
+          }
+          ctx.closePath();
+          ctx.stroke();
+        }
+      }
+    } else {
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.06)';
+      ctx.lineWidth = 1;
+      const gridStep = 32;
+      for (let x = 0; x <= 512; x += gridStep) {
+        ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, 512); ctx.stroke();
+      }
+      for (let y = 0; y <= 512; y += gridStep) {
+        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(512, y); ctx.stroke();
+      }
     }
     const gridTexture = new THREE.CanvasTexture(gridCanvas);
     gridTexture.wrapS = THREE.RepeatWrapping;
@@ -142,14 +167,20 @@ export class TownScene {
     this.buildingLabels.clear();
     this.buildingStatusBadges.clear();
     this.buildingSmokeBadges.clear();
+    this.portfolioHexMeshes.clear();
     this.borrowerMeshes.clear();
     this.borrowerLabels.clear();
     this.borrowerStates.clear();
-    const activePack = assetLoader.manifest.activePack;
-    const packConfig = assetLoader.getActivePack();
+    const activePack = assetLoader?.manifest?.activePack || null;
+    const packConfig = assetLoader?.getActivePack?.() || null;
     this.characterAssetsUnavailable = false;
-    let packAssetsUnavailable = false;
+    let packAssetsUnavailable = !activePack;
     let fallbackUsed = false;
+
+    if (layout?.type === 'portfolio-hex') {
+      this._buildPortfolioHex(layout, lenderNames || []);
+      return { fallbackUsed: false };
+    }
 
     // Center camera to see both zones (financial along +X, residential along -Z)
     const fc = layout.financialCenter || { x: 4, z: 0 };
@@ -216,6 +247,10 @@ export class TownScene {
         `<div class="signpost-stats">` +
         `<div class="signpost-stat"><div class="signpost-stat-label">Approve</div><div class="signpost-stat-value">—</div></div>` +
         `<div class="signpost-stat"><div class="signpost-stat-label">P&L</div><div class="signpost-stat-value">—</div></div>` +
+        `</div>` +
+        `<div class="signpost-metrics">` +
+        `<div class="signpost-metric"><span class="signpost-metric-label">Loan</span><span class="signpost-metric-value signpost-loan-value">—</span></div>` +
+        `<div class="signpost-metric"><span class="signpost-metric-label">AUM</span><span class="signpost-metric-value signpost-aum-value">—</span></div>` +
         `</div>` +
         `<div class="signpost-borrowers"></div>`;
       const label = new CSS2DObject(labelDiv);
@@ -340,20 +375,83 @@ export class TownScene {
     return { fallbackUsed };
   }
 
+  _buildPortfolioHex(layout, lenderNames) {
+    const centers = layout?.buildings || [];
+    const maxRadius = centers.reduce((acc, b) => Math.max(acc, Math.hypot(b.x, b.z)), 8);
+    this.controls.target.set(0, 0, 0);
+    this.camera.position.set(0, Math.max(13, maxRadius * 1.75), Math.max(11, maxRadius * 1.55));
+
+    for (const bld of centers) {
+      const lenderIndex = bld.id;
+      const core = this._createPortfolioCore(lenderIndex);
+      core.position.set(bld.x, 0, bld.z);
+      core.userData.lenderIndex = lenderIndex;
+      this.scene.add(core);
+      this.buildingMeshes.set(lenderIndex, core);
+      this.portfolioHexMeshes.set(lenderIndex, []);
+
+      const name = lenderNames[lenderIndex] || `Lender ${lenderIndex}`;
+      const slotCount = (layout?.portfolioSlotsByLender?.[lenderIndex] || []).length;
+      const labelDiv = document.createElement('div');
+      labelDiv.className = 'bank-signpost portfolio-signpost';
+      labelDiv.innerHTML =
+        `<div class="signpost-name">${name}</div>` +
+        `<div class="signpost-stats">` +
+        `<div class="signpost-stat"><div class="signpost-stat-label">Approve</div><div class="signpost-stat-value">—</div></div>` +
+        `<div class="signpost-stat"><div class="signpost-stat-label">P&L</div><div class="signpost-stat-value">—</div></div>` +
+        `</div>` +
+        `<div class="signpost-metrics">` +
+        `<div class="signpost-metric"><span class="signpost-metric-label">Loan</span><span class="signpost-metric-value signpost-loan-value">—</span></div>` +
+        `<div class="signpost-metric"><span class="signpost-metric-label">AUM</span><span class="signpost-metric-value signpost-aum-value">—</span></div>` +
+        `</div>` +
+        `<div class="signpost-borrowers"></div>` +
+        `<div class="portfolio-capacity">${slotCount} slots</div>`;
+      const label = new CSS2DObject(labelDiv);
+      label.position.set(0, 2.2, 0);
+      core.add(label);
+      this.buildingLabels.set(lenderIndex, label);
+
+      const statusDiv = document.createElement('div');
+      statusDiv.className = 'lender-status-badge';
+      const status = new CSS2DObject(statusDiv);
+      status.position.set(0, 3.45, 0);
+      core.add(status);
+      this.buildingStatusBadges.set(lenderIndex, status);
+
+      const smokeDiv = document.createElement('div');
+      smokeDiv.className = 'lender-smoke';
+      smokeDiv.textContent = '';
+      const smoke = new CSS2DObject(smokeDiv);
+      smoke.position.set(0.28, 2.95, 0.12);
+      core.add(smoke);
+      this.buildingSmokeBadges.set(lenderIndex, smoke);
+    }
+
+    const hexRadius = layout?.hexRadius || 0.52;
+    for (const slot of layout?.portfolioSlots || []) {
+      const hex = this._createPortfolioHexCell(slot.lenderIndex, hexRadius);
+      hex.position.set(slot.x, 0.08, slot.z);
+      hex.userData.lenderIndex = slot.lenderIndex;
+      hex.userData.slotIndex = slot.slotIndex;
+      this.scene.add(hex);
+      const lenderSlots = this.portfolioHexMeshes.get(slot.lenderIndex) || [];
+      lenderSlots.push(hex);
+      this.portfolioHexMeshes.set(slot.lenderIndex, lenderSlots);
+    }
+  }
+
   async addBorrower(borrowerId, assetLoader, borrowerInfo, spawnIndex, spawnTotal, spawnPos) {
     if (this.borrowerMeshes.has(borrowerId)) {
       return this.borrowerMeshes.get(borrowerId);
     }
-    if (!assetLoader?.manifest) return;
-    const charPack = assetLoader.getCharacterPack();
-    if (!charPack?.characters) return;
-    const chars = charPack.characters;
-    const charFile = chars[Math.abs(hashStr(borrowerId)) % chars.length];
-    const charPackName = assetLoader.getCharacterPackName();
+    const charPack = assetLoader?.getCharacterPack?.();
+    const chars = Array.isArray(charPack?.characters) ? charPack.characters : [];
+    const charFile = chars.length ? chars[Math.abs(hashStr(borrowerId)) % chars.length] : null;
+    const charPackName = assetLoader?.getCharacterPackName?.() || 'blocky-characters';
 
     let model = null;
     let animations = null;
-    if (!this.characterAssetsUnavailable) {
+    if (!this.characterAssetsUnavailable && assetLoader?.manifest && charFile) {
       try {
         const loaded = await assetLoader.loadModel(charPackName, charFile);
         model = loaded.scene;
@@ -393,7 +491,8 @@ export class TownScene {
       const amount = borrowerInfo.amount ? `$${Math.round(borrowerInfo.amount).toLocaleString('en-US')}` : '';
       labelDiv.textContent = amount ? `${name}\n${amount}` : name;
       const label = new CSS2DObject(labelDiv);
-      label.position.set(0, 3.5, 0);
+      const labelY = this._borrowerLabelHeight(model);
+      label.position.set(0, labelY, 0);
       model.add(label);
       this.borrowerLabels.set(borrowerId, label);
     }
@@ -587,6 +686,16 @@ export class TownScene {
   resetBuildings() {
     for (const [idx] of this.buildingMeshes) {
       this._setBuildingEmissive(idx, 0x000000);
+      const slots = this.portfolioHexMeshes.get(idx) || [];
+      for (const hex of slots) {
+        const mats = Array.isArray(hex.material) ? hex.material : [hex.material];
+        for (const mat of mats) {
+          if (mat?.emissive) mat.emissive.setHex(0x000000);
+          if (mat?.color && mat.userData?._baseColorHex !== undefined) {
+            mat.color.setHex(mat.userData._baseColorHex);
+          }
+        }
+      }
     }
     this.selectedBuilding = null;
   }
@@ -601,7 +710,7 @@ export class TownScene {
     }
   }
 
-  updateSignpost(lenderIndex, name, approvalRate, pnl) {
+  updateSignpost(lenderIndex, name, approvalRate, pnl, avgLoanSize = null, aum = null) {
     const label = this.buildingLabels.get(lenderIndex);
     if (!label) return;
     const el = label.element;
@@ -623,6 +732,15 @@ export class TownScene {
         values[1].textContent = pnlStr;
         values[1].className = 'signpost-stat-value ' + (pnl >= 0 ? 'positive' : 'negative');
       }
+    }
+
+    const loanEl = el.querySelector('.signpost-loan-value');
+    if (loanEl) {
+      loanEl.textContent = avgLoanSize !== null && avgLoanSize !== undefined ? `$${fmtK(avgLoanSize)}` : '—';
+    }
+    const aumEl = el.querySelector('.signpost-aum-value');
+    if (aumEl) {
+      aumEl.textContent = aum !== null && aum !== undefined ? `$${fmtK(aum)}` : '—';
     }
   }
 
@@ -684,6 +802,91 @@ export class TownScene {
         }
       }
     });
+
+    const slots = this.portfolioHexMeshes.get(lenderIndex) || [];
+    for (const hex of slots) {
+      const mats = Array.isArray(hex.material) ? hex.material : [hex.material];
+      for (const mat of mats) {
+        if (!mat?.color) continue;
+        if (mat.userData._baseColorHex === undefined) {
+          mat.userData._baseColorHex = mat.color.getHex();
+        }
+        if (state.bankrupt) {
+          const base = new THREE.Color(mat.userData._baseColorHex);
+          base.multiplyScalar(0.35);
+          mat.color.copy(base);
+          if (mat.emissive) mat.emissive.setHex(0x050505);
+        } else {
+          mat.color.setHex(mat.userData._baseColorHex);
+          if (mat.emissive) mat.emissive.setHex(state.winner ? 0x302000 : 0x000000);
+        }
+      }
+    }
+  }
+
+  _createPortfolioCore(lenderIndex) {
+    const group = new THREE.Group();
+    const hue = (lenderIndex * 0.19) % 1;
+    const tone = new THREE.Color().setHSL(hue, 0.45, 0.42);
+
+    const base = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.62, 0.72, 0.28, 6),
+      new THREE.MeshStandardMaterial({
+        color: tone.clone().multiplyScalar(0.68),
+        roughness: 0.85,
+        metalness: 0.12,
+      })
+    );
+    base.rotation.y = Math.PI / 6;
+    base.position.y = 0.14;
+    base.castShadow = true;
+    base.receiveShadow = true;
+    group.add(base);
+
+    const tower = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.34, 0.44, 1.4, 6),
+      new THREE.MeshStandardMaterial({
+        color: tone,
+        roughness: 0.7,
+        metalness: 0.18,
+      })
+    );
+    tower.rotation.y = Math.PI / 6;
+    tower.position.y = 0.98;
+    tower.castShadow = true;
+    tower.receiveShadow = true;
+    group.add(tower);
+
+    const cap = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.4, 0.4, 0.1, 6),
+      new THREE.MeshStandardMaterial({
+        color: 0xd9c38a,
+        roughness: 0.6,
+        metalness: 0.28,
+      })
+    );
+    cap.rotation.y = Math.PI / 6;
+    cap.position.y = 1.72;
+    cap.castShadow = true;
+    group.add(cap);
+
+    return group;
+  }
+
+  _createPortfolioHexCell(lenderIndex, radius = 0.52) {
+    const hue = (lenderIndex * 0.19) % 1;
+    const baseColor = new THREE.Color().setHSL(hue, 0.38, 0.3);
+    const mat = new THREE.MeshStandardMaterial({
+      color: baseColor,
+      roughness: 0.9,
+      metalness: 0.1,
+      emissive: 0x000000,
+    });
+    const hex = new THREE.Mesh(new THREE.CylinderGeometry(radius, radius, 0.12, 6), mat);
+    hex.rotation.y = Math.PI / 6;
+    hex.castShadow = true;
+    hex.receiveShadow = true;
+    return hex;
   }
 
   _createFallbackRoad(road) {
@@ -880,6 +1083,17 @@ export class TownScene {
     head.castShadow = true;
     group.add(head);
     return group;
+  }
+
+  _borrowerLabelHeight(model) {
+    try {
+      const box = new THREE.Box3().setFromObject(model);
+      const h = box.max.y - box.min.y;
+      if (!Number.isFinite(h) || h <= 0) return 1.2;
+      return Math.max(1.05, h + 0.08);
+    } catch {
+      return 1.2;
+    }
   }
 
   dispose() {

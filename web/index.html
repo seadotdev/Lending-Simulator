@@ -43,18 +43,49 @@
       <span id="phase-label" class="phase-label">IDLE</span>
     </div>
 
-    <!-- Asset Pack Selector -->
-    <div id="pack-selector" class="pack-selector" hidden>
-      <label class="pack-label">Buildings:</label>
-      <select id="select-building-pack" class="pack-select">
-        <option value="city-builder">City Builder</option>
-        <option value="suburban">Suburban</option>
-      </select>
-      <label class="pack-label">Characters:</label>
-      <select id="select-character-pack" class="pack-select">
-        <option value="adventurers">Adventurers</option>
-        <option value="blocky-characters" selected>Blocky</option>
-      </select>
+    <!-- Visualization Config -->
+    <div id="config-group" class="config-group" hidden>
+      <button id="btn-config" class="btn btn-control btn-config" title="Visualization Config">&#9881;</button>
+      <div id="config-panel" class="config-panel" hidden>
+        <div class="config-row">
+          <label class="pack-label" for="select-visualization">View:</label>
+          <select id="select-visualization" class="pack-select">
+            <option value="town" selected>Town (3D)</option>
+            <option value="portfolio-hex">Portfolios (Hex)</option>
+          </select>
+        </div>
+        <div id="config-row-building-pack" class="config-row">
+          <label class="pack-label" for="select-building-pack">Buildings:</label>
+          <select id="select-building-pack" class="pack-select">
+            <option value="city-builder">City Builder</option>
+            <option value="suburban">Suburban</option>
+          </select>
+        </div>
+        <div id="config-row-portfolio-share" class="config-row">
+          <label class="pack-label" for="select-portfolio-share">Portfolios:</label>
+          <select id="select-portfolio-share" class="pack-select">
+            <option value="capital" selected>Capital (Strict)</option>
+            <option value="capital-soft">Capital (Balanced)</option>
+            <option value="equal">Equal Split</option>
+            <option value="max-loan">Max Loan Size</option>
+          </select>
+        </div>
+        <div class="config-row">
+          <label class="pack-label" for="select-label-size">Labels:</label>
+          <select id="select-label-size" class="pack-select">
+            <option value="small">Small</option>
+            <option value="medium">Medium</option>
+            <option value="large" selected>Large</option>
+          </select>
+        </div>
+        <div class="config-row">
+          <label class="pack-label" for="select-character-pack">Characters:</label>
+          <select id="select-character-pack" class="pack-select">
+            <option value="adventurers">Adventurers</option>
+            <option value="blocky-characters" selected>Blocky</option>
+          </select>
+        </div>
+      </div>
     </div>
 
     <!-- Page Tabs -->
