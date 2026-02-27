@@ -14,3 +14,5 @@ env/
 .DS_Store
 loanville_trace.json
 web/assets/
+cache/
+artifacts/
