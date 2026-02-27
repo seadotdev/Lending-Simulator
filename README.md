@@ -89,22 +89,59 @@ Models are defined in `benchmark_models.py`. The tournament uses all models from
 ## Project Structure
 
 ```
-elo_benchmark.py          # 3-Elo tournament runner, matchup generation, standings
-benchmark_models.py       # Model lists, single-run benchmark, Pareto analysis
-configs/
-├── lenders/              # Persona→model presets (e.g. budget-league)
-└── scenarios/            # Named season bundles (e.g. realistic-10w)
-loanville/
-├── __main__.py           # CLI entry point (legacy single-run mode)
-├── models.py             # Dataclasses: Borrower, LenderConfig, LenderDecision, LenderScore
-├── data.py               # 24 hand-crafted borrowers, 8 mix presets, statement generation
-├── llm.py                # OpenRouter client, prompt construction, tool-use loop, cost tracking
-├── engine.py             # SimulationEngine: origination, adjudication, booking, resolution
-├── scoring.py            # RAROC scoring, baselines, confusion matrix, bootstrap CI, penalties
-└── mock_llm.py           # Deterministic mock for testing without API calls
-docs/
-├── elo-vs-raroc-benchmark.md   # Full design & methodology documentation
-└── lending-sim-design.md       # Original design doc and roadmap
+loanville/                        # Core package
+├── __main__.py                   # CLI entry point
+├── models.py                     # Dataclasses: Borrower, LenderConfig, LenderDecision, SeasonConfig
+├── data.py                       # 24 hand-crafted borrowers, mix presets, lender definitions
+├── llm.py                        # OpenRouter client, prompt construction, tool-use loop
+├── engine.py                     # SimulationEngine: origination, adjudication, booking, resolution
+├── scoring.py                    # RAROC scoring, baselines, confusion matrix, bootstrap CI, penalties
+├── season.py                     # Season mode: multi-week game with carry-forward capital/exposures
+├── borrower_gen.py               # Procedural borrower generation + hybrid pool management
+├── custom_tools.py               # Lender-created reusable tools that persist across season weeks
+├── los_adapter.py                # Open LOS REST API adapter (SIM ↔ LOS translation)
+├── scorecard.py                  # 3-layer scoring: hard gates, underwriting quality, market behavior
+├── run_schema.py                 # UnderwritingRun contract (unifies Benchmark, Simulator, LOS)
+├── run_logger.py                 # Append-only run storage and replay
+├── champion.py                   # Champion/challenger operating model for policy changes
+├── cost_tracking.py              # Token cost estimation for season mode
+├── contracts.py                  # Contract helpers, APR normalization
+├── benchmark_items.py            # Gold-labeled cases for evaluation harness
+├── flywheel_cli.py               # Unified CLI for the LOS → Benchmark → Simulator loop
+└── mock_llm.py                   # Deterministic mock for testing without API calls
+
+open-los/                         # LOS submodule (Loan Origination System)
+                                  # REST API, chat bot commands, CRM test tool schema
+
+configs/                          # Presets
+├── lenders/                      # Persona→model presets (e.g. budget-league)
+└── scenarios/                    # Named season bundles (e.g. realistic-10w)
+
+run.py                            # Convenience entry point
+run_sim.sh                        # Start Open LOS + run simulation end-to-end
+run_smoke_test.py                 # 1-week, 3-borrower smoke test per model
+run_compat_smoke.py               # 18-model compatibility smoke test
+run_top5_smoke.py                 # Smoke test for top 5 leaderboard models
+run_season_test.py                # Conservative 3-model season (gentle mix)
+run_season_5models.py             # 5-way season with cheap models
+run_season_big_models.py          # Big model season (portfolio briefing hypothesis)
+run_season_new_models.py          # Newer cheap models season (Qwen3, GLM, MiniMax)
+run_top5_season.py                # Top 5 leaderboard models season
+
+scripts/                          # Utilities
+├── check_mock_replay.py          # Determinism verification (hash comparison)
+├── test_los_integration.py       # LOS integration tests
+├── test_los_smoke.py             # LOS smoke tests
+└── validate_contract_fixtures.py # Contract fixture validation
+
+contracts/                        # JSON schemas for integration artifacts
+fixtures/                         # Test fixture data
+tests/                            # Regression tests
+runs/                             # Run logs, champion state, replay hashes
+leaderboard/                      # Elo leaderboard (config, matches, standings)
+web/                              # Browser-based season visualizer (town scene + dashboards)
+docs/                             # Design docs, roadmap, methodology
+legacy/                           # Archived code — reference only
 ```
 
 ## Documentation
