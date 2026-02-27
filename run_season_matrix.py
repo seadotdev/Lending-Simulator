@@ -350,12 +350,19 @@ def main() -> None:
         season_scores = score_season(season.lender_states, config)
         print_season_report(season_scores)
 
+        # Competitiveness analysis
+        from loanville.competitiveness import analyze_competitiveness, print_competitiveness_report
+        comp_report = analyze_competitiveness(season_scores, season)
+        print_competitiveness_report(comp_report)
+
         season_json = season.to_json()
+        season_json["competitiveness"] = comp_report.to_dict()
         season_path = output_dir / f"{run_id}_season.json"
         with season_path.open("w") as f:
             json.dump(season_json, f, indent=2)
 
         result = _run_metrics(run_id, season, elapsed_s, run_cfg)
+        result["competitiveness"] = comp_report.to_dict()
         result["season_json"] = str(season_path)
         metrics_path = output_dir / f"{run_id}_metrics.json"
         with metrics_path.open("w") as f:

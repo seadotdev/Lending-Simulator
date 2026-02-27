@@ -531,6 +531,11 @@ def main() -> None:
         season_scores = score_season(season.lender_states, season_config)
         print_season_report(season_scores)
 
+        # Competitiveness analysis
+        from .competitiveness import analyze_competitiveness, print_competitiveness_report
+        comp_report = analyze_competitiveness(season_scores, season)
+        print_competitiveness_report(comp_report)
+
         # Leaderboard integration for season mode
         if args.leaderboard:
             from .leaderboard import (
@@ -567,6 +572,7 @@ def main() -> None:
         import json
         from datetime import datetime
         season_json = season.to_json()
+        season_json["competitiveness"] = comp_report.to_dict()
 
         # Save to web/seasons/ with timestamped name and rebuild index
         web_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "web")
