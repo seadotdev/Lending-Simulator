@@ -1006,6 +1006,131 @@ class SimulationEngine:
             }],
         }
 
+    def to_rollouts(self) -> list:
+        """Export simulation results as RL-compatible rollout objects.
+
+        Returns one Rollout per lender, with each borrower evaluation as
+        a step.  Useful for offline RL training or analysis.
+
+        Requires the ``loanville.rl`` package (always available, no extra deps).
+        """
+        from .rl.rollout import Rollout
+        from .rl.verifier import build_default_rubric
+        from dataclasses import asdict
+
+        rubric = build_default_rubric()
+        rollouts = []
+
+        for lender in self.lenders:
+            rollout = Rollout(
+                episode_type="single",
+                agent_id=lender.id,
+                model=lender.model,
+                policy_id=f"p_{lender.id}_{lender.model.replace('/', '_')}",
+                config={
+                    "n_borrowers": len(self.borrowers),
+                    "lender_name": lender.name,
+                    "total_capital": lender.total_capital,
+                },
+            )
+
+            decisions = self.all_decisions.get(lender.id, [])
+            decision_map = {d.borrower_id: d for d in decisions}
+
+            for idx, borrower in enumerate(self.borrowers):
+                d = borrower.dossier
+                dec = decision_map.get(borrower.id)
+
+                observation = {
+                    "borrower_id": borrower.id,
+                    "company_name": d.company_name,
+                    "sector": d.sector,
+                    "annual_revenue": d.annual_revenue,
+                    "net_income": d.net_income,
+                    "loan_request_amount": d.loan_request_amount,
+                }
+
+                if dec:
+                    action = {
+                        "decision": dec.decision,
+                        "reasoning": (dec.reasoning or "")[:200],
+                    }
+                    if dec.term_sheet:
+                        action["term_sheet"] = {
+                            "loan_amount": dec.term_sheet.loan_amount,
+                            "interest_rate": dec.term_sheet.interest_rate,
+                            "term_months": dec.term_sheet.term_months,
+                        }
+                else:
+                    action = {"decision": "ERROR", "reasoning": "No decision recorded"}
+
+                # Per-step reward from loan outcome
+                reward = 0.0
+                reward_breakdown = {}
+                if dec and dec.decision == "APPROVE":
+                    outcome = next(
+                        (o for o in self.loan_outcomes
+                         if o.borrower_id == borrower.id and o.lender_id == lender.id),
+                        None,
+                    )
+                    if outcome:
+                        pnl = outcome.total_interest_paid - outcome.principal_lost
+                        booked = next(
+                            (b for b in self.booked_loans
+                             if b.borrower_id == borrower.id and b.lender_id == lender.id),
+                            None,
+                        )
+                        principal = booked.principal if booked else 1.0
+                        reward = max(-1.0, min(1.0, pnl / max(1.0, principal)))
+                        reward_breakdown = {
+                            "interest_paid": outcome.total_interest_paid,
+                            "principal_lost": outcome.principal_lost,
+                            "defaulted": 1.0 if outcome.defaulted else 0.0,
+                        }
+
+                rollout.add_step(
+                    observation=observation,
+                    action=action,
+                    reward=reward,
+                    reward_breakdown=reward_breakdown,
+                    ground_truth={
+                        "true_outcome": borrower.true_outcome,
+                        "months_before_default": borrower.months_before_default,
+                    },
+                )
+
+            # Terminal reward from rubric
+            outcomes_for_lender = [o for o in self.loan_outcomes if o.lender_id == lender.id]
+            won_loans = [l for l in self.booked_loans if l.lender_id == lender.id]
+
+            verifier_state = {
+                "total_interest": sum(o.total_interest_paid for o in outcomes_for_lender),
+                "total_losses": sum(o.principal_lost for o in outcomes_for_lender),
+                "total_fees": sum(o.total_fees_paid for o in outcomes_for_lender),
+                "total_deployed": sum(l.principal for l in won_loans),
+                "available_capital": lender.total_capital,
+                "frauds_funded": sum(1 for o in outcomes_for_lender if o.was_fraud),
+                "defaults_count": sum(1 for o in outcomes_for_lender if o.defaulted),
+                "deals_won": len(won_loans),
+                "deals_rejected": sum(1 for d in decisions if d.decision != "APPROVE"),
+                "deals_errored": 0,
+                "gates_passed": True,
+                "avg_utilization": sum(l.principal for l in won_loans) / lender.total_capital if lender.total_capital > 0 else 0,
+                "concentration_violations": 0,
+                "total_weeks": 1,
+                "economics": asdict(self.economics),
+            }
+
+            result = rubric.score(verifier_state)
+            rollout.finalize(
+                terminal_reward=result.reward,
+                terminal_rewards=result.rewards,
+            )
+
+            rollouts.append(rollout)
+
+        return rollouts
+
     async def run(self) -> None:
         """Execute the full simulation."""
         await self.run_origination()

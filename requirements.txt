@@ -3,3 +3,7 @@ python-dotenv>=1.0.0
 httpx>=0.27.0
 just-bash>=0.1.16
 PyYAML>=6.0
+
+# Optional: RL training integration
+# Uncomment for verifiers framework + GRPO training:
+# verifiers[rl]>=0.1.10
