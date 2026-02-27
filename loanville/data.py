@@ -1681,7 +1681,7 @@ def _build_lenders() -> list[LenderConfig]:
                 "However, you still must avoid fraud and require basic creditworthiness. "
                 "You prefer shorter loan terms (12-24 months) with higher interest rates."
             ),
-            model="deepseek/deepseek-chat-v3-0324",
+            model="openai/gpt-4.1-nano",
             target_yield_pct=14.0,
             max_single_loan=800000,
             total_capital=3000000,
@@ -1727,7 +1727,7 @@ def _build_lenders() -> list[LenderConfig]:
                 "You offer lower interest rates but demand higher creditworthiness. "
                 "You prefer longer terms (24-36 months) with moderate rates."
             ),
-            model="qwen/qwen3-235b-a22b",
+            model="mistralai/mistral-small-3.2-24b-instruct",
             target_yield_pct=8.0,
             max_single_loan=600000,
             total_capital=4000000,
@@ -1773,7 +1773,7 @@ def _build_lenders() -> list[LenderConfig]:
                 "and inconsistencies in financial statements. "
                 "You offer competitive terms (18-30 months) with fair interest rates."
             ),
-            model="meta-llama/llama-3.3-70b-instruct",
+            model="deepseek/deepseek-v3.2",
             target_yield_pct=11.0,
             max_single_loan=700000,
             total_capital=3500000,

@@ -1,0 +1,1176 @@
+{
+  "type": "season",
+  "config": {
+    "weeks": 2,
+    "cohort_size": 3,
+    "months_per_week": 2,
+    "season_mix": "escalating",
+    "seed": 42,
+    "arrival_phases": 1,
+    "deep_uw_slots_per_week": 0
+  },
+  "lenders": [
+    {
+      "id": "LND-001",
+      "name": "Velocity Capital",
+      "model": "openai/gpt-4.1-nano",
+      "total_capital": 3000000,
+      "net_pnl": 0.0,
+      "deployed": 1180000,
+      "deals_won": 0,
+      "deals_rejected": 4,
+      "deals_lost": 2,
+      "cumulative_interest": 0.0,
+      "cumulative_losses": 0.0,
+      "cumulative_fees": 0.0,
+      "cumulative_workout_cost": 0.0,
+      "defaults": 0,
+      "frauds_funded": 0,
+      "weekly_utilization": [
+        0.3933,
+        0.3933
+      ],
+      "weekly_snapshots": [
+        {
+          "week": 1,
+          "effective_capital": 2996360.0,
+          "available_capital": 1816360.0,
+          "deployed_capital": 1180000,
+          "active_loans": 0,
+          "defaults_to_date": 0,
+          "frauds_to_date": 0,
+          "net_pnl": 0.0
+        },
+        {
+          "week": 2,
+          "effective_capital": 2992727.28,
+          "available_capital": 1812727.28,
+          "deployed_capital": 1180000,
+          "active_loans": 0,
+          "defaults_to_date": 0,
+          "frauds_to_date": 0,
+          "net_pnl": 0.0
+        },
+        {
+          "week": 3,
+          "effective_capital": 2992727.28,
+          "available_capital": 1812727.28,
+          "deployed_capital": 1180000,
+          "active_loans": 0,
+          "defaults_to_date": 0,
+          "frauds_to_date": 0,
+          "net_pnl": 0.0
+        }
+      ],
+      "deep_uw_deferred": 0,
+      "weekly_deep_uw_used": [
+        1,
+        1
+      ],
+      "active_loans": [],
+      "tokens_in": 31290,
+      "tokens_out": 628,
+      "cost_usd": 0.1033
+    },
+    {
+      "id": "LND-002",
+      "name": "Heritage Trust Bank",
+      "model": "mistralai/mistral-small-3.2-24b-instruct",
+      "total_capital": 4000000,
+      "net_pnl": -118237.55,
+      "deployed": 1499999.99,
+      "deals_won": 4,
+      "deals_rejected": 0,
+      "deals_lost": 0,
+      "cumulative_interest": 129772.0,
+      "cumulative_losses": 251211.11,
+      "cumulative_fees": 13250.0,
+      "cumulative_workout_cost": 10048.44,
+      "defaults": 1,
+      "frauds_funded": 0,
+      "weekly_utilization": [
+        0.5375,
+        0.6981
+      ],
+      "weekly_snapshots": [
+        {
+          "week": 1,
+          "effective_capital": 3995000.0,
+          "available_capital": 1845000.0,
+          "deployed_capital": 2150000.0,
+          "active_loans": 2,
+          "defaults_to_date": 0,
+          "frauds_to_date": 0,
+          "net_pnl": 0.0
+        },
+        {
+          "week": 2,
+          "effective_capital": 4005740.14,
+          "available_capital": 1213154.21,
+          "deployed_capital": 2792585.93,
+          "active_loans": 4,
+          "defaults_to_date": 0,
+          "frauds_to_date": 0,
+          "net_pnl": 14524.02
+        },
+        {
+          "week": 3,
+          "effective_capital": 3872978.57,
+          "available_capital": 2372978.58,
+          "deployed_capital": 1499999.99,
+          "active_loans": 0,
+          "defaults_to_date": 1,
+          "frauds_to_date": 0,
+          "net_pnl": -118237.55
+        }
+      ],
+      "deep_uw_deferred": 0,
+      "weekly_deep_uw_used": [
+        2,
+        2
+      ],
+      "active_loans": [],
+      "tokens_in": 32598,
+      "tokens_out": 752,
+      "cost_usd": 0.1091
+    },
+    {
+      "id": "LND-003",
+      "name": "Meridian Partners",
+      "model": "deepseek/deepseek-v3.2",
+      "total_capital": 3500000,
+      "net_pnl": 79358.36,
+      "deployed": 1200000.0,
+      "deals_won": 2,
+      "deals_rejected": 0,
+      "deals_lost": 4,
+      "cumulative_interest": 72358.36,
+      "cumulative_losses": 0.0,
+      "cumulative_fees": 7000.0,
+      "cumulative_workout_cost": 0.0,
+      "defaults": 0,
+      "frauds_funded": 0,
+      "weekly_utilization": [
+        0.4286,
+        0.5363
+      ],
+      "weekly_snapshots": [
+        {
+          "week": 1,
+          "effective_capital": 3495400.0,
+          "available_capital": 1995400.0,
+          "deployed_capital": 1500000.0,
+          "active_loans": 1,
+          "defaults_to_date": 0,
+          "frauds_to_date": 0,
+          "net_pnl": 0.0
+        },
+        {
+          "week": 2,
+          "effective_capital": 3499155.12,
+          "available_capital": 1621979.54,
+          "deployed_capital": 1877175.58,
+          "active_loans": 2,
+          "defaults_to_date": 0,
+          "frauds_to_date": 0,
+          "net_pnl": 7807.18
+        },
+        {
+          "week": 3,
+          "effective_capital": 3570706.3,
+          "available_capital": 2370706.3,
+          "deployed_capital": 1200000.0,
+          "active_loans": 0,
+          "defaults_to_date": 0,
+          "frauds_to_date": 0,
+          "net_pnl": 79358.36
+        }
+      ],
+      "deep_uw_deferred": 0,
+      "weekly_deep_uw_used": [
+        3,
+        3
+      ],
+      "active_loans": [],
+      "tokens_in": 34175,
+      "tokens_out": 1515,
+      "cost_usd": 0.1253
+    },
+    {
+      "id": "LND-004",
+      "name": "Pinnacle Finance",
+      "model": "qwen/qwen3-30b-a3b",
+      "total_capital": 3200000,
+      "net_pnl": 0.0,
+      "deployed": 880000,
+      "deals_won": 0,
+      "deals_rejected": 0,
+      "deals_lost": 6,
+      "cumulative_interest": 0.0,
+      "cumulative_losses": 0.0,
+      "cumulative_fees": 0.0,
+      "cumulative_workout_cost": 0.0,
+      "defaults": 0,
+      "frauds_funded": 0,
+      "weekly_utilization": [
+        0.275,
+        0.275
+      ],
+      "weekly_snapshots": [
+        {
+          "week": 1,
+          "effective_capital": 3195360.0,
+          "available_capital": 2315360.0,
+          "deployed_capital": 880000,
+          "active_loans": 0,
+          "defaults_to_date": 0,
+          "frauds_to_date": 0,
+          "net_pnl": 0.0
+        },
+        {
+          "week": 2,
+          "effective_capital": 3190729.28,
+          "available_capital": 2310729.28,
+          "deployed_capital": 880000,
+          "active_loans": 0,
+          "defaults_to_date": 0,
+          "frauds_to_date": 0,
+          "net_pnl": 0.0
+        },
+        {
+          "week": 3,
+          "effective_capital": 3190729.28,
+          "available_capital": 2310729.28,
+          "deployed_capital": 880000,
+          "active_loans": 0,
+          "defaults_to_date": 0,
+          "frauds_to_date": 0,
+          "net_pnl": 0.0
+        }
+      ],
+      "deep_uw_deferred": 0,
+      "weekly_deep_uw_used": [
+        3,
+        3
+      ],
+      "active_loans": [],
+      "tokens_in": 44984,
+      "tokens_out": 10570,
+      "cost_usd": 0.2935
+    },
+    {
+      "id": "LND-005",
+      "name": "Atlas Credit",
+      "model": "meta-llama/llama-3.3-70b-instruct",
+      "total_capital": 3800000,
+      "net_pnl": 0.0,
+      "deployed": 1070000,
+      "deals_won": 0,
+      "deals_rejected": 0,
+      "deals_lost": 6,
+      "cumulative_interest": 0.0,
+      "cumulative_losses": 0.0,
+      "cumulative_fees": 0.0,
+      "cumulative_workout_cost": 0.0,
+      "defaults": 0,
+      "frauds_funded": 0,
+      "weekly_utilization": [
+        0.2816,
+        0.2816
+      ],
+      "weekly_snapshots": [
+        {
+          "week": 1,
+          "effective_capital": 3794540.0,
+          "available_capital": 2724540.0,
+          "deployed_capital": 1070000,
+          "active_loans": 0,
+          "defaults_to_date": 0,
+          "frauds_to_date": 0,
+          "net_pnl": 0.0
+        },
+        {
+          "week": 2,
+          "effective_capital": 3789090.92,
+          "available_capital": 2719090.92,
+          "deployed_capital": 1070000,
+          "active_loans": 0,
+          "defaults_to_date": 0,
+          "frauds_to_date": 0,
+          "net_pnl": 0.0
+        },
+        {
+          "week": 3,
+          "effective_capital": 3789090.92,
+          "available_capital": 2719090.92,
+          "deployed_capital": 1070000,
+          "active_loans": 0,
+          "defaults_to_date": 0,
+          "frauds_to_date": 0,
+          "net_pnl": 0.0
+        }
+      ],
+      "deep_uw_deferred": 0,
+      "weekly_deep_uw_used": [
+        3,
+        3
+      ],
+      "active_loans": [],
+      "tokens_in": 32957,
+      "tokens_out": 788,
+      "cost_usd": 0.1107
+    }
+  ],
+  "weeks": [
+    {
+      "week": 1,
+      "borrowers": [
+        {
+          "id": "BRW-002",
+          "name": "NovaBio Labs",
+          "sector": "Bio-Synthetics",
+          "amount": 300000,
+          "true_outcome": "good",
+          "arrival_phase": 1
+        },
+        {
+          "id": "BRW-029",
+          "name": "Metro Print & Design",
+          "sector": "Print Services",
+          "amount": 250000,
+          "true_outcome": "good",
+          "arrival_phase": 1
+        },
+        {
+          "id": "BRW-013",
+          "name": "IronClad Manufacturing",
+          "sector": "Advanced Manufacturing",
+          "amount": 400000,
+          "true_outcome": "good",
+          "arrival_phase": 1
+        }
+      ],
+      "decisions": [
+        {
+          "lender_id": "LND-001",
+          "borrower_id": "BRW-002",
+          "decision": "APPROVE",
+          "bandwidth_limited": false,
+          "reasoning": "The company's revenue and margins are strong and growing, with consistent positive cash flow and no evident anomalies in bank transactions. The requested $300,000 loan fits within the sector limit and",
+          "term_sheet": {
+            "amount": 300000.0,
+            "rate": 12.0,
+            "term_months": 24
+          }
+        },
+        {
+          "lender_id": "LND-001",
+          "borrower_id": "BRW-029",
+          "decision": "REJECT",
+          "bandwidth_limited": false,
+          "reasoning": "The business demonstrates stable revenue growth and healthy margins, with consistent deposits from reputable clients, indicating good creditworthiness. However, the loan request of $250,000 exceeds th",
+          "term_sheet": null
+        },
+        {
+          "lender_id": "LND-001",
+          "borrower_id": "BRW-013",
+          "decision": "REJECT",
+          "bandwidth_limited": false,
+          "reasoning": "The company's revenue and net income are growing steadily, and cash flow appears healthy. However, the bank statements show unusually high deposits from a small number of clients, which could indicate",
+          "term_sheet": null
+        },
+        {
+          "lender_id": "LND-002",
+          "borrower_id": "BRW-002",
+          "decision": "REJECT",
+          "bandwidth_limited": false,
+          "reasoning": "[LLM_ERROR] LLM evaluation failed: No structured output from model mistralai/mistral-small-3.2-24b-instruct: JSON parsed but schema mismatch: $.term_sheet.loan_amount: expected number; $.term_sheet.in",
+          "term_sheet": null
+        },
+        {
+          "lender_id": "LND-002",
+          "borrower_id": "BRW-029",
+          "decision": "APPROVE",
+          "bandwidth_limited": false,
+          "reasoning": "Metro Print & Design demonstrates strong financial health with consistent revenue growth and stable margins. The bank statements show regular deposits from established clients and typical business exp",
+          "term_sheet": {
+            "amount": 250000.0,
+            "rate": 7.5,
+            "term_months": 36
+          }
+        },
+        {
+          "lender_id": "LND-002",
+          "borrower_id": "BRW-013",
+          "decision": "APPROVE",
+          "bandwidth_limited": false,
+          "reasoning": "IronClad Manufacturing demonstrates strong creditworthiness with consistent revenue growth and stable margins. The bank statements show regular deposits from reputable clients and normal business expe",
+          "term_sheet": {
+            "amount": 400000.0,
+            "rate": 7.5,
+            "term_months": 36
+          }
+        },
+        {
+          "lender_id": "LND-003",
+          "borrower_id": "BRW-002",
+          "decision": "APPROVE",
+          "bandwidth_limited": false,
+          "reasoning": "NovaBio Labs demonstrates strong creditworthiness with consistent revenue growth from $288K to $385K quarterly, expanding margins from 27.8% to 31.4%, and robust annual net income of $407K. The bank s",
+          "term_sheet": {
+            "amount": 300000.0,
+            "rate": 9.8,
+            "term_months": 24
+          }
+        },
+        {
+          "lender_id": "LND-003",
+          "borrower_id": "BRW-029",
+          "decision": "APPROVE",
+          "bandwidth_limited": false,
+          "reasoning": "Metro Print & Design demonstrates strong creditworthiness with consistent revenue growth (Q1 $435k to Q4 $498k) and stable 26%+ margins. The 18-year operating history and diversified client base (Marr",
+          "term_sheet": {
+            "amount": 250000.0,
+            "rate": 10.0,
+            "term_months": 24
+          }
+        },
+        {
+          "lender_id": "LND-003",
+          "borrower_id": "BRW-013",
+          "decision": "APPROVE",
+          "bandwidth_limited": false,
+          "reasoning": "IronClad Manufacturing demonstrates strong creditworthiness with consistent revenue growth (Q1-Q4: $645K to $723K), improving margins (25.4% to 27.0%), and healthy annual net income of $719K. Bank sta",
+          "term_sheet": {
+            "amount": 400000.0,
+            "rate": 10.5,
+            "term_months": 24
+          }
+        },
+        {
+          "lender_id": "LND-004",
+          "borrower_id": "BRW-002",
+          "decision": "APPROVE",
+          "bandwidth_limited": false,
+          "reasoning": "NovaBio Labs shows strong revenue growth (tripled since 2021) with improving net margins (30.1% annual). Quarterly income statements demonstrate consistent cash flow and positive free cash flow. Bank ",
+          "term_sheet": {
+            "amount": 300000.0,
+            "rate": 12.0,
+            "term_months": 36
+          }
+        },
+        {
+          "lender_id": "LND-004",
+          "borrower_id": "BRW-029",
+          "decision": "APPROVE",
+          "bandwidth_limited": false,
+          "reasoning": "Metro Print & Design shows consistent revenue growth (6% YoY) with stable 26% net margins across quarters. Strong 18-year track record, recurring client deposits, and reasonable expense ratios indicat",
+          "term_sheet": {
+            "amount": 250000.0,
+            "rate": 12.0,
+            "term_months": 24
+          }
+        },
+        {
+          "lender_id": "LND-004",
+          "borrower_id": "BRW-013",
+          "decision": "APPROVE",
+          "bandwidth_limited": false,
+          "reasoning": "IronClad Manufacturing shows strong and consistent revenue growth (Q1-Q4 2025: $645k-$723k) with improving net margins (25.4%-27.0%). Annual net income of $719k provides sufficient cash flow to servic",
+          "term_sheet": {
+            "amount": 400000.0,
+            "rate": 12.5,
+            "term_months": 36
+          }
+        },
+        {
+          "lender_id": "LND-005",
+          "borrower_id": "BRW-002",
+          "decision": "APPROVE",
+          "bandwidth_limited": false,
+          "reasoning": "NovaBio Labs has consistently positive cash flow with 30%+ net margins, and the loan will fund a new cleanroom production line to fulfill growing contract obligations. The company's revenue is growing",
+          "term_sheet": {
+            "amount": 300000.0,
+            "rate": 10.0,
+            "term_months": 36
+          }
+        },
+        {
+          "lender_id": "LND-005",
+          "borrower_id": "BRW-029",
+          "decision": "APPROVE",
+          "bandwidth_limited": false,
+          "reasoning": "The loan application from Metro Print & Design is approved because the company has a stable revenue growth of 6% annually, with consistent margins of around 26%. The bank statements show a steady incr",
+          "term_sheet": {
+            "amount": 250000.0,
+            "rate": 9.0,
+            "term_months": 36
+          }
+        },
+        {
+          "lender_id": "LND-005",
+          "borrower_id": "BRW-013",
+          "decision": "APPROVE",
+          "bandwidth_limited": false,
+          "reasoning": "The loan application from IronClad Manufacturing is approved because the company has a strong financial track record, with steadily growing revenue and stable margins, indicating its ability to servic",
+          "term_sheet": {
+            "amount": 400000.0,
+            "rate": 10.0,
+            "term_months": 36
+          }
+        }
+      ],
+      "booked_loans": [
+        {
+          "id": "LOAN-001",
+          "borrower_id": "BRW-002",
+          "borrower_name": "NovaBio Labs",
+          "lender_id": "LND-003",
+          "sector": "Bio-Synthetics",
+          "principal": 300000.0,
+          "interest_rate": 9.8,
+          "term_months": 24
+        },
+        {
+          "id": "LOAN-002",
+          "borrower_id": "BRW-029",
+          "borrower_name": "Metro Print & Design",
+          "lender_id": "LND-002",
+          "sector": "Print Services",
+          "principal": 250000.0,
+          "interest_rate": 7.5,
+          "term_months": 36
+        },
+        {
+          "id": "LOAN-003",
+          "borrower_id": "BRW-013",
+          "borrower_name": "IronClad Manufacturing",
+          "lender_id": "LND-002",
+          "sector": "Advanced Manufacturing",
+          "principal": 400000.0,
+          "interest_rate": 7.5,
+          "term_months": 36
+        }
+      ],
+      "events": [
+        "  [Velocity Capital] Capital decay: -$3,640 on $1,820,000 idle (cumulative: $3,640)",
+        "  [Heritage Trust Bank] Capital decay: -$5,000 on $2,500,000 idle (cumulative: $5,000)",
+        "  [Meridian Partners] Capital decay: -$4,600 on $2,300,000 idle (cumulative: $4,600)",
+        "  [Pinnacle Finance] Capital decay: -$4,640 on $2,320,000 idle (cumulative: $4,640)",
+        "  [Atlas Credit] Capital decay: -$5,460 on $2,730,000 idle (cumulative: $5,460)"
+      ],
+      "bandwidth": {
+        "arrival_phases": 1,
+        "deep_uw_slots_per_week": 0,
+        "slots_used": {}
+      },
+      "lender_snapshots": {
+        "LND-001": {
+          "name": "Velocity Capital",
+          "model": "openai/gpt-4.1-nano",
+          "net_pnl": 0.0,
+          "deployed": 1180000,
+          "available": 1816360.0,
+          "effective_capital": 2996360.0,
+          "deals_won": 0,
+          "deals_rejected": 2,
+          "deals_lost": 1,
+          "active_loans": 0,
+          "cumulative_interest": 0.0,
+          "cumulative_losses": 0.0,
+          "cumulative_fees": 0.0,
+          "cumulative_workout_cost": 0.0,
+          "defaults": 0,
+          "frauds_funded": 0,
+          "deep_uw_deferred": 0,
+          "deep_uw_used_this_week": 0,
+          "tokens_in": 15597,
+          "tokens_out": 305,
+          "cost_usd": 0.0514
+        },
+        "LND-002": {
+          "name": "Heritage Trust Bank",
+          "model": "mistralai/mistral-small-3.2-24b-instruct",
+          "net_pnl": 0.0,
+          "deployed": 2150000.0,
+          "available": 1845000.0,
+          "effective_capital": 3995000.0,
+          "deals_won": 2,
+          "deals_rejected": 0,
+          "deals_lost": 0,
+          "active_loans": 2,
+          "cumulative_interest": 0.0,
+          "cumulative_losses": 0.0,
+          "cumulative_fees": 0.0,
+          "cumulative_workout_cost": 0.0,
+          "defaults": 0,
+          "frauds_funded": 0,
+          "deep_uw_deferred": 0,
+          "deep_uw_used_this_week": 0,
+          "tokens_in": 12581,
+          "tokens_out": 273,
+          "cost_usd": 0.0418
+        },
+        "LND-003": {
+          "name": "Meridian Partners",
+          "model": "deepseek/deepseek-v3.2",
+          "net_pnl": 0.0,
+          "deployed": 1500000.0,
+          "available": 1995400.0,
+          "effective_capital": 3495400.0,
+          "deals_won": 1,
+          "deals_rejected": 0,
+          "deals_lost": 2,
+          "active_loans": 1,
+          "cumulative_interest": 0.0,
+          "cumulative_losses": 0.0,
+          "cumulative_fees": 0.0,
+          "cumulative_workout_cost": 0.0,
+          "defaults": 0,
+          "frauds_funded": 0,
+          "deep_uw_deferred": 0,
+          "deep_uw_used_this_week": 0,
+          "tokens_in": 16883,
+          "tokens_out": 1043,
+          "cost_usd": 0.0663
+        },
+        "LND-004": {
+          "name": "Pinnacle Finance",
+          "model": "qwen/qwen3-30b-a3b",
+          "net_pnl": 0.0,
+          "deployed": 880000,
+          "available": 2315360.0,
+          "effective_capital": 3195360.0,
+          "deals_won": 0,
+          "deals_rejected": 0,
+          "deals_lost": 3,
+          "active_loans": 0,
+          "cumulative_interest": 0.0,
+          "cumulative_losses": 0.0,
+          "cumulative_fees": 0.0,
+          "cumulative_workout_cost": 0.0,
+          "defaults": 0,
+          "frauds_funded": 0,
+          "deep_uw_deferred": 0,
+          "deep_uw_used_this_week": 0,
+          "tokens_in": 19209,
+          "tokens_out": 4140,
+          "cost_usd": 0.1197
+        },
+        "LND-005": {
+          "name": "Atlas Credit",
+          "model": "meta-llama/llama-3.3-70b-instruct",
+          "net_pnl": 0.0,
+          "deployed": 1070000,
+          "available": 2724540.0,
+          "effective_capital": 3794540.0,
+          "deals_won": 0,
+          "deals_rejected": 0,
+          "deals_lost": 3,
+          "active_loans": 0,
+          "cumulative_interest": 0.0,
+          "cumulative_losses": 0.0,
+          "cumulative_fees": 0.0,
+          "cumulative_workout_cost": 0.0,
+          "defaults": 0,
+          "frauds_funded": 0,
+          "deep_uw_deferred": 0,
+          "deep_uw_used_this_week": 0,
+          "tokens_in": 16419,
+          "tokens_out": 390,
+          "cost_usd": 0.0551
+        }
+      }
+    },
+    {
+      "week": 2,
+      "borrowers": [
+        {
+          "id": "BRW-005",
+          "name": "PixelForge Studios",
+          "sector": "Digital Media",
+          "amount": 400000,
+          "true_outcome": "good",
+          "arrival_phase": 1
+        },
+        {
+          "id": "BRW-034",
+          "name": "Silverline HVAC Services",
+          "sector": "Construction Services",
+          "amount": 225000,
+          "true_outcome": "good",
+          "arrival_phase": 1
+        },
+        {
+          "id": "BRW-023",
+          "name": "Atlas Precision Components",
+          "sector": "Advanced Manufacturing",
+          "amount": 450000,
+          "true_outcome": "bad",
+          "arrival_phase": 1
+        }
+      ],
+      "decisions": [
+        {
+          "lender_id": "LND-001",
+          "borrower_id": "BRW-005",
+          "decision": "APPROVE",
+          "bandwidth_limited": false,
+          "reasoning": "The company demonstrates strong revenue growth, high margins, and consistent cash flow, indicating good creditworthiness. Bank statements show regular deposits from multiple clients, with no suspiciou",
+          "term_sheet": {
+            "amount": 400000.0,
+            "rate": 13.0,
+            "term_months": 24
+          }
+        },
+        {
+          "lender_id": "LND-001",
+          "borrower_id": "BRW-034",
+          "decision": "REJECT",
+          "bandwidth_limited": false,
+          "reasoning": "The business demonstrates stable revenue and margins, with consistent deposits from recurring contracts, indicating good cash flow. However, the bank statements show unusually high deposits from a sin",
+          "term_sheet": null
+        },
+        {
+          "lender_id": "LND-001",
+          "borrower_id": "BRW-023",
+          "decision": "REJECT",
+          "bandwidth_limited": false,
+          "reasoning": "The company's revenue and net income are stable and growing, indicating good financial health. However, the bank statements show a pattern of high withdrawals for rent, utilities, and payroll, with de",
+          "term_sheet": null
+        },
+        {
+          "lender_id": "LND-002",
+          "borrower_id": "BRW-005",
+          "decision": "REJECT",
+          "bandwidth_limited": false,
+          "reasoning": "[LLM_ERROR] LLM evaluation failed: No structured output from model mistralai/mistral-small-3.2-24b-instruct: JSON parsed but schema mismatch: $.term_sheet.loan_amount: expected number; $.term_sheet.in",
+          "term_sheet": null
+        },
+        {
+          "lender_id": "LND-002",
+          "borrower_id": "BRW-034",
+          "decision": "APPROVE",
+          "bandwidth_limited": false,
+          "reasoning": "Silverline HVAC Services demonstrates strong financial health with consistent revenue growth and stable margins. The company's recurring maintenance contracts provide predictable cash flow, and the ba",
+          "term_sheet": {
+            "amount": 225000.0,
+            "rate": 7.5,
+            "term_months": 36
+          }
+        },
+        {
+          "lender_id": "LND-002",
+          "borrower_id": "BRW-023",
+          "decision": "APPROVE",
+          "bandwidth_limited": false,
+          "reasoning": "Atlas Precision Components demonstrates strong creditworthiness with consistent revenue growth and stable margins. The company's long track record, AS9100D and ITAR certifications, and multi-year defe",
+          "term_sheet": {
+            "amount": 450000.0,
+            "rate": 7.5,
+            "term_months": 36
+          }
+        },
+        {
+          "lender_id": "LND-003",
+          "borrower_id": "BRW-005",
+          "decision": "APPROVE",
+          "bandwidth_limited": false,
+          "reasoning": "PixelForge Studios demonstrates strong financial performance with consistent revenue growth from $395K to $465K quarterly and expanding net margins from 28.4% to 33.3%. The company maintains healthy c",
+          "term_sheet": {
+            "amount": 400000.0,
+            "rate": 9.5,
+            "term_months": 24
+          }
+        },
+        {
+          "lender_id": "LND-003",
+          "borrower_id": "BRW-034",
+          "decision": "APPROVE",
+          "bandwidth_limited": false,
+          "reasoning": "Silverline HVAC Services demonstrates strong creditworthiness with consistent revenue growth from $475K to $551K across quarters, stable 28% net margins, and $575K annual net income. The bank statemen",
+          "term_sheet": {
+            "amount": 225000.0,
+            "rate": 9.2,
+            "term_months": 24
+          }
+        },
+        {
+          "lender_id": "LND-003",
+          "borrower_id": "BRW-023",
+          "decision": "APPROVE",
+          "bandwidth_limited": false,
+          "reasoning": "Atlas Precision Components demonstrates solid creditworthiness with consistent revenue growth ($653K to $682K quarterly), stable profitability ($44-49K quarterly net income), and strong cash flow from",
+          "term_sheet": {
+            "amount": 450000.0,
+            "rate": 10.2,
+            "term_months": 24
+          }
+        },
+        {
+          "lender_id": "LND-004",
+          "borrower_id": "BRW-005",
+          "decision": "APPROVE",
+          "bandwidth_limited": false,
+          "reasoning": "PixelForge Studios shows consistent revenue growth ($1.735M annual) with improving net margins (31.4%), strong cash runway (6 months), and stable deposit patterns from recurring clients. The $400K loa",
+          "term_sheet": {
+            "amount": 400000.0,
+            "rate": 12.0,
+            "term_months": 24
+          }
+        },
+        {
+          "lender_id": "LND-004",
+          "borrower_id": "BRW-034",
+          "decision": "APPROVE",
+          "bandwidth_limited": false,
+          "reasoning": "Silverline HVAC Services demonstrates strong creditworthiness with consistent revenue growth, stable net margins (~28%), and recurring maintenance contracts providing reliable cash flow. Bank statemen",
+          "term_sheet": {
+            "amount": 225000.0,
+            "rate": 12.0,
+            "term_months": 24
+          }
+        },
+        {
+          "lender_id": "LND-004",
+          "borrower_id": "BRW-023",
+          "decision": "APPROVE",
+          "bandwidth_limited": false,
+          "reasoning": "Atlas Precision Components shows consistent revenue growth and stable deposit patterns from major clients like Lockheed Martin and Honeywell. Their net margin declined slightly but remains positive, a",
+          "term_sheet": {
+            "amount": 450000.0,
+            "rate": 12.0,
+            "term_months": 36
+          }
+        },
+        {
+          "lender_id": "LND-005",
+          "borrower_id": "BRW-005",
+          "decision": "APPROVE",
+          "bandwidth_limited": false,
+          "reasoning": "PixelForge Studios demonstrates a strong track record of revenue growth and stable margins, with a clear plan for using the loan to expand into higher-margin work. The company's cash flow is sufficien",
+          "term_sheet": {
+            "amount": 400000.0,
+            "rate": 10.0,
+            "term_months": 36
+          }
+        },
+        {
+          "lender_id": "LND-005",
+          "borrower_id": "BRW-034",
+          "decision": "APPROVE",
+          "bandwidth_limited": false,
+          "reasoning": "Silverline HVAC Services has a strong financial position with growing revenue, stable margins, and a solid cash flow to service debt. The loan amount of $225,000 is reasonable and does not breach sect",
+          "term_sheet": {
+            "amount": 225000.0,
+            "rate": 10.0,
+            "term_months": 36
+          }
+        },
+        {
+          "lender_id": "LND-005",
+          "borrower_id": "BRW-023",
+          "decision": "APPROVE",
+          "bandwidth_limited": false,
+          "reasoning": "The loan application from Atlas Precision Components is approved because the company has a stable revenue growth, stable margins, and a strong cash flow to service the debt. The bank statements show a",
+          "term_sheet": {
+            "amount": 450000.0,
+            "rate": 10.0,
+            "term_months": 36
+          }
+        }
+      ],
+      "booked_loans": [
+        {
+          "id": "LOAN-001",
+          "borrower_id": "BRW-005",
+          "borrower_name": "PixelForge Studios",
+          "lender_id": "LND-003",
+          "sector": "Digital Media",
+          "principal": 400000.0,
+          "interest_rate": 9.5,
+          "term_months": 24
+        },
+        {
+          "id": "LOAN-002",
+          "borrower_id": "BRW-034",
+          "borrower_name": "Silverline HVAC Services",
+          "lender_id": "LND-002",
+          "sector": "Construction Services",
+          "principal": 225000.0,
+          "interest_rate": 7.5,
+          "term_months": 36
+        },
+        {
+          "id": "LOAN-003",
+          "borrower_id": "BRW-023",
+          "borrower_name": "Atlas Precision Components",
+          "lender_id": "LND-002",
+          "sector": "Advanced Manufacturing",
+          "principal": 450000.0,
+          "interest_rate": 7.5,
+          "term_months": 36
+        }
+      ],
+      "events": [
+        "PAYMENT: Metro Print & Design \u2014 $3,086 interest, $12,467 principal [Heritage Trust Bank]",
+        "PAYMENT: IronClad Manufacturing \u2014 $4,938 interest, $19,947 principal [Heritage Trust Bank]",
+        "PAYMENT: NovaBio Labs \u2014 $4,807 interest, $22,824 principal [Meridian Partners]",
+        "  [Velocity Capital] Capital decay: -$3,633 on $1,816,360 idle (cumulative: $7,273)",
+        "  [Heritage Trust Bank] Capital decay: -$3,784 on $1,891,938 idle (cumulative: $8,784)",
+        "  [Meridian Partners] Capital decay: -$4,052 on $2,026,032 idle (cumulative: $8,652)",
+        "  [Pinnacle Finance] Capital decay: -$4,631 on $2,315,360 idle (cumulative: $9,271)",
+        "  [Atlas Credit] Capital decay: -$5,449 on $2,724,540 idle (cumulative: $10,909)"
+      ],
+      "bandwidth": {
+        "arrival_phases": 1,
+        "deep_uw_slots_per_week": 0,
+        "slots_used": {}
+      },
+      "lender_snapshots": {
+        "LND-001": {
+          "name": "Velocity Capital",
+          "model": "openai/gpt-4.1-nano",
+          "net_pnl": 0.0,
+          "deployed": 1180000,
+          "available": 1812727.28,
+          "effective_capital": 2992727.28,
+          "deals_won": 0,
+          "deals_rejected": 4,
+          "deals_lost": 2,
+          "active_loans": 0,
+          "cumulative_interest": 0.0,
+          "cumulative_losses": 0.0,
+          "cumulative_fees": 0.0,
+          "cumulative_workout_cost": 0.0,
+          "defaults": 0,
+          "frauds_funded": 0,
+          "deep_uw_deferred": 0,
+          "deep_uw_used_this_week": 0,
+          "tokens_in": 31290,
+          "tokens_out": 628,
+          "cost_usd": 0.1033
+        },
+        "LND-002": {
+          "name": "Heritage Trust Bank",
+          "model": "mistralai/mistral-small-3.2-24b-instruct",
+          "net_pnl": 14524.02,
+          "deployed": 2792585.93,
+          "available": 1213154.21,
+          "effective_capital": 4005740.14,
+          "deals_won": 4,
+          "deals_rejected": 0,
+          "deals_lost": 0,
+          "active_loans": 4,
+          "cumulative_interest": 8024.02,
+          "cumulative_losses": 0.0,
+          "cumulative_fees": 6500.0,
+          "cumulative_workout_cost": 0.0,
+          "defaults": 0,
+          "frauds_funded": 0,
+          "deep_uw_deferred": 0,
+          "deep_uw_used_this_week": 0,
+          "tokens_in": 32598,
+          "tokens_out": 752,
+          "cost_usd": 0.1091
+        },
+        "LND-003": {
+          "name": "Meridian Partners",
+          "model": "deepseek/deepseek-v3.2",
+          "net_pnl": 7807.18,
+          "deployed": 1877175.58,
+          "available": 1621979.54,
+          "effective_capital": 3499155.12,
+          "deals_won": 2,
+          "deals_rejected": 0,
+          "deals_lost": 4,
+          "active_loans": 2,
+          "cumulative_interest": 4807.18,
+          "cumulative_losses": 0.0,
+          "cumulative_fees": 3000.0,
+          "cumulative_workout_cost": 0.0,
+          "defaults": 0,
+          "frauds_funded": 0,
+          "deep_uw_deferred": 0,
+          "deep_uw_used_this_week": 0,
+          "tokens_in": 34175,
+          "tokens_out": 1515,
+          "cost_usd": 0.1253
+        },
+        "LND-004": {
+          "name": "Pinnacle Finance",
+          "model": "qwen/qwen3-30b-a3b",
+          "net_pnl": 0.0,
+          "deployed": 880000,
+          "available": 2310729.28,
+          "effective_capital": 3190729.28,
+          "deals_won": 0,
+          "deals_rejected": 0,
+          "deals_lost": 6,
+          "active_loans": 0,
+          "cumulative_interest": 0.0,
+          "cumulative_losses": 0.0,
+          "cumulative_fees": 0.0,
+          "cumulative_workout_cost": 0.0,
+          "defaults": 0,
+          "frauds_funded": 0,
+          "deep_uw_deferred": 0,
+          "deep_uw_used_this_week": 0,
+          "tokens_in": 44984,
+          "tokens_out": 10570,
+          "cost_usd": 0.2935
+        },
+        "LND-005": {
+          "name": "Atlas Credit",
+          "model": "meta-llama/llama-3.3-70b-instruct",
+          "net_pnl": 0.0,
+          "deployed": 1070000,
+          "available": 2719090.92,
+          "effective_capital": 3789090.92,
+          "deals_won": 0,
+          "deals_rejected": 0,
+          "deals_lost": 6,
+          "active_loans": 0,
+          "cumulative_interest": 0.0,
+          "cumulative_losses": 0.0,
+          "cumulative_fees": 0.0,
+          "cumulative_workout_cost": 0.0,
+          "defaults": 0,
+          "frauds_funded": 0,
+          "deep_uw_deferred": 0,
+          "deep_uw_used_this_week": 0,
+          "tokens_in": 32957,
+          "tokens_out": 788,
+          "cost_usd": 0.1107
+        }
+      }
+    },
+    {
+      "week": 3,
+      "final_resolution": true,
+      "borrowers": [],
+      "decisions": [],
+      "booked_loans": [],
+      "events": [
+        "REPAID: Metro Print & Design (Print Services) \u2014 $29,956 total interest [Heritage Trust Bank]",
+        "REPAID: IronClad Manufacturing (Advanced Manufacturing) \u2014 $47,930 total interest [Heritage Trust Bank]",
+        "REPAID: Silverline HVAC Services (Construction Services) \u2014 $26,960 total interest [Heritage Trust Bank]",
+        "DEFAULT: Atlas Precision Components (Advanced Manufacturing) \u2014 $251,211 lost, $83,737 recovered [Heritage Trust Bank]",
+        "REPAID: NovaBio Labs (Bio-Synthetics) \u2014 $31,579 total interest [Meridian Partners]",
+        "REPAID: PixelForge Studios (Digital Media) \u2014 $40,779 total interest [Meridian Partners]"
+      ],
+      "lender_snapshots": {
+        "LND-001": {
+          "name": "Velocity Capital",
+          "model": "openai/gpt-4.1-nano",
+          "net_pnl": 0.0,
+          "deployed": 1180000,
+          "available": 1812727.28,
+          "effective_capital": 2992727.28,
+          "deals_won": 0,
+          "deals_rejected": 4,
+          "deals_lost": 2,
+          "active_loans": 0,
+          "cumulative_interest": 0.0,
+          "cumulative_losses": 0.0,
+          "cumulative_fees": 0.0,
+          "cumulative_workout_cost": 0.0,
+          "defaults": 0,
+          "frauds_funded": 0,
+          "deep_uw_deferred": 0,
+          "tokens_in": 31290,
+          "tokens_out": 628,
+          "cost_usd": 0.1033
+        },
+        "LND-002": {
+          "name": "Heritage Trust Bank",
+          "model": "mistralai/mistral-small-3.2-24b-instruct",
+          "net_pnl": -118237.55,
+          "deployed": 1499999.99,
+          "available": 2372978.58,
+          "effective_capital": 3872978.57,
+          "deals_won": 4,
+          "deals_rejected": 0,
+          "deals_lost": 0,
+          "active_loans": 0,
+          "cumulative_interest": 129772.0,
+          "cumulative_losses": 251211.11,
+          "cumulative_fees": 13250.0,
+          "cumulative_workout_cost": 10048.44,
+          "defaults": 1,
+          "frauds_funded": 0,
+          "deep_uw_deferred": 0,
+          "tokens_in": 32598,
+          "tokens_out": 752,
+          "cost_usd": 0.1091
+        },
+        "LND-003": {
+          "name": "Meridian Partners",
+          "model": "deepseek/deepseek-v3.2",
+          "net_pnl": 79358.36,
+          "deployed": 1200000.0,
+          "available": 2370706.3,
+          "effective_capital": 3570706.3,
+          "deals_won": 2,
+          "deals_rejected": 0,
+          "deals_lost": 4,
+          "active_loans": 0,
+          "cumulative_interest": 72358.36,
+          "cumulative_losses": 0.0,
+          "cumulative_fees": 7000.0,
+          "cumulative_workout_cost": 0.0,
+          "defaults": 0,
+          "frauds_funded": 0,
+          "deep_uw_deferred": 0,
+          "tokens_in": 34175,
+          "tokens_out": 1515,
+          "cost_usd": 0.1253
+        },
+        "LND-004": {
+          "name": "Pinnacle Finance",
+          "model": "qwen/qwen3-30b-a3b",
+          "net_pnl": 0.0,
+          "deployed": 880000,
+          "available": 2310729.28,
+          "effective_capital": 3190729.28,
+          "deals_won": 0,
+          "deals_rejected": 0,
+          "deals_lost": 6,
+          "active_loans": 0,
+          "cumulative_interest": 0.0,
+          "cumulative_losses": 0.0,
+          "cumulative_fees": 0.0,
+          "cumulative_workout_cost": 0.0,
+          "defaults": 0,
+          "frauds_funded": 0,
+          "deep_uw_deferred": 0,
+          "tokens_in": 44984,
+          "tokens_out": 10570,
+          "cost_usd": 0.2935
+        },
+        "LND-005": {
+          "name": "Atlas Credit",
+          "model": "meta-llama/llama-3.3-70b-instruct",
+          "net_pnl": 0.0,
+          "deployed": 1070000,
+          "available": 2719090.92,
+          "effective_capital": 3789090.92,
+          "deals_won": 0,
+          "deals_rejected": 0,
+          "deals_lost": 6,
+          "active_loans": 0,
+          "cumulative_interest": 0.0,
+          "cumulative_losses": 0.0,
+          "cumulative_fees": 0.0,
+          "cumulative_workout_cost": 0.0,
+          "defaults": 0,
+          "frauds_funded": 0,
+          "deep_uw_deferred": 0,
+          "tokens_in": 32957,
+          "tokens_out": 788,
+          "cost_usd": 0.1107
+        }
+      }
+    }
+  ]
+}
