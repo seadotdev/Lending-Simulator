@@ -3,7 +3,7 @@ Tests for the loanville.rl package.
 
 These tests verify the standalone RL components (no verifiers installation
 required). They test the verifier protocol, rollout capture, metrics,
-environment adapter, and Harbor task export.
+environment adapter, Harbor task export, response cache, and staged pipeline.
 """
 
 import json
@@ -40,6 +40,12 @@ from loanville.rl import (
     TaskConfig,
     export_harbor_task,
     export_harbor_dataset,
+    # Cache
+    ResponseCache,
+    make_cache_key,
+    # Pipeline
+    Pipeline,
+    PipelineConfig,
 )
 
 
@@ -513,3 +519,263 @@ class TestEngineRollouts:
         assert rollouts[0].n_steps == 3
         assert rollouts[0].terminal_reward > 0
         assert "credit_quality" in rollouts[0].terminal_rewards
+
+
+# ---------------------------------------------------------------------------
+# Response cache tests
+# ---------------------------------------------------------------------------
+
+class TestResponseCache:
+    def test_put_and_get(self, tmp_path):
+        cache = ResponseCache(tmp_path / "cache")
+        key = make_cache_key(
+            model="claude-3.5-sonnet",
+            borrower_id="BRW-001",
+            dossier={"company_name": "Test Co", "revenue": 1_000_000},
+        )
+
+        # Miss
+        assert cache.get(key) is None
+        assert cache.stats["misses"] == 1
+
+        # Put
+        cache.put(
+            key=key,
+            model="claude-3.5-sonnet",
+            borrower_id="BRW-001",
+            decision="APPROVE",
+            reasoning="Good company",
+            term_sheet={"loan_amount": 100_000, "interest_rate": 10.0, "term_months": 24},
+            created_from="mock",
+        )
+
+        # Hit
+        entry = cache.get(key)
+        assert entry is not None
+        assert entry.decision == "APPROVE"
+        assert entry.term_sheet["loan_amount"] == 100_000
+        assert cache.stats["hits"] == 1
+
+    def test_content_addressable(self, tmp_path):
+        """Same inputs produce same key; different inputs produce different key."""
+        dossier = {"company_name": "Test", "revenue": 500_000}
+
+        key1 = make_cache_key(model="modelA", borrower_id="B1", dossier=dossier)
+        key2 = make_cache_key(model="modelA", borrower_id="B1", dossier=dossier)
+        key3 = make_cache_key(model="modelB", borrower_id="B1", dossier=dossier)
+
+        assert key1 == key2  # Same inputs = same key
+        assert key1 != key3  # Different model = different key
+
+    def test_cache_size_and_clear(self, tmp_path):
+        cache = ResponseCache(tmp_path / "cache")
+        assert cache.size() == 0
+
+        for i in range(5):
+            cache.put(
+                key=f"key_{i:032d}",  # Padded to ensure valid hex prefix dirs
+                model="model",
+                borrower_id=f"B{i}",
+                decision="REJECT",
+            )
+
+        assert cache.size() == 5
+        removed = cache.clear()
+        assert removed == 5
+        assert cache.size() == 0
+
+
+# ---------------------------------------------------------------------------
+# Pipeline tests
+# ---------------------------------------------------------------------------
+
+class TestPipeline:
+    def test_generate_stage(self, tmp_path):
+        config = PipelineConfig(
+            mix="easy",
+            n_borrowers=3,
+            seed=42,
+            artifacts_dir=str(tmp_path / "artifacts"),
+        )
+        pipeline = Pipeline(config)
+        result = pipeline.generate()
+
+        assert result.stage == "generate"
+        assert result.data["n_borrowers"] == 3
+        assert (tmp_path / "artifacts" / "generated" / "manifest.json").exists()
+
+    def test_evaluate_stage(self, tmp_path):
+        config = PipelineConfig(
+            mix="easy",
+            n_borrowers=3,
+            seed=42,
+            mock=True,
+            artifacts_dir=str(tmp_path / "artifacts"),
+            use_cache=False,
+        )
+        pipeline = Pipeline(config)
+        pipeline.generate()
+        result = pipeline.evaluate()
+
+        assert result.stage == "evaluate"
+        assert result.data["n_decisions"] > 0
+        assert (tmp_path / "artifacts" / "evaluated" / "decisions.json").exists()
+
+    def test_resolve_stage(self, tmp_path):
+        config = PipelineConfig(
+            mix="easy",
+            n_borrowers=3,
+            seed=42,
+            mock=True,
+            artifacts_dir=str(tmp_path / "artifacts"),
+            use_cache=False,
+        )
+        pipeline = Pipeline(config)
+        pipeline.generate()
+        pipeline.evaluate()
+        result = pipeline.resolve()
+
+        assert result.stage == "resolve"
+        assert result.data["n_rollouts"] > 0
+        assert (tmp_path / "artifacts" / "rollouts").exists()
+
+    def test_score_stage(self, tmp_path):
+        config = PipelineConfig(
+            mix="easy",
+            n_borrowers=3,
+            seed=42,
+            mock=True,
+            artifacts_dir=str(tmp_path / "artifacts"),
+            use_cache=False,
+        )
+        pipeline = Pipeline(config)
+        pipeline.generate()
+        pipeline.evaluate()
+        pipeline.resolve()
+        result = pipeline.score()
+
+        assert result.stage == "score"
+        assert result.data["n_scored"] > 0
+        assert (tmp_path / "artifacts" / "scored").exists()
+
+    def test_rescore_with_different_economics(self, tmp_path):
+        """Score stage can be re-run with different economics, no LLM calls."""
+        config = PipelineConfig(
+            mix="easy",
+            n_borrowers=3,
+            seed=42,
+            mock=True,
+            artifacts_dir=str(tmp_path / "artifacts"),
+            use_cache=False,
+        )
+        pipeline = Pipeline(config)
+        pipeline.generate()
+        pipeline.evaluate()
+        pipeline.resolve()
+
+        result_balanced = pipeline.score(economics="balanced")
+        result_aggressive = pipeline.score(economics="aggressive")
+
+        # Different economics should produce different scores
+        assert result_balanced.data["scores"] != result_aggressive.data["scores"]
+        # Both should be scored on same data
+        assert result_balanced.data["n_scored"] == result_aggressive.data["n_scored"]
+
+    def test_rescore_with_different_rubric(self, tmp_path):
+        """Score stage can be re-run with different rubric weights."""
+        config = PipelineConfig(
+            mix="easy",
+            n_borrowers=3,
+            seed=42,
+            mock=True,
+            artifacts_dir=str(tmp_path / "artifacts"),
+            use_cache=False,
+        )
+        pipeline = Pipeline(config)
+        pipeline.generate()
+        pipeline.evaluate()
+        pipeline.resolve()
+
+        # Default rubric
+        result1 = pipeline.score()
+
+        # Custom rubric: all weight on credit quality
+        custom_rubric = Rubric()
+        custom_rubric.add(CreditQualityVerifier(), weight=1.0, name="credit_quality")
+        result2 = pipeline.score(rubric=custom_rubric)
+
+        assert result1.data["n_scored"] == result2.data["n_scored"]
+
+    def test_run_all(self, tmp_path):
+        config = PipelineConfig(
+            mix="easy",
+            n_borrowers=3,
+            seed=42,
+            mock=True,
+            artifacts_dir=str(tmp_path / "artifacts"),
+            use_cache=False,
+        )
+        pipeline = Pipeline(config)
+        results = pipeline.run_all()
+
+        assert len(results) == 5
+        assert [r.stage for r in results] == [
+            "generate", "evaluate", "resolve", "score", "export"
+        ]
+
+    def test_load_and_rescore(self, tmp_path):
+        """Load pipeline from disk and re-score without LLM calls."""
+        artifacts = str(tmp_path / "artifacts")
+        config = PipelineConfig(
+            mix="easy",
+            n_borrowers=3,
+            seed=42,
+            mock=True,
+            artifacts_dir=artifacts,
+            use_cache=False,
+        )
+        # Run stages 1-3
+        pipeline = Pipeline(config)
+        pipeline.generate()
+        pipeline.evaluate()
+        pipeline.resolve()
+
+        # Load from disk and re-score (no LLM calls)
+        loaded = Pipeline.load(artifacts)
+        result = loaded.score(economics="conservative")
+        assert result.data["n_scored"] > 0
+
+    def test_cache_integration(self, tmp_path):
+        """Second pipeline run serves decisions from cache."""
+        artifacts = str(tmp_path / "artifacts")
+        cache_dir = str(tmp_path / "cache")
+
+        # First run: populates cache
+        config1 = PipelineConfig(
+            mix="easy",
+            n_borrowers=3,
+            seed=42,
+            mock=True,
+            artifacts_dir=artifacts,
+            use_cache=True,
+            cache_dir=cache_dir,
+        )
+        p1 = Pipeline(config1)
+        p1.generate()
+        r1 = p1.evaluate()
+
+        # Second run: should hit cache
+        config2 = PipelineConfig(
+            mix="easy",
+            n_borrowers=3,
+            seed=42,
+            mock=True,
+            artifacts_dir=str(tmp_path / "artifacts2"),
+            use_cache=True,
+            cache_dir=cache_dir,
+        )
+        p2 = Pipeline(config2)
+        p2.generate()
+        r2 = p2.evaluate()
+
+        assert r2.data["cache_hits"] > 0

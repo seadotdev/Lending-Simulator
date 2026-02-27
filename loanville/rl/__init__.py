@@ -57,6 +57,14 @@ from .tasks import (
     export_harbor_task,
     export_harbor_dataset,
 )
+from .cache import (
+    ResponseCache,
+    make_cache_key,
+)
+from .pipeline import (
+    Pipeline,
+    PipelineConfig,
+)
 
 __all__ = [
     # Feature detection
@@ -88,6 +96,12 @@ __all__ = [
     "TaskConfig",
     "export_harbor_task",
     "export_harbor_dataset",
+    # Cache
+    "ResponseCache",
+    "make_cache_key",
+    # Pipeline
+    "Pipeline",
+    "PipelineConfig",
 ]
 
 
