@@ -49,6 +49,8 @@ def run() -> int:
         max_concurrent_per_lender=1,
         mock=False,
         los_url=args.los_url,
+        los_mode="full",
+        formal_los_only=True,
     )
     asyncio.run(engine.run())
 

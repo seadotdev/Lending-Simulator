@@ -39,6 +39,8 @@ def run() -> int:
         mock=False,
         data_mode="full",
         los_url=args.los_base_url,
+        los_mode="full",
+        formal_los_only=True,
     )
     asyncio.run(engine.run())
 

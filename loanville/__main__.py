@@ -2,8 +2,9 @@
 Entry point for: python -m loanville
 
 Usage:
-  python -m loanville                    # LOS mode, easy mix (default)
-  python -m loanville --mock             # Mock mode (no API key needed)
+  python -m loanville                    # LOS mode, formal interactions enforced
+  python -m loanville --crm-sim          # High-volume CRM simulation benchmark
+  python -m loanville --mock --allow-non-los-formal   # Legacy mock mode
   python -m loanville --mix hard         # Adversarial stress test
   python -m loanville --scenario realistic-10w --lenders budget-league
   python -m loanville --compare          # Compare big vs small models (mock)
@@ -106,13 +107,15 @@ def _run_single(borrowers, lenders, mock=False, data_mode="full",
                  los_url="http://localhost:3000",
                  los_provider="openrouter", los_mode="rules_only",
                  underwrite_only=False, los_model=None,
-                 economics=None, info_asymmetry="none"):
+                 economics=None, info_asymmetry="none",
+                 formal_los_only=False):
     """Run a single simulation and return (scores, engine)."""
     engine = SimulationEngine(
         borrowers, lenders, mock=mock, data_mode=data_mode,
         los_url=los_url,
         los_provider=los_provider, los_mode=los_mode,
         underwrite_only=underwrite_only, los_model=los_model,
+        formal_los_only=formal_los_only,
         economics=economics,
         info_asymmetry=info_asymmetry,
     )
@@ -285,6 +288,9 @@ def main() -> None:
 
     parser.add_argument("--mock", action="store_true",
                         help="Use mock LLM responses (no API key needed)")
+    parser.add_argument("--allow-non-los-formal", action="store_true",
+                        help="Allow legacy non-formal paths (mock, rules_only, underwrite-only). "
+                             "Default behavior enforces formal LOS-only interactions.")
     parser.add_argument("--compare", action="store_true",
                         help="Run frontier-vs-small model comparison (uses mock mode)")
     parser.add_argument("--lenders", default=None,
@@ -310,16 +316,36 @@ def main() -> None:
     parser.add_argument("--los-provider", default="anthropic",
                         choices=["openrouter", "anthropic", "openai", "vercel"],
                         help="LLM provider for LOS evaluation (default: anthropic)")
-    parser.add_argument("--los-mode", default="rules_only",
+    parser.add_argument("--los-mode", default="full",
                         choices=["full", "rules_only"],
                         help="LOS evaluation mode: 'full' uses LLM agent, "
-                             "'rules_only' uses deterministic rules (default: rules_only)")
+                             "'rules_only' uses deterministic rules (default: full)")
     parser.add_argument("--underwrite-only", action="store_true",
                         help="Skip LOS pipeline ceremony (entity/deal/docs/spread/stages), "
                              "just POST dossier to /v1/underwrite for standalone LLM evaluation")
     parser.add_argument("--los-model", default=None,
                         help="Override the LLM model used by the LOS for underwriting "
                              "(default: uses each lender's model)")
+    parser.add_argument("--crm-sim", action="store_true",
+                        help="Run CRM-style high-volume LOS simulation benchmark "
+                             "(throughput/correctness/responsiveness).")
+    parser.add_argument("--crm-cases", type=int, default=120,
+                        help="Number of CRM applications to simulate (default: 120)")
+    parser.add_argument("--crm-mix",
+                        choices=["gentle", "realistic", "adversarial", "stress", "escalating"],
+                        default="realistic",
+                        help="CRM simulation mix profile (default: realistic)")
+    parser.add_argument("--crm-incomplete-ratio", type=float, default=0.35,
+                        help="Fraction of CRM cases with incomplete info requiring follow-up "
+                             "(default: 0.35)")
+    parser.add_argument("--crm-concurrency", type=int, default=12,
+                        help="Max in-flight LOS evaluations per lender in CRM simulation "
+                             "(default: 12)")
+    parser.add_argument("--crm-apr-tolerance", type=float, default=1.5,
+                        help="APR tolerance (percentage points) for formulaic pricing correctness "
+                             "(default: 1.5)")
+    parser.add_argument("--crm-export", type=str, default=None, metavar="FILE",
+                        help="Save CRM simulation summary JSON to FILE")
     parser.add_argument("--economics",
                         choices=list(ECONOMICS_PRESETS.keys()),
                         default="balanced",
@@ -372,11 +398,39 @@ def main() -> None:
         return
 
     season_mode = args.season or bool(args.scenario)
+    formal_los_only = not args.allow_non_los_formal
 
     if season_mode and args.compare:
         parser.error("--season/--scenario and --compare cannot be used together.")
     if args.compare and (args.lenders or args.scenario):
         parser.error("--compare cannot be combined with --lenders or --scenario.")
+    if args.crm_sim and season_mode:
+        parser.error("--crm-sim cannot be combined with --season/--scenario.")
+    if args.crm_sim and args.compare:
+        parser.error("--crm-sim cannot be combined with --compare.")
+    if args.crm_sim and args.mock:
+        parser.error("--crm-sim requires live LOS mode (no --mock).")
+
+    if formal_los_only:
+        if args.compare:
+            parser.error(
+                "--compare uses mock evaluation and is blocked in formal LOS-only mode. "
+                "Use --allow-non-los-formal to run it intentionally."
+            )
+        if args.mock:
+            parser.error(
+                "--mock is blocked in formal LOS-only mode. "
+                "Use --allow-non-los-formal to bypass."
+            )
+        if args.underwrite_only:
+            parser.error(
+                "--underwrite-only is blocked in formal LOS-only mode. "
+                "Formal submissions/offers must flow through full LOS pipeline."
+            )
+        if args.los_mode != "full":
+            parser.error(
+                f"--los-mode {args.los_mode!r} is blocked in formal LOS-only mode; use --los-mode full."
+            )
 
     # Configure logging — errors always shown, -v adds per-call progress
     logging.basicConfig(
@@ -433,6 +487,38 @@ def main() -> None:
             lenders_source = _format_source(lenders_path)
         except (ValueError, RuntimeError) as exc:
             parser.error(str(exc))
+
+    if args.crm_sim:
+        from .crm_sim import (
+            CRMSimulationConfig,
+            print_crm_simulation_report,
+            run_crm_simulation,
+        )
+
+        if lenders_source:
+            print(f"  Lender preset: {lenders_source}")
+
+        crm_config = CRMSimulationConfig(
+            cases=args.crm_cases,
+            mix=args.crm_mix,
+            seed=args.seed if args.seed is not None else SEASON_DEFAULTS["seed"],
+            incomplete_ratio=args.crm_incomplete_ratio,
+            max_concurrent_per_lender=args.crm_concurrency,
+            apr_tolerance_pct=args.crm_apr_tolerance,
+            los_url=args.los_url,
+            los_provider=args.los_provider,
+            los_model=args.los_model,
+            require_formal_offer_trace=formal_los_only,
+        )
+        report = asyncio.run(run_crm_simulation(config=crm_config, lenders=lenders))
+        print_crm_simulation_report(report)
+
+        if args.crm_export:
+            import json
+            with open(args.crm_export, "w") as f:
+                json.dump(report, f, indent=2)
+            print(f"CRM simulation summary exported to: {args.crm_export}")
+        return
 
     if season_mode:
         weeks = args.weeks if args.weeks is not None else scenario_overrides.get("weeks", SEASON_DEFAULTS["weeks"])
@@ -524,6 +610,7 @@ def main() -> None:
             los_mode=args.los_mode,
             underwrite_only=args.underwrite_only,
             los_model=args.los_model,
+            formal_los_only=formal_los_only,
         )
         asyncio.run(season.run_season())
 
@@ -605,6 +692,10 @@ def main() -> None:
         uw_flag = " underwrite-only" if args.underwrite_only else ""
         model_flag = f" model={args.los_model}" if args.los_model else ""
         print(f"  [LOS MODE{uw_flag}] → {args.los_url} (mode={args.los_mode}{model_flag})")
+    if formal_los_only:
+        print("  Formal interactions: LOS-only enforced")
+    else:
+        print("  Formal interactions: legacy mode allowed")
     print(f"  Economics: {economics.name}")
     print("=" * 70)
 
@@ -630,6 +721,7 @@ def main() -> None:
         underwrite_only=args.underwrite_only, los_model=args.los_model,
         economics=economics,
         info_asymmetry=info_asymmetry,
+        formal_los_only=formal_los_only,
     )
 
     # Emit match record to leaderboard

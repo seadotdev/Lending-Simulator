@@ -260,6 +260,7 @@ class SimulationEngine:
         los_mode: str = "rules_only",
         underwrite_only: bool = False,
         los_model: str | None = None,
+        formal_los_only: bool = False,
         economics: EconomicsConfig | None = None,
         info_asymmetry: str = "none",
     ):
@@ -271,6 +272,7 @@ class SimulationEngine:
         self.los_mode = los_mode
         self.underwrite_only = underwrite_only
         self.los_model = los_model
+        self.formal_los_only = formal_los_only
         self.data_mode = data_mode
         self.max_concurrent = max_concurrent_per_lender
         self.economics = economics or EconomicsConfig()
@@ -306,11 +308,27 @@ class SimulationEngine:
                   f"Each lender sees a different view of borrower data.")
 
         if self.mock:
+            if self.formal_los_only:
+                raise RuntimeError(
+                    "Formal LOS-only mode requires live LOS evaluation; mock mode is disabled. "
+                    "Use --allow-non-los-formal to bypass."
+                )
             print(f"\n[MOCK MODE] Simulating LLM evaluations (data_mode={self.data_mode})...\n")
             self.all_decisions = mock_evaluate_all(
                 self.lenders, self.borrowers, self.data_mode,
             )
         else:
+            if self.formal_los_only:
+                if self.underwrite_only:
+                    raise RuntimeError(
+                        "Formal LOS-only mode forbids --underwrite-only. "
+                        "Use full LOS pipeline so submissions/offers are formal LOS interactions."
+                    )
+                if self.los_mode != "full":
+                    raise RuntimeError(
+                        "Formal LOS-only mode requires --los-mode full. "
+                        f"Received los_mode='{self.los_mode}'."
+                    )
             from .los_adapter import check_los_health, evaluate_all_via_los
 
             await check_los_health(self.los_url)
@@ -329,6 +347,7 @@ class SimulationEngine:
                     mode=self.los_mode,
                     underwrite_only=self.underwrite_only,
                     los_model=self.los_model,
+                    require_formal_offer_trace=self.formal_los_only,
                 )
                 for lender in self.lenders
             ]

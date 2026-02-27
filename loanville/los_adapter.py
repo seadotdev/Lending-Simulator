@@ -527,6 +527,14 @@ PASS_PREFIX = "[PASS]"
 _OFFER_VALID_RE = re.compile(r"(?:offer_valid_weeks|OFFER_VALID_WEEKS)\s*[:=]\s*(\d+)")
 
 
+def _has_formal_offer_trace(run: UnderwritingRun) -> bool:
+    """Whether the LOS trace shows at least one actionable tool call."""
+    for step in getattr(run.trace, "steps", []) or []:
+        if (step.type or "").lower() == "tool_call":
+            return True
+    return False
+
+
 def _extract_offer_valid_weeks(run: UnderwritingRun, fallback: int = 1) -> int:
     """Best-effort extraction from LOS decision metadata."""
     conditions = getattr(run.decision, "conditions", None) or []
@@ -545,7 +553,10 @@ def _extract_offer_valid_weeks(run: UnderwritingRun, fallback: int = 1) -> int:
     return max(1, int(fallback))
 
 
-def run_to_decision(run: UnderwritingRun) -> LenderDecision:
+def run_to_decision(
+    run: UnderwritingRun,
+    require_formal_offer_trace: bool = False,
+) -> LenderDecision:
     """Convert an UnderwritingRun back to a LenderDecision for adjudication.
 
     APR conversion: Run uses decimal (0.095), TermSheet uses percentage (9.5).
@@ -573,6 +584,15 @@ def run_to_decision(run: UnderwritingRun) -> LenderDecision:
     is_pass = action == "refer" and reasoning.strip().upper().startswith(PASS_PREFIX)
     if is_pass:
         decision_str = "PASS"
+
+    if action == "approve":
+        if require_formal_offer_trace and not _has_formal_offer_trace(run):
+            action = "refer"
+            decision_str = "PASS"
+            reasoning = (
+                f"{reasoning} "
+                "[LOS_FORMALITY] Approval ignored: no LOS tool_call trace for formal offer."
+            ).strip()
 
     if action == "approve":
         params = run.policy.params or {}
@@ -647,6 +667,7 @@ async def evaluate_all_via_los(
     underwrite_only: bool = False,
     los_model: str | None = None,
     timeout: float | None = None,
+    require_formal_offer_trace: bool = False,
 ) -> tuple[list[LenderDecision], list[UnderwritingRun]]:
     """Evaluate all borrowers for a single lender via LOS.
 
@@ -673,5 +694,8 @@ async def evaluate_all_via_los(
             )
 
     runs = await asyncio.gather(*[_eval(b) for b in borrowers])
-    decisions = [run_to_decision(r) for r in runs]
+    decisions = [
+        run_to_decision(r, require_formal_offer_trace=require_formal_offer_trace)
+        for r in runs
+    ]
     return list(decisions), list(runs)

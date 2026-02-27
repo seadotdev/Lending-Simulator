@@ -59,10 +59,11 @@
 #
 # USAGE
 # =====
-#   ./run_sim.sh                     # Default: realistic mix, underwrite-only
+#   ./run_sim.sh                     # Default: realistic mix, full LOS pipeline
 #   ./run_sim.sh --mix easy          # Easier borrower pool (12 borrowers)
 #   ./run_sim.sh --mix hard          # Adversarial stress test
-#   ./run_sim.sh --full-pipeline     # Full LOS pipeline (entity/deal/docs/spread/stages)
+#   ./run_sim.sh --full-pipeline     # Full LOS pipeline (explicit; same as default)
+#   ./run_sim.sh --underwrite-only   # Legacy direct /v1/underwrite path (non-formal)
 #   ./run_sim.sh --los-model MODEL   # Override LLM model for all lenders
 #   ./run_sim.sh --economics aggressive  # Aggressive economics preset
 #   ./run_sim.sh --mock              # Mock mode (no API key, no LOS, deterministic)
@@ -86,8 +87,7 @@ MIX="realistic"
 ECONOMICS="balanced"
 LOS_PROVIDER="openrouter"
 LOS_MODE="full"
-UNDERWRITE_ONLY="--underwrite-only"
-FULL_PIPELINE=false
+UNDERWRITE_ONLY=""
 MOCK=false
 LEADERBOARD=false
 EXTRA_ARGS=()
@@ -102,7 +102,9 @@ while [[ $# -gt 0 ]]; do
         --los-model)
             EXTRA_ARGS+=("--los-model" "$2"); shift 2 ;;
         --full-pipeline)
-            FULL_PIPELINE=true; UNDERWRITE_ONLY=""; shift ;;
+            UNDERWRITE_ONLY=""; shift ;;
+        --underwrite-only)
+            UNDERWRITE_ONLY="--underwrite-only --allow-non-los-formal"; shift ;;
         --mock)
             MOCK=true; shift ;;
         --leaderboard)
@@ -136,7 +138,7 @@ if $MOCK; then
     cd "$SCRIPT_DIR"
     LB_FLAG=""
     if $LEADERBOARD; then LB_FLAG="--leaderboard"; fi
-    python -m loanville --mock --mix "$MIX" --economics "$ECONOMICS" $LB_FLAG ${EXTRA_ARGS[@]+"${EXTRA_ARGS[@]}"}
+    python -m loanville --mock --allow-non-los-formal --mix "$MIX" --economics "$ECONOMICS" $LB_FLAG ${EXTRA_ARGS[@]+"${EXTRA_ARGS[@]}"}
     exit 0
 fi
 

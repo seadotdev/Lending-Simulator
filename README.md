@@ -49,6 +49,15 @@ cp .env.example .env
 ## Run
 
 ```bash
+# LOS simulation (formal interactions enforced by default)
+python -m loanville --mix realistic --los-mode full
+
+# CRM-style high-volume simulation benchmark
+python -m loanville --crm-sim --crm-cases 180 --crm-concurrency 12
+
+# Legacy non-LOS/mocked path (explicit opt-out)
+python -m loanville --mock --allow-non-los-formal
+
 # Elo tournament (recommended)
 python elo_benchmark.py --mix analyst --matches 50
 
@@ -66,8 +75,10 @@ python -m loanville \
   --economics balanced \
   --scenario realistic-10w \
   --lenders budget-league \
-  --mock
+  --allow-non-los-formal --mock
 ```
+
+Formal LOS enforcement and CRM simulation roadmap: [docs/los-crm-roadmap.md](docs/los-crm-roadmap.md)
 
 ## Configuration
 

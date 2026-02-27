@@ -98,6 +98,7 @@ class SeasonEngine:
         los_mode: str = "rules_only",
         underwrite_only: bool = False,
         los_model: str | None = None,
+        formal_los_only: bool = False,
     ):
         self.config = config
         self.base_lenders = lenders
@@ -125,6 +126,7 @@ class SeasonEngine:
             los_mode=los_mode,
             underwrite_only=underwrite_only,
             los_model=los_model,
+            formal_los_only=formal_los_only,
             economics=config.economics,
             info_asymmetry=config.info_asymmetry,
         )
