@@ -434,6 +434,7 @@ async def evaluate_via_los(
             "provider": provider,
             "mode": mode,
             "dossier": dossier,
+            "allow_rules_fallback": False,
         }
         # Full mode also receives explicit model config.
         if mode == "full":

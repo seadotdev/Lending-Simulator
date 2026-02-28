@@ -313,9 +313,9 @@ def main() -> None:
                         help="Random seed for deterministic borrower ordering")
     parser.add_argument("--los-url", default="http://localhost:3000",
                         help="Open LOS API URL (default: http://localhost:3000)")
-    parser.add_argument("--los-provider", default="anthropic",
+    parser.add_argument("--los-provider", default="openrouter",
                         choices=["openrouter", "anthropic", "openai", "vercel"],
-                        help="LLM provider for LOS evaluation (default: anthropic)")
+                        help="LLM provider for LOS evaluation (default: openrouter)")
     parser.add_argument("--los-mode", default="full",
                         choices=["full", "rules_only"],
                         help="LOS evaluation mode: 'full' uses LLM agent, "

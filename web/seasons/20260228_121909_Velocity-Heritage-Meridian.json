@@ -1,0 +1,2689 @@
+{
+  "type": "season",
+  "config": {
+    "weeks": 2,
+    "cohort_size": 2,
+    "months_per_week": 2,
+    "season_mix": "realistic",
+    "seed": 42,
+    "arrival_phases": 1,
+    "deep_uw_slots_per_week": 0,
+    "borrower_patience_weeks": 1,
+    "offer_validity_weeks": 1
+  },
+  "lenders": [
+    {
+      "id": "LND-001",
+      "name": "Velocity Capital",
+      "model": "openai/gpt-4.1-nano",
+      "total_capital": 3000000,
+      "net_pnl": 0.0,
+      "deployed": 1180000,
+      "deals_won": 0,
+      "deals_rejected": 0,
+      "deals_passed": 0,
+      "deals_lost": 0,
+      "cumulative_interest": 0.0,
+      "cumulative_losses": 0.0,
+      "cumulative_fees": 0.0,
+      "cumulative_workout_cost": 0.0,
+      "defaults": 0,
+      "frauds_funded": 0,
+      "weekly_utilization": [
+        0.3933,
+        0.3933
+      ],
+      "weekly_snapshots": [
+        {
+          "week": 1,
+          "effective_capital": 2996360.0,
+          "available_capital": 1816360.0,
+          "deployed_capital": 1180000,
+          "active_loans": 0,
+          "defaults_to_date": 0,
+          "frauds_to_date": 0,
+          "net_pnl": 0.0
+        },
+        {
+          "week": 2,
+          "effective_capital": 2992727.28,
+          "available_capital": 1812727.28,
+          "deployed_capital": 1180000,
+          "active_loans": 0,
+          "defaults_to_date": 0,
+          "frauds_to_date": 0,
+          "net_pnl": 0.0
+        },
+        {
+          "week": 3,
+          "effective_capital": 2992727.28,
+          "available_capital": 1812727.28,
+          "deployed_capital": 1180000,
+          "active_loans": 0,
+          "defaults_to_date": 0,
+          "frauds_to_date": 0,
+          "net_pnl": 0.0
+        }
+      ],
+      "deep_uw_deferred": 0,
+      "weekly_deep_uw_used": [
+        0,
+        0
+      ],
+      "active_loans": [],
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "cost_usd": 0.0
+    },
+    {
+      "id": "LND-002",
+      "name": "Heritage Trust Bank",
+      "model": "mistralai/mistral-small-3.2-24b-instruct",
+      "total_capital": 4000000,
+      "net_pnl": 0.0,
+      "deployed": 1500000,
+      "deals_won": 0,
+      "deals_rejected": 0,
+      "deals_passed": 0,
+      "deals_lost": 0,
+      "cumulative_interest": 0.0,
+      "cumulative_losses": 0.0,
+      "cumulative_fees": 0.0,
+      "cumulative_workout_cost": 0.0,
+      "defaults": 0,
+      "frauds_funded": 0,
+      "weekly_utilization": [
+        0.375,
+        0.375
+      ],
+      "weekly_snapshots": [
+        {
+          "week": 1,
+          "effective_capital": 3995000.0,
+          "available_capital": 2495000.0,
+          "deployed_capital": 1500000,
+          "active_loans": 0,
+          "defaults_to_date": 0,
+          "frauds_to_date": 0,
+          "net_pnl": 0.0
+        },
+        {
+          "week": 2,
+          "effective_capital": 3990010.0,
+          "available_capital": 2490010.0,
+          "deployed_capital": 1500000,
+          "active_loans": 0,
+          "defaults_to_date": 0,
+          "frauds_to_date": 0,
+          "net_pnl": 0.0
+        },
+        {
+          "week": 3,
+          "effective_capital": 3990010.0,
+          "available_capital": 2490010.0,
+          "deployed_capital": 1500000,
+          "active_loans": 0,
+          "defaults_to_date": 0,
+          "frauds_to_date": 0,
+          "net_pnl": 0.0
+        }
+      ],
+      "deep_uw_deferred": 0,
+      "weekly_deep_uw_used": [
+        0,
+        0
+      ],
+      "active_loans": [],
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "cost_usd": 0.0
+    },
+    {
+      "id": "LND-003",
+      "name": "Meridian Partners",
+      "model": "deepseek/deepseek-v3.2",
+      "total_capital": 3500000,
+      "net_pnl": 0.0,
+      "deployed": 1200000,
+      "deals_won": 0,
+      "deals_rejected": 0,
+      "deals_passed": 0,
+      "deals_lost": 0,
+      "cumulative_interest": 0.0,
+      "cumulative_losses": 0.0,
+      "cumulative_fees": 0.0,
+      "cumulative_workout_cost": 0.0,
+      "defaults": 0,
+      "frauds_funded": 0,
+      "weekly_utilization": [
+        0.3429,
+        0.3429
+      ],
+      "weekly_snapshots": [
+        {
+          "week": 1,
+          "effective_capital": 3495400.0,
+          "available_capital": 2295400.0,
+          "deployed_capital": 1200000,
+          "active_loans": 0,
+          "defaults_to_date": 0,
+          "frauds_to_date": 0,
+          "net_pnl": 0.0
+        },
+        {
+          "week": 2,
+          "effective_capital": 3490809.2,
+          "available_capital": 2290809.2,
+          "deployed_capital": 1200000,
+          "active_loans": 0,
+          "defaults_to_date": 0,
+          "frauds_to_date": 0,
+          "net_pnl": 0.0
+        },
+        {
+          "week": 3,
+          "effective_capital": 3490809.2,
+          "available_capital": 2290809.2,
+          "deployed_capital": 1200000,
+          "active_loans": 0,
+          "defaults_to_date": 0,
+          "frauds_to_date": 0,
+          "net_pnl": 0.0
+        }
+      ],
+      "deep_uw_deferred": 0,
+      "weekly_deep_uw_used": [
+        0,
+        0
+      ],
+      "active_loans": [],
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "cost_usd": 0.0
+    },
+    {
+      "id": "LND-004",
+      "name": "Pinnacle Finance",
+      "model": "qwen/qwen3-30b-a3b",
+      "total_capital": 3200000,
+      "net_pnl": 0.0,
+      "deployed": 880000,
+      "deals_won": 0,
+      "deals_rejected": 0,
+      "deals_passed": 0,
+      "deals_lost": 0,
+      "cumulative_interest": 0.0,
+      "cumulative_losses": 0.0,
+      "cumulative_fees": 0.0,
+      "cumulative_workout_cost": 0.0,
+      "defaults": 0,
+      "frauds_funded": 0,
+      "weekly_utilization": [
+        0.275,
+        0.275
+      ],
+      "weekly_snapshots": [
+        {
+          "week": 1,
+          "effective_capital": 3195360.0,
+          "available_capital": 2315360.0,
+          "deployed_capital": 880000,
+          "active_loans": 0,
+          "defaults_to_date": 0,
+          "frauds_to_date": 0,
+          "net_pnl": 0.0
+        },
+        {
+          "week": 2,
+          "effective_capital": 3190729.28,
+          "available_capital": 2310729.28,
+          "deployed_capital": 880000,
+          "active_loans": 0,
+          "defaults_to_date": 0,
+          "frauds_to_date": 0,
+          "net_pnl": 0.0
+        },
+        {
+          "week": 3,
+          "effective_capital": 3190729.28,
+          "available_capital": 2310729.28,
+          "deployed_capital": 880000,
+          "active_loans": 0,
+          "defaults_to_date": 0,
+          "frauds_to_date": 0,
+          "net_pnl": 0.0
+        }
+      ],
+      "deep_uw_deferred": 0,
+      "weekly_deep_uw_used": [
+        0,
+        0
+      ],
+      "active_loans": [],
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "cost_usd": 0.0
+    },
+    {
+      "id": "LND-005",
+      "name": "Atlas Credit",
+      "model": "meta-llama/llama-3.3-70b-instruct",
+      "total_capital": 3800000,
+      "net_pnl": 0.0,
+      "deployed": 1070000,
+      "deals_won": 0,
+      "deals_rejected": 0,
+      "deals_passed": 0,
+      "deals_lost": 0,
+      "cumulative_interest": 0.0,
+      "cumulative_losses": 0.0,
+      "cumulative_fees": 0.0,
+      "cumulative_workout_cost": 0.0,
+      "defaults": 0,
+      "frauds_funded": 0,
+      "weekly_utilization": [
+        0.2816,
+        0.2816
+      ],
+      "weekly_snapshots": [
+        {
+          "week": 1,
+          "effective_capital": 3794540.0,
+          "available_capital": 2724540.0,
+          "deployed_capital": 1070000,
+          "active_loans": 0,
+          "defaults_to_date": 0,
+          "frauds_to_date": 0,
+          "net_pnl": 0.0
+        },
+        {
+          "week": 2,
+          "effective_capital": 3789090.92,
+          "available_capital": 2719090.92,
+          "deployed_capital": 1070000,
+          "active_loans": 0,
+          "defaults_to_date": 0,
+          "frauds_to_date": 0,
+          "net_pnl": 0.0
+        },
+        {
+          "week": 3,
+          "effective_capital": 3789090.92,
+          "available_capital": 2719090.92,
+          "deployed_capital": 1070000,
+          "active_loans": 0,
+          "defaults_to_date": 0,
+          "frauds_to_date": 0,
+          "net_pnl": 0.0
+        }
+      ],
+      "deep_uw_deferred": 0,
+      "weekly_deep_uw_used": [
+        0,
+        0
+      ],
+      "active_loans": [],
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "cost_usd": 0.0
+    }
+  ],
+  "weeks": [
+    {
+      "week": 1,
+      "borrowers": [
+        {
+          "id": "BRW-002",
+          "name": "NovaBio Labs",
+          "sector": "Bio-Synthetics",
+          "amount": 300000,
+          "true_outcome": "good",
+          "arrival_phase": 1
+        },
+        {
+          "id": "BRW-029",
+          "name": "Metro Print & Design",
+          "sector": "Print Services",
+          "amount": 250000,
+          "true_outcome": "good",
+          "arrival_phase": 1
+        }
+      ],
+      "decisions": [
+        {
+          "lender_id": "LND-001",
+          "borrower_id": "BRW-002",
+          "decision": "REJECT",
+          "offer_valid_weeks": 1,
+          "bandwidth_limited": false,
+          "reasoning": "[LLM_ERROR] LLM evaluation failed: 401 {\"type\":\"error\",\"error\":{\"type\":\"authentication_error\",\"message\":\"invalid x-api-key\"},\"request_id\":\"req_011CYaTLNTqudBSKt9mJoqht\"}",
+          "term_sheet": null,
+          "tokens_in": 0,
+          "tokens_out": 0,
+          "cost_usd": 0,
+          "tool_calls": 0,
+          "chain_of_thought": "Built underwriting prompt: 17642 chars, model=openai/gpt-4.1-nano\n\nLLM call failed: 401 {\"type\":\"error\",\"error\":{\"type\":\"authentication_error\",\"message\":\"invalid x-api-key\"},\"request_id\":\"req_011CYaTLNTqudBSKt9mJoqht\"}",
+          "los_detail": {
+            "inputs": {
+              "financials": {
+                "revenue_ttm": 1353000,
+                "gross_margin": 0.3008130081300813,
+                "ebitda_ttm": 407000,
+                "net_income": 407000,
+                "annual_expenses": 946000
+              },
+              "banking": {
+                "avg_daily_balance_90d": 460666.67,
+                "nsf_12m": 0,
+                "total_deposits_12m": 1353000.0,
+                "total_withdrawals_12m": 946000.0
+              },
+              "business": {
+                "industry": "Bio-Synthetics",
+                "years_trading": 4,
+                "employee_count": 22,
+                "company_name": "NovaBio Labs"
+              },
+              "raw_documents": [
+                {
+                  "doc_id": "bank_statements_12m",
+                  "type": "bank_statement",
+                  "bytes_sha": "ddb4647c61c0d640"
+                },
+                {
+                  "doc_id": "quarterly_income",
+                  "type": "pnl",
+                  "bytes_sha": "82ddf793b9def389"
+                }
+              ],
+              "missing_info": []
+            },
+            "trace": {
+              "latency_ms": 573,
+              "steps": [
+                {
+                  "t": "2026-02-28T12:19:08.156Z",
+                  "type": "reasoning",
+                  "name": "prompt_construction",
+                  "args": {},
+                  "result": {},
+                  "content": "Built underwriting prompt: 17642 chars, model=openai/gpt-4.1-nano"
+                },
+                {
+                  "t": "2026-02-28T12:19:08.521Z",
+                  "type": "note",
+                  "name": "llm_error",
+                  "args": {},
+                  "result": {},
+                  "content": "LLM call failed: 401 {\"type\":\"error\",\"error\":{\"type\":\"authentication_error\",\"message\":\"invalid x-api-key\"},\"request_id\":\"req_011CYaTLNTqudBSKt9mJoqht\"}"
+                }
+              ],
+              "cost": {
+                "tokens_in": 0,
+                "tokens_out": 0,
+                "estimated_cost_usd": 0
+              }
+            },
+            "decision": {
+              "action": "decline",
+              "risk_grade": "D",
+              "prob_default_12m": 0.5,
+              "confidence": 0,
+              "conditions": [],
+              "covenants": [],
+              "terms": {
+                "amount": 0.0,
+                "apr": 0.0,
+                "tenor_months": 0,
+                "fees": {}
+              },
+              "rationale": {
+                "summary": "LLM evaluation failed: 401 {\"type\":\"error\",\"error\":{\"type\":\"authentication_error\",\"message\":\"invalid x-api-key\"},\"request_id\":\"req_011CYaTLNTqudBSKt9mJoqht\"}",
+                "key_factors": [],
+                "what_would_change": []
+              }
+            }
+          }
+        },
+        {
+          "lender_id": "LND-001",
+          "borrower_id": "BRW-029",
+          "decision": "REJECT",
+          "offer_valid_weeks": 1,
+          "bandwidth_limited": false,
+          "reasoning": "[LLM_ERROR] LLM evaluation failed: 401 {\"type\":\"error\",\"error\":{\"type\":\"authentication_error\",\"message\":\"invalid x-api-key\"},\"request_id\":\"req_011CYaTLNMQ7vf8XBqK8E45N\"}",
+          "term_sheet": null,
+          "tokens_in": 0,
+          "tokens_out": 0,
+          "cost_usd": 0,
+          "tool_calls": 0,
+          "chain_of_thought": "Built underwriting prompt: 17635 chars, model=openai/gpt-4.1-nano\n\nLLM call failed: 401 {\"type\":\"error\",\"error\":{\"type\":\"authentication_error\",\"message\":\"invalid x-api-key\"},\"request_id\":\"req_011CYaTLNMQ7vf8XBqK8E45N\"}",
+          "los_detail": {
+            "inputs": {
+              "financials": {
+                "revenue_ttm": 1870000,
+                "gross_margin": 0.2641711229946524,
+                "ebitda_ttm": 494000,
+                "net_income": 494000,
+                "annual_expenses": 1376000
+              },
+              "banking": {
+                "avg_daily_balance_90d": 565000.0,
+                "nsf_12m": 0,
+                "total_deposits_12m": 1870000.0,
+                "total_withdrawals_12m": 1376000.0
+              },
+              "business": {
+                "industry": "Print Services",
+                "years_trading": 18,
+                "employee_count": 24,
+                "company_name": "Metro Print & Design"
+              },
+              "raw_documents": [
+                {
+                  "doc_id": "bank_statements_12m",
+                  "type": "bank_statement",
+                  "bytes_sha": "dd51dc17a4b73db6"
+                },
+                {
+                  "doc_id": "quarterly_income",
+                  "type": "pnl",
+                  "bytes_sha": "0d98726510c0bf4f"
+                }
+              ],
+              "missing_info": []
+            },
+            "trace": {
+              "latency_ms": 543,
+              "steps": [
+                {
+                  "t": "2026-02-28T12:19:08.267Z",
+                  "type": "reasoning",
+                  "name": "prompt_construction",
+                  "args": {},
+                  "result": {},
+                  "content": "Built underwriting prompt: 17635 chars, model=openai/gpt-4.1-nano"
+                },
+                {
+                  "t": "2026-02-28T12:19:08.498Z",
+                  "type": "note",
+                  "name": "llm_error",
+                  "args": {},
+                  "result": {},
+                  "content": "LLM call failed: 401 {\"type\":\"error\",\"error\":{\"type\":\"authentication_error\",\"message\":\"invalid x-api-key\"},\"request_id\":\"req_011CYaTLNMQ7vf8XBqK8E45N\"}"
+                }
+              ],
+              "cost": {
+                "tokens_in": 0,
+                "tokens_out": 0,
+                "estimated_cost_usd": 0
+              }
+            },
+            "decision": {
+              "action": "decline",
+              "risk_grade": "D",
+              "prob_default_12m": 0.5,
+              "confidence": 0,
+              "conditions": [],
+              "covenants": [],
+              "terms": {
+                "amount": 0.0,
+                "apr": 0.0,
+                "tenor_months": 0,
+                "fees": {}
+              },
+              "rationale": {
+                "summary": "LLM evaluation failed: 401 {\"type\":\"error\",\"error\":{\"type\":\"authentication_error\",\"message\":\"invalid x-api-key\"},\"request_id\":\"req_011CYaTLNMQ7vf8XBqK8E45N\"}",
+                "key_factors": [],
+                "what_would_change": []
+              }
+            }
+          }
+        },
+        {
+          "lender_id": "LND-002",
+          "borrower_id": "BRW-002",
+          "decision": "REJECT",
+          "offer_valid_weeks": 1,
+          "bandwidth_limited": false,
+          "reasoning": "[LLM_ERROR] LLM evaluation failed: 401 {\"type\":\"error\",\"error\":{\"type\":\"authentication_error\",\"message\":\"invalid x-api-key\"},\"request_id\":\"req_011CYaTLNCyCS5MA8X7L7P3e\"}",
+          "term_sheet": null,
+          "tokens_in": 0,
+          "tokens_out": 0,
+          "cost_usd": 0,
+          "tool_calls": 0,
+          "chain_of_thought": "Built underwriting prompt: 17696 chars, model=mistralai/mistral-small-3.2-24b-instruct\n\nLLM call failed: 401 {\"type\":\"error\",\"error\":{\"type\":\"authentication_error\",\"message\":\"invalid x-api-key\"},\"request_id\":\"req_011CYaTLNCyCS5MA8X7L7P3e\"}",
+          "los_detail": {
+            "inputs": {
+              "financials": {
+                "revenue_ttm": 1353000,
+                "gross_margin": 0.3008130081300813,
+                "ebitda_ttm": 407000,
+                "net_income": 407000,
+                "annual_expenses": 946000
+              },
+              "banking": {
+                "avg_daily_balance_90d": 460666.67,
+                "nsf_12m": 0,
+                "total_deposits_12m": 1353000.0,
+                "total_withdrawals_12m": 946000.0
+              },
+              "business": {
+                "industry": "Bio-Synthetics",
+                "years_trading": 4,
+                "employee_count": 22,
+                "company_name": "NovaBio Labs"
+              },
+              "raw_documents": [
+                {
+                  "doc_id": "bank_statements_12m",
+                  "type": "bank_statement",
+                  "bytes_sha": "ddb4647c61c0d640"
+                },
+                {
+                  "doc_id": "quarterly_income",
+                  "type": "pnl",
+                  "bytes_sha": "82ddf793b9def389"
+                }
+              ],
+              "missing_info": []
+            },
+            "trace": {
+              "latency_ms": 504,
+              "steps": [
+                {
+                  "t": "2026-02-28T12:19:08.232Z",
+                  "type": "reasoning",
+                  "name": "prompt_construction",
+                  "args": {},
+                  "result": {},
+                  "content": "Built underwriting prompt: 17696 chars, model=mistralai/mistral-small-3.2-24b-instruct"
+                },
+                {
+                  "t": "2026-02-28T12:19:08.465Z",
+                  "type": "note",
+                  "name": "llm_error",
+                  "args": {},
+                  "result": {},
+                  "content": "LLM call failed: 401 {\"type\":\"error\",\"error\":{\"type\":\"authentication_error\",\"message\":\"invalid x-api-key\"},\"request_id\":\"req_011CYaTLNCyCS5MA8X7L7P3e\"}"
+                }
+              ],
+              "cost": {
+                "tokens_in": 0,
+                "tokens_out": 0,
+                "estimated_cost_usd": 0
+              }
+            },
+            "decision": {
+              "action": "decline",
+              "risk_grade": "D",
+              "prob_default_12m": 0.5,
+              "confidence": 0,
+              "conditions": [],
+              "covenants": [],
+              "terms": {
+                "amount": 0.0,
+                "apr": 0.0,
+                "tenor_months": 0,
+                "fees": {}
+              },
+              "rationale": {
+                "summary": "LLM evaluation failed: 401 {\"type\":\"error\",\"error\":{\"type\":\"authentication_error\",\"message\":\"invalid x-api-key\"},\"request_id\":\"req_011CYaTLNCyCS5MA8X7L7P3e\"}",
+                "key_factors": [],
+                "what_would_change": []
+              }
+            }
+          }
+        },
+        {
+          "lender_id": "LND-002",
+          "borrower_id": "BRW-029",
+          "decision": "REJECT",
+          "offer_valid_weeks": 1,
+          "bandwidth_limited": false,
+          "reasoning": "[LLM_ERROR] LLM evaluation failed: 401 {\"type\":\"error\",\"error\":{\"type\":\"authentication_error\",\"message\":\"invalid x-api-key\"},\"request_id\":\"req_011CYaTLNHvZVruNA5iemQXA\"}",
+          "term_sheet": null,
+          "tokens_in": 0,
+          "tokens_out": 0,
+          "cost_usd": 0,
+          "tool_calls": 0,
+          "chain_of_thought": "Built underwriting prompt: 17689 chars, model=mistralai/mistral-small-3.2-24b-instruct\n\nLLM call failed: 401 {\"type\":\"error\",\"error\":{\"type\":\"authentication_error\",\"message\":\"invalid x-api-key\"},\"request_id\":\"req_011CYaTLNHvZVruNA5iemQXA\"}",
+          "los_detail": {
+            "inputs": {
+              "financials": {
+                "revenue_ttm": 1870000,
+                "gross_margin": 0.2641711229946524,
+                "ebitda_ttm": 494000,
+                "net_income": 494000,
+                "annual_expenses": 1376000
+              },
+              "banking": {
+                "avg_daily_balance_90d": 565000.0,
+                "nsf_12m": 0,
+                "total_deposits_12m": 1870000.0,
+                "total_withdrawals_12m": 1376000.0
+              },
+              "business": {
+                "industry": "Print Services",
+                "years_trading": 18,
+                "employee_count": 24,
+                "company_name": "Metro Print & Design"
+              },
+              "raw_documents": [
+                {
+                  "doc_id": "bank_statements_12m",
+                  "type": "bank_statement",
+                  "bytes_sha": "dd51dc17a4b73db6"
+                },
+                {
+                  "doc_id": "quarterly_income",
+                  "type": "pnl",
+                  "bytes_sha": "0d98726510c0bf4f"
+                }
+              ],
+              "missing_info": []
+            },
+            "trace": {
+              "latency_ms": 526,
+              "steps": [
+                {
+                  "t": "2026-02-28T12:19:08.246Z",
+                  "type": "reasoning",
+                  "name": "prompt_construction",
+                  "args": {},
+                  "result": {},
+                  "content": "Built underwriting prompt: 17689 chars, model=mistralai/mistral-small-3.2-24b-instruct"
+                },
+                {
+                  "t": "2026-02-28T12:19:08.492Z",
+                  "type": "note",
+                  "name": "llm_error",
+                  "args": {},
+                  "result": {},
+                  "content": "LLM call failed: 401 {\"type\":\"error\",\"error\":{\"type\":\"authentication_error\",\"message\":\"invalid x-api-key\"},\"request_id\":\"req_011CYaTLNHvZVruNA5iemQXA\"}"
+                }
+              ],
+              "cost": {
+                "tokens_in": 0,
+                "tokens_out": 0,
+                "estimated_cost_usd": 0
+              }
+            },
+            "decision": {
+              "action": "decline",
+              "risk_grade": "D",
+              "prob_default_12m": 0.5,
+              "confidence": 0,
+              "conditions": [],
+              "covenants": [],
+              "terms": {
+                "amount": 0.0,
+                "apr": 0.0,
+                "tenor_months": 0,
+                "fees": {}
+              },
+              "rationale": {
+                "summary": "LLM evaluation failed: 401 {\"type\":\"error\",\"error\":{\"type\":\"authentication_error\",\"message\":\"invalid x-api-key\"},\"request_id\":\"req_011CYaTLNHvZVruNA5iemQXA\"}",
+                "key_factors": [],
+                "what_would_change": []
+              }
+            }
+          }
+        },
+        {
+          "lender_id": "LND-003",
+          "borrower_id": "BRW-002",
+          "decision": "REJECT",
+          "offer_valid_weeks": 1,
+          "bandwidth_limited": false,
+          "reasoning": "[LLM_ERROR] LLM evaluation failed: 401 {\"type\":\"error\",\"error\":{\"type\":\"authentication_error\",\"message\":\"invalid x-api-key\"},\"request_id\":\"req_011CYaTLNPsoFzfzeLAreQbm\"}",
+          "term_sheet": null,
+          "tokens_in": 0,
+          "tokens_out": 0,
+          "cost_usd": 0,
+          "tool_calls": 0,
+          "chain_of_thought": "Built underwriting prompt: 17754 chars, model=deepseek/deepseek-v3.2\n\nLLM call failed: 401 {\"type\":\"error\",\"error\":{\"type\":\"authentication_error\",\"message\":\"invalid x-api-key\"},\"request_id\":\"req_011CYaTLNPsoFzfzeLAreQbm\"}",
+          "los_detail": {
+            "inputs": {
+              "financials": {
+                "revenue_ttm": 1353000,
+                "gross_margin": 0.3008130081300813,
+                "ebitda_ttm": 407000,
+                "net_income": 407000,
+                "annual_expenses": 946000
+              },
+              "banking": {
+                "avg_daily_balance_90d": 460666.67,
+                "nsf_12m": 0,
+                "total_deposits_12m": 1353000.0,
+                "total_withdrawals_12m": 946000.0
+              },
+              "business": {
+                "industry": "Bio-Synthetics",
+                "years_trading": 4,
+                "employee_count": 22,
+                "company_name": "NovaBio Labs"
+              },
+              "raw_documents": [
+                {
+                  "doc_id": "bank_statements_12m",
+                  "type": "bank_statement",
+                  "bytes_sha": "ddb4647c61c0d640"
+                },
+                {
+                  "doc_id": "quarterly_income",
+                  "type": "pnl",
+                  "bytes_sha": "82ddf793b9def389"
+                }
+              ],
+              "missing_info": []
+            },
+            "trace": {
+              "latency_ms": 541,
+              "steps": [
+                {
+                  "t": "2026-02-28T12:19:08.285Z",
+                  "type": "reasoning",
+                  "name": "prompt_construction",
+                  "args": {},
+                  "result": {},
+                  "content": "Built underwriting prompt: 17754 chars, model=deepseek/deepseek-v3.2"
+                },
+                {
+                  "t": "2026-02-28T12:19:08.515Z",
+                  "type": "note",
+                  "name": "llm_error",
+                  "args": {},
+                  "result": {},
+                  "content": "LLM call failed: 401 {\"type\":\"error\",\"error\":{\"type\":\"authentication_error\",\"message\":\"invalid x-api-key\"},\"request_id\":\"req_011CYaTLNPsoFzfzeLAreQbm\"}"
+                }
+              ],
+              "cost": {
+                "tokens_in": 0,
+                "tokens_out": 0,
+                "estimated_cost_usd": 0
+              }
+            },
+            "decision": {
+              "action": "decline",
+              "risk_grade": "D",
+              "prob_default_12m": 0.5,
+              "confidence": 0,
+              "conditions": [],
+              "covenants": [],
+              "terms": {
+                "amount": 0.0,
+                "apr": 0.0,
+                "tenor_months": 0,
+                "fees": {}
+              },
+              "rationale": {
+                "summary": "LLM evaluation failed: 401 {\"type\":\"error\",\"error\":{\"type\":\"authentication_error\",\"message\":\"invalid x-api-key\"},\"request_id\":\"req_011CYaTLNPsoFzfzeLAreQbm\"}",
+                "key_factors": [],
+                "what_would_change": []
+              }
+            }
+          }
+        },
+        {
+          "lender_id": "LND-003",
+          "borrower_id": "BRW-029",
+          "decision": "REJECT",
+          "offer_valid_weeks": 1,
+          "bandwidth_limited": false,
+          "reasoning": "[LLM_ERROR] LLM evaluation failed: 401 {\"type\":\"error\",\"error\":{\"type\":\"authentication_error\",\"message\":\"invalid x-api-key\"},\"request_id\":\"req_011CYaTLN9zQMoH7vnGc2snb\"}",
+          "term_sheet": null,
+          "tokens_in": 0,
+          "tokens_out": 0,
+          "cost_usd": 0,
+          "tool_calls": 0,
+          "chain_of_thought": "Built underwriting prompt: 17747 chars, model=deepseek/deepseek-v3.2\n\nLLM call failed: 401 {\"type\":\"error\",\"error\":{\"type\":\"authentication_error\",\"message\":\"invalid x-api-key\"},\"request_id\":\"req_011CYaTLN9zQMoH7vnGc2snb\"}",
+          "los_detail": {
+            "inputs": {
+              "financials": {
+                "revenue_ttm": 1870000,
+                "gross_margin": 0.2641711229946524,
+                "ebitda_ttm": 494000,
+                "net_income": 494000,
+                "annual_expenses": 1376000
+              },
+              "banking": {
+                "avg_daily_balance_90d": 565000.0,
+                "nsf_12m": 0,
+                "total_deposits_12m": 1870000.0,
+                "total_withdrawals_12m": 1376000.0
+              },
+              "business": {
+                "industry": "Print Services",
+                "years_trading": 18,
+                "employee_count": 24,
+                "company_name": "Metro Print & Design"
+              },
+              "raw_documents": [
+                {
+                  "doc_id": "bank_statements_12m",
+                  "type": "bank_statement",
+                  "bytes_sha": "dd51dc17a4b73db6"
+                },
+                {
+                  "doc_id": "quarterly_income",
+                  "type": "pnl",
+                  "bytes_sha": "0d98726510c0bf4f"
+                }
+              ],
+              "missing_info": []
+            },
+            "trace": {
+              "latency_ms": 467,
+              "steps": [
+                {
+                  "t": "2026-02-28T12:19:08.178Z",
+                  "type": "reasoning",
+                  "name": "prompt_construction",
+                  "args": {},
+                  "result": {},
+                  "content": "Built underwriting prompt: 17747 chars, model=deepseek/deepseek-v3.2"
+                },
+                {
+                  "t": "2026-02-28T12:19:08.449Z",
+                  "type": "note",
+                  "name": "llm_error",
+                  "args": {},
+                  "result": {},
+                  "content": "LLM call failed: 401 {\"type\":\"error\",\"error\":{\"type\":\"authentication_error\",\"message\":\"invalid x-api-key\"},\"request_id\":\"req_011CYaTLN9zQMoH7vnGc2snb\"}"
+                }
+              ],
+              "cost": {
+                "tokens_in": 0,
+                "tokens_out": 0,
+                "estimated_cost_usd": 0
+              }
+            },
+            "decision": {
+              "action": "decline",
+              "risk_grade": "D",
+              "prob_default_12m": 0.5,
+              "confidence": 0,
+              "conditions": [],
+              "covenants": [],
+              "terms": {
+                "amount": 0.0,
+                "apr": 0.0,
+                "tenor_months": 0,
+                "fees": {}
+              },
+              "rationale": {
+                "summary": "LLM evaluation failed: 401 {\"type\":\"error\",\"error\":{\"type\":\"authentication_error\",\"message\":\"invalid x-api-key\"},\"request_id\":\"req_011CYaTLN9zQMoH7vnGc2snb\"}",
+                "key_factors": [],
+                "what_would_change": []
+              }
+            }
+          }
+        },
+        {
+          "lender_id": "LND-004",
+          "borrower_id": "BRW-002",
+          "decision": "REJECT",
+          "offer_valid_weeks": 1,
+          "bandwidth_limited": false,
+          "reasoning": "[LLM_ERROR] LLM evaluation failed: 401 {\"type\":\"error\",\"error\":{\"type\":\"authentication_error\",\"message\":\"invalid x-api-key\"},\"request_id\":\"req_011CYaTLNFhDTjRf1uNxoSuS\"}",
+          "term_sheet": null,
+          "tokens_in": 0,
+          "tokens_out": 0,
+          "cost_usd": 0,
+          "tool_calls": 0,
+          "chain_of_thought": "Built underwriting prompt: 17658 chars, model=qwen/qwen3-30b-a3b\n\nLLM call failed: 401 {\"type\":\"error\",\"error\":{\"type\":\"authentication_error\",\"message\":\"invalid x-api-key\"},\"request_id\":\"req_011CYaTLNFhDTjRf1uNxoSuS\"}",
+          "los_detail": {
+            "inputs": {
+              "financials": {
+                "revenue_ttm": 1353000,
+                "gross_margin": 0.3008130081300813,
+                "ebitda_ttm": 407000,
+                "net_income": 407000,
+                "annual_expenses": 946000
+              },
+              "banking": {
+                "avg_daily_balance_90d": 460666.67,
+                "nsf_12m": 0,
+                "total_deposits_12m": 1353000.0,
+                "total_withdrawals_12m": 946000.0
+              },
+              "business": {
+                "industry": "Bio-Synthetics",
+                "years_trading": 4,
+                "employee_count": 22,
+                "company_name": "NovaBio Labs"
+              },
+              "raw_documents": [
+                {
+                  "doc_id": "bank_statements_12m",
+                  "type": "bank_statement",
+                  "bytes_sha": "ddb4647c61c0d640"
+                },
+                {
+                  "doc_id": "quarterly_income",
+                  "type": "pnl",
+                  "bytes_sha": "82ddf793b9def389"
+                }
+              ],
+              "missing_info": []
+            },
+            "trace": {
+              "latency_ms": 486,
+              "steps": [
+                {
+                  "t": "2026-02-28T12:19:08.214Z",
+                  "type": "reasoning",
+                  "name": "prompt_construction",
+                  "args": {},
+                  "result": {},
+                  "content": "Built underwriting prompt: 17658 chars, model=qwen/qwen3-30b-a3b"
+                },
+                {
+                  "t": "2026-02-28T12:19:08.473Z",
+                  "type": "note",
+                  "name": "llm_error",
+                  "args": {},
+                  "result": {},
+                  "content": "LLM call failed: 401 {\"type\":\"error\",\"error\":{\"type\":\"authentication_error\",\"message\":\"invalid x-api-key\"},\"request_id\":\"req_011CYaTLNFhDTjRf1uNxoSuS\"}"
+                }
+              ],
+              "cost": {
+                "tokens_in": 0,
+                "tokens_out": 0,
+                "estimated_cost_usd": 0
+              }
+            },
+            "decision": {
+              "action": "decline",
+              "risk_grade": "D",
+              "prob_default_12m": 0.5,
+              "confidence": 0,
+              "conditions": [],
+              "covenants": [],
+              "terms": {
+                "amount": 0.0,
+                "apr": 0.0,
+                "tenor_months": 0,
+                "fees": {}
+              },
+              "rationale": {
+                "summary": "LLM evaluation failed: 401 {\"type\":\"error\",\"error\":{\"type\":\"authentication_error\",\"message\":\"invalid x-api-key\"},\"request_id\":\"req_011CYaTLNFhDTjRf1uNxoSuS\"}",
+                "key_factors": [],
+                "what_would_change": []
+              }
+            }
+          }
+        },
+        {
+          "lender_id": "LND-004",
+          "borrower_id": "BRW-029",
+          "decision": "REJECT",
+          "offer_valid_weeks": 1,
+          "bandwidth_limited": false,
+          "reasoning": "[LLM_ERROR] LLM evaluation failed: 401 {\"type\":\"error\",\"error\":{\"type\":\"authentication_error\",\"message\":\"invalid x-api-key\"},\"request_id\":\"req_011CYaTLN62DceeyeCjc7FKj\"}",
+          "term_sheet": null,
+          "tokens_in": 0,
+          "tokens_out": 0,
+          "cost_usd": 0,
+          "tool_calls": 0,
+          "chain_of_thought": "Built underwriting prompt: 17651 chars, model=qwen/qwen3-30b-a3b\n\nLLM call failed: 401 {\"type\":\"error\",\"error\":{\"type\":\"authentication_error\",\"message\":\"invalid x-api-key\"},\"request_id\":\"req_011CYaTLN62DceeyeCjc7FKj\"}",
+          "los_detail": {
+            "inputs": {
+              "financials": {
+                "revenue_ttm": 1870000,
+                "gross_margin": 0.2641711229946524,
+                "ebitda_ttm": 494000,
+                "net_income": 494000,
+                "annual_expenses": 1376000
+              },
+              "banking": {
+                "avg_daily_balance_90d": 565000.0,
+                "nsf_12m": 0,
+                "total_deposits_12m": 1870000.0,
+                "total_withdrawals_12m": 1376000.0
+              },
+              "business": {
+                "industry": "Print Services",
+                "years_trading": 18,
+                "employee_count": 24,
+                "company_name": "Metro Print & Design"
+              },
+              "raw_documents": [
+                {
+                  "doc_id": "bank_statements_12m",
+                  "type": "bank_statement",
+                  "bytes_sha": "dd51dc17a4b73db6"
+                },
+                {
+                  "doc_id": "quarterly_income",
+                  "type": "pnl",
+                  "bytes_sha": "0d98726510c0bf4f"
+                }
+              ],
+              "missing_info": []
+            },
+            "trace": {
+              "latency_ms": 451,
+              "steps": [
+                {
+                  "t": "2026-02-28T12:19:08.194Z",
+                  "type": "reasoning",
+                  "name": "prompt_construction",
+                  "args": {},
+                  "result": {},
+                  "content": "Built underwriting prompt: 17651 chars, model=qwen/qwen3-30b-a3b"
+                },
+                {
+                  "t": "2026-02-28T12:19:08.442Z",
+                  "type": "note",
+                  "name": "llm_error",
+                  "args": {},
+                  "result": {},
+                  "content": "LLM call failed: 401 {\"type\":\"error\",\"error\":{\"type\":\"authentication_error\",\"message\":\"invalid x-api-key\"},\"request_id\":\"req_011CYaTLN62DceeyeCjc7FKj\"}"
+                }
+              ],
+              "cost": {
+                "tokens_in": 0,
+                "tokens_out": 0,
+                "estimated_cost_usd": 0
+              }
+            },
+            "decision": {
+              "action": "decline",
+              "risk_grade": "D",
+              "prob_default_12m": 0.5,
+              "confidence": 0,
+              "conditions": [],
+              "covenants": [],
+              "terms": {
+                "amount": 0.0,
+                "apr": 0.0,
+                "tenor_months": 0,
+                "fees": {}
+              },
+              "rationale": {
+                "summary": "LLM evaluation failed: 401 {\"type\":\"error\",\"error\":{\"type\":\"authentication_error\",\"message\":\"invalid x-api-key\"},\"request_id\":\"req_011CYaTLN62DceeyeCjc7FKj\"}",
+                "key_factors": [],
+                "what_would_change": []
+              }
+            }
+          }
+        },
+        {
+          "lender_id": "LND-005",
+          "borrower_id": "BRW-002",
+          "decision": "REJECT",
+          "offer_valid_weeks": 1,
+          "bandwidth_limited": false,
+          "reasoning": "[LLM_ERROR] LLM evaluation failed: 401 {\"type\":\"error\",\"error\":{\"type\":\"authentication_error\",\"message\":\"invalid x-api-key\"},\"request_id\":\"req_011CYaTLNJv9muvZNXoQew6q\"}",
+          "term_sheet": null,
+          "tokens_in": 0,
+          "tokens_out": 0,
+          "cost_usd": 0,
+          "tool_calls": 0,
+          "chain_of_thought": "Built underwriting prompt: 17916 chars, model=meta-llama/llama-3.3-70b-instruct\n\nLLM call failed: 401 {\"type\":\"error\",\"error\":{\"type\":\"authentication_error\",\"message\":\"invalid x-api-key\"},\"request_id\":\"req_011CYaTLNJv9muvZNXoQew6q\"}",
+          "los_detail": {
+            "inputs": {
+              "financials": {
+                "revenue_ttm": 1353000,
+                "gross_margin": 0.3008130081300813,
+                "ebitda_ttm": 407000,
+                "net_income": 407000,
+                "annual_expenses": 946000
+              },
+              "banking": {
+                "avg_daily_balance_90d": 460666.67,
+                "nsf_12m": 0,
+                "total_deposits_12m": 1353000.0,
+                "total_withdrawals_12m": 946000.0
+              },
+              "business": {
+                "industry": "Bio-Synthetics",
+                "years_trading": 4,
+                "employee_count": 22,
+                "company_name": "NovaBio Labs"
+              },
+              "raw_documents": [
+                {
+                  "doc_id": "bank_statements_12m",
+                  "type": "bank_statement",
+                  "bytes_sha": "ddb4647c61c0d640"
+                },
+                {
+                  "doc_id": "quarterly_income",
+                  "type": "pnl",
+                  "bytes_sha": "82ddf793b9def389"
+                }
+              ],
+              "missing_info": []
+            },
+            "trace": {
+              "latency_ms": 495,
+              "steps": [
+                {
+                  "t": "2026-02-28T12:19:08.255Z",
+                  "type": "reasoning",
+                  "name": "prompt_construction",
+                  "args": {},
+                  "result": {},
+                  "content": "Built underwriting prompt: 17916 chars, model=meta-llama/llama-3.3-70b-instruct"
+                },
+                {
+                  "t": "2026-02-28T12:19:08.494Z",
+                  "type": "note",
+                  "name": "llm_error",
+                  "args": {},
+                  "result": {},
+                  "content": "LLM call failed: 401 {\"type\":\"error\",\"error\":{\"type\":\"authentication_error\",\"message\":\"invalid x-api-key\"},\"request_id\":\"req_011CYaTLNJv9muvZNXoQew6q\"}"
+                }
+              ],
+              "cost": {
+                "tokens_in": 0,
+                "tokens_out": 0,
+                "estimated_cost_usd": 0
+              }
+            },
+            "decision": {
+              "action": "decline",
+              "risk_grade": "D",
+              "prob_default_12m": 0.5,
+              "confidence": 0,
+              "conditions": [],
+              "covenants": [],
+              "terms": {
+                "amount": 0.0,
+                "apr": 0.0,
+                "tenor_months": 0,
+                "fees": {}
+              },
+              "rationale": {
+                "summary": "LLM evaluation failed: 401 {\"type\":\"error\",\"error\":{\"type\":\"authentication_error\",\"message\":\"invalid x-api-key\"},\"request_id\":\"req_011CYaTLNJv9muvZNXoQew6q\"}",
+                "key_factors": [],
+                "what_would_change": []
+              }
+            }
+          }
+        },
+        {
+          "lender_id": "LND-005",
+          "borrower_id": "BRW-029",
+          "decision": "REJECT",
+          "offer_valid_weeks": 1,
+          "bandwidth_limited": false,
+          "reasoning": "[LLM_ERROR] LLM evaluation failed: 401 {\"type\":\"error\",\"error\":{\"type\":\"authentication_error\",\"message\":\"invalid x-api-key\"},\"request_id\":\"req_011CYaTLN8Fhi3mMj6Lvn39L\"}",
+          "term_sheet": null,
+          "tokens_in": 0,
+          "tokens_out": 0,
+          "cost_usd": 0,
+          "tool_calls": 0,
+          "chain_of_thought": "Built underwriting prompt: 17909 chars, model=meta-llama/llama-3.3-70b-instruct\n\nLLM call failed: 401 {\"type\":\"error\",\"error\":{\"type\":\"authentication_error\",\"message\":\"invalid x-api-key\"},\"request_id\":\"req_011CYaTLN8Fhi3mMj6Lvn39L\"}",
+          "los_detail": {
+            "inputs": {
+              "financials": {
+                "revenue_ttm": 1870000,
+                "gross_margin": 0.2641711229946524,
+                "ebitda_ttm": 494000,
+                "net_income": 494000,
+                "annual_expenses": 1376000
+              },
+              "banking": {
+                "avg_daily_balance_90d": 565000.0,
+                "nsf_12m": 0,
+                "total_deposits_12m": 1870000.0,
+                "total_withdrawals_12m": 1376000.0
+              },
+              "business": {
+                "industry": "Print Services",
+                "years_trading": 18,
+                "employee_count": 24,
+                "company_name": "Metro Print & Design"
+              },
+              "raw_documents": [
+                {
+                  "doc_id": "bank_statements_12m",
+                  "type": "bank_statement",
+                  "bytes_sha": "dd51dc17a4b73db6"
+                },
+                {
+                  "doc_id": "quarterly_income",
+                  "type": "pnl",
+                  "bytes_sha": "0d98726510c0bf4f"
+                }
+              ],
+              "missing_info": []
+            },
+            "trace": {
+              "latency_ms": 444,
+              "steps": [
+                {
+                  "t": "2026-02-28T12:19:08.177Z",
+                  "type": "reasoning",
+                  "name": "prompt_construction",
+                  "args": {},
+                  "result": {},
+                  "content": "Built underwriting prompt: 17909 chars, model=meta-llama/llama-3.3-70b-instruct"
+                },
+                {
+                  "t": "2026-02-28T12:19:08.448Z",
+                  "type": "note",
+                  "name": "llm_error",
+                  "args": {},
+                  "result": {},
+                  "content": "LLM call failed: 401 {\"type\":\"error\",\"error\":{\"type\":\"authentication_error\",\"message\":\"invalid x-api-key\"},\"request_id\":\"req_011CYaTLN8Fhi3mMj6Lvn39L\"}"
+                }
+              ],
+              "cost": {
+                "tokens_in": 0,
+                "tokens_out": 0,
+                "estimated_cost_usd": 0
+              }
+            },
+            "decision": {
+              "action": "decline",
+              "risk_grade": "D",
+              "prob_default_12m": 0.5,
+              "confidence": 0,
+              "conditions": [],
+              "covenants": [],
+              "terms": {
+                "amount": 0.0,
+                "apr": 0.0,
+                "tenor_months": 0,
+                "fees": {}
+              },
+              "rationale": {
+                "summary": "LLM evaluation failed: 401 {\"type\":\"error\",\"error\":{\"type\":\"authentication_error\",\"message\":\"invalid x-api-key\"},\"request_id\":\"req_011CYaTLN8Fhi3mMj6Lvn39L\"}",
+                "key_factors": [],
+                "what_would_change": []
+              }
+            }
+          }
+        }
+      ],
+      "booked_loans": [],
+      "events": [
+        "  [Velocity Capital] Capital decay: -$3,640 on $1,820,000 idle (cumulative: $3,640)",
+        "  [Heritage Trust Bank] Capital decay: -$5,000 on $2,500,000 idle (cumulative: $5,000)",
+        "  [Meridian Partners] Capital decay: -$4,600 on $2,300,000 idle (cumulative: $4,600)",
+        "  [Pinnacle Finance] Capital decay: -$4,640 on $2,320,000 idle (cumulative: $4,640)",
+        "  [Atlas Credit] Capital decay: -$5,460 on $2,730,000 idle (cumulative: $5,460)"
+      ],
+      "bandwidth": {
+        "arrival_phases": 1,
+        "deep_uw_slots_per_week": 0,
+        "slots_used": {}
+      },
+      "lender_snapshots": {
+        "LND-001": {
+          "name": "Velocity Capital",
+          "model": "openai/gpt-4.1-nano",
+          "net_pnl": 0.0,
+          "deployed": 1180000,
+          "available": 1816360.0,
+          "effective_capital": 2996360.0,
+          "deals_won": 0,
+          "deals_rejected": 0,
+          "deals_passed": 0,
+          "deals_lost": 0,
+          "active_loans": 0,
+          "active_loans_detail": [],
+          "cumulative_interest": 0.0,
+          "cumulative_losses": 0.0,
+          "cumulative_fees": 0.0,
+          "cumulative_workout_cost": 0.0,
+          "defaults": 0,
+          "frauds_funded": 0,
+          "deep_uw_deferred": 0,
+          "deep_uw_used_this_week": 0,
+          "tokens_in": 0,
+          "tokens_out": 0,
+          "cost_usd": 0.0
+        },
+        "LND-002": {
+          "name": "Heritage Trust Bank",
+          "model": "mistralai/mistral-small-3.2-24b-instruct",
+          "net_pnl": 0.0,
+          "deployed": 1500000,
+          "available": 2495000.0,
+          "effective_capital": 3995000.0,
+          "deals_won": 0,
+          "deals_rejected": 0,
+          "deals_passed": 0,
+          "deals_lost": 0,
+          "active_loans": 0,
+          "active_loans_detail": [],
+          "cumulative_interest": 0.0,
+          "cumulative_losses": 0.0,
+          "cumulative_fees": 0.0,
+          "cumulative_workout_cost": 0.0,
+          "defaults": 0,
+          "frauds_funded": 0,
+          "deep_uw_deferred": 0,
+          "deep_uw_used_this_week": 0,
+          "tokens_in": 0,
+          "tokens_out": 0,
+          "cost_usd": 0.0
+        },
+        "LND-003": {
+          "name": "Meridian Partners",
+          "model": "deepseek/deepseek-v3.2",
+          "net_pnl": 0.0,
+          "deployed": 1200000,
+          "available": 2295400.0,
+          "effective_capital": 3495400.0,
+          "deals_won": 0,
+          "deals_rejected": 0,
+          "deals_passed": 0,
+          "deals_lost": 0,
+          "active_loans": 0,
+          "active_loans_detail": [],
+          "cumulative_interest": 0.0,
+          "cumulative_losses": 0.0,
+          "cumulative_fees": 0.0,
+          "cumulative_workout_cost": 0.0,
+          "defaults": 0,
+          "frauds_funded": 0,
+          "deep_uw_deferred": 0,
+          "deep_uw_used_this_week": 0,
+          "tokens_in": 0,
+          "tokens_out": 0,
+          "cost_usd": 0.0
+        },
+        "LND-004": {
+          "name": "Pinnacle Finance",
+          "model": "qwen/qwen3-30b-a3b",
+          "net_pnl": 0.0,
+          "deployed": 880000,
+          "available": 2315360.0,
+          "effective_capital": 3195360.0,
+          "deals_won": 0,
+          "deals_rejected": 0,
+          "deals_passed": 0,
+          "deals_lost": 0,
+          "active_loans": 0,
+          "active_loans_detail": [],
+          "cumulative_interest": 0.0,
+          "cumulative_losses": 0.0,
+          "cumulative_fees": 0.0,
+          "cumulative_workout_cost": 0.0,
+          "defaults": 0,
+          "frauds_funded": 0,
+          "deep_uw_deferred": 0,
+          "deep_uw_used_this_week": 0,
+          "tokens_in": 0,
+          "tokens_out": 0,
+          "cost_usd": 0.0
+        },
+        "LND-005": {
+          "name": "Atlas Credit",
+          "model": "meta-llama/llama-3.3-70b-instruct",
+          "net_pnl": 0.0,
+          "deployed": 1070000,
+          "available": 2724540.0,
+          "effective_capital": 3794540.0,
+          "deals_won": 0,
+          "deals_rejected": 0,
+          "deals_passed": 0,
+          "deals_lost": 0,
+          "active_loans": 0,
+          "active_loans_detail": [],
+          "cumulative_interest": 0.0,
+          "cumulative_losses": 0.0,
+          "cumulative_fees": 0.0,
+          "cumulative_workout_cost": 0.0,
+          "defaults": 0,
+          "frauds_funded": 0,
+          "deep_uw_deferred": 0,
+          "deep_uw_used_this_week": 0,
+          "tokens_in": 0,
+          "tokens_out": 0,
+          "cost_usd": 0.0
+        }
+      }
+    },
+    {
+      "week": 2,
+      "borrowers": [
+        {
+          "id": "BRW-005",
+          "name": "PixelForge Studios",
+          "sector": "Digital Media",
+          "amount": 400000,
+          "true_outcome": "good",
+          "arrival_phase": 1
+        },
+        {
+          "id": "BRW-034",
+          "name": "Silverline HVAC Services",
+          "sector": "Construction Services",
+          "amount": 225000,
+          "true_outcome": "good",
+          "arrival_phase": 1
+        }
+      ],
+      "decisions": [
+        {
+          "lender_id": "LND-001",
+          "borrower_id": "BRW-005",
+          "decision": "REJECT",
+          "offer_valid_weeks": 1,
+          "bandwidth_limited": false,
+          "reasoning": "[LLM_ERROR] LLM evaluation failed: 401 {\"type\":\"error\",\"error\":{\"type\":\"authentication_error\",\"message\":\"invalid x-api-key\"},\"request_id\":\"req_011CYaTLQ93vhoEz8PLmu7RK\"}",
+          "term_sheet": null,
+          "tokens_in": 0,
+          "tokens_out": 0,
+          "cost_usd": 0,
+          "tool_calls": 0,
+          "chain_of_thought": "Built underwriting prompt: 17746 chars, model=openai/gpt-4.1-nano\n\nLLM call failed: 401 {\"type\":\"error\",\"error\":{\"type\":\"authentication_error\",\"message\":\"invalid x-api-key\"},\"request_id\":\"req_011CYaTLQ93vhoEz8PLmu7RK\"}",
+          "los_detail": {
+            "inputs": {
+              "financials": {
+                "revenue_ttm": 1735000,
+                "gross_margin": 0.31354466858789626,
+                "ebitda_ttm": 544000,
+                "net_income": 544000,
+                "annual_expenses": 1191000
+              },
+              "banking": {
+                "avg_daily_balance_90d": 618666.67,
+                "nsf_12m": 0,
+                "total_deposits_12m": 1735000.0,
+                "total_withdrawals_12m": 1191000.0
+              },
+              "business": {
+                "industry": "Digital Media",
+                "years_trading": 7,
+                "employee_count": 28,
+                "company_name": "PixelForge Studios"
+              },
+              "raw_documents": [
+                {
+                  "doc_id": "bank_statements_12m",
+                  "type": "bank_statement",
+                  "bytes_sha": "706ad5ada58fba9a"
+                },
+                {
+                  "doc_id": "quarterly_income",
+                  "type": "pnl",
+                  "bytes_sha": "600bad4ac904c89a"
+                }
+              ],
+              "missing_info": []
+            },
+            "trace": {
+              "latency_ms": 383,
+              "steps": [
+                {
+                  "t": "2026-02-28T12:19:08.767Z",
+                  "type": "reasoning",
+                  "name": "prompt_construction",
+                  "args": {},
+                  "result": {},
+                  "content": "Built underwriting prompt: 17746 chars, model=openai/gpt-4.1-nano"
+                },
+                {
+                  "t": "2026-02-28T12:19:08.916Z",
+                  "type": "note",
+                  "name": "llm_error",
+                  "args": {},
+                  "result": {},
+                  "content": "LLM call failed: 401 {\"type\":\"error\",\"error\":{\"type\":\"authentication_error\",\"message\":\"invalid x-api-key\"},\"request_id\":\"req_011CYaTLQ93vhoEz8PLmu7RK\"}"
+                }
+              ],
+              "cost": {
+                "tokens_in": 0,
+                "tokens_out": 0,
+                "estimated_cost_usd": 0
+              }
+            },
+            "decision": {
+              "action": "decline",
+              "risk_grade": "D",
+              "prob_default_12m": 0.5,
+              "confidence": 0,
+              "conditions": [],
+              "covenants": [],
+              "terms": {
+                "amount": 0.0,
+                "apr": 0.0,
+                "tenor_months": 0,
+                "fees": {}
+              },
+              "rationale": {
+                "summary": "LLM evaluation failed: 401 {\"type\":\"error\",\"error\":{\"type\":\"authentication_error\",\"message\":\"invalid x-api-key\"},\"request_id\":\"req_011CYaTLQ93vhoEz8PLmu7RK\"}",
+                "key_factors": [],
+                "what_would_change": []
+              }
+            }
+          }
+        },
+        {
+          "lender_id": "LND-001",
+          "borrower_id": "BRW-034",
+          "decision": "REJECT",
+          "offer_valid_weeks": 1,
+          "bandwidth_limited": false,
+          "reasoning": "[LLM_ERROR] LLM evaluation failed: 401 {\"type\":\"error\",\"error\":{\"type\":\"authentication_error\",\"message\":\"invalid x-api-key\"},\"request_id\":\"req_011CYaTLQDWt6rgxfkdcC9wd\"}",
+          "term_sheet": null,
+          "tokens_in": 0,
+          "tokens_out": 0,
+          "cost_usd": 0,
+          "tool_calls": 0,
+          "chain_of_thought": "Built underwriting prompt: 17825 chars, model=openai/gpt-4.1-nano\n\nLLM call failed: 401 {\"type\":\"error\",\"error\":{\"type\":\"authentication_error\",\"message\":\"invalid x-api-key\"},\"request_id\":\"req_011CYaTLQDWt6rgxfkdcC9wd\"}",
+          "los_detail": {
+            "inputs": {
+              "financials": {
+                "revenue_ttm": 2041000,
+                "gross_margin": 0.2817246447819696,
+                "ebitda_ttm": 575000,
+                "net_income": 575000,
+                "annual_expenses": 1466000
+              },
+              "banking": {
+                "avg_daily_balance_90d": 639666.67,
+                "nsf_12m": 0,
+                "total_deposits_12m": 2041000.0,
+                "total_withdrawals_12m": 1466000.0
+              },
+              "business": {
+                "industry": "Construction Services",
+                "years_trading": 12,
+                "employee_count": 35,
+                "company_name": "Silverline HVAC Services"
+              },
+              "raw_documents": [
+                {
+                  "doc_id": "bank_statements_12m",
+                  "type": "bank_statement",
+                  "bytes_sha": "ca8017c42e671f29"
+                },
+                {
+                  "doc_id": "quarterly_income",
+                  "type": "pnl",
+                  "bytes_sha": "ee7ec1650df61e17"
+                }
+              ],
+              "missing_info": []
+            },
+            "trace": {
+              "latency_ms": 383,
+              "steps": [
+                {
+                  "t": "2026-02-28T12:19:08.768Z",
+                  "type": "reasoning",
+                  "name": "prompt_construction",
+                  "args": {},
+                  "result": {},
+                  "content": "Built underwriting prompt: 17825 chars, model=openai/gpt-4.1-nano"
+                },
+                {
+                  "t": "2026-02-28T12:19:08.933Z",
+                  "type": "note",
+                  "name": "llm_error",
+                  "args": {},
+                  "result": {},
+                  "content": "LLM call failed: 401 {\"type\":\"error\",\"error\":{\"type\":\"authentication_error\",\"message\":\"invalid x-api-key\"},\"request_id\":\"req_011CYaTLQDWt6rgxfkdcC9wd\"}"
+                }
+              ],
+              "cost": {
+                "tokens_in": 0,
+                "tokens_out": 0,
+                "estimated_cost_usd": 0
+              }
+            },
+            "decision": {
+              "action": "decline",
+              "risk_grade": "D",
+              "prob_default_12m": 0.5,
+              "confidence": 0,
+              "conditions": [],
+              "covenants": [],
+              "terms": {
+                "amount": 0.0,
+                "apr": 0.0,
+                "tenor_months": 0,
+                "fees": {}
+              },
+              "rationale": {
+                "summary": "LLM evaluation failed: 401 {\"type\":\"error\",\"error\":{\"type\":\"authentication_error\",\"message\":\"invalid x-api-key\"},\"request_id\":\"req_011CYaTLQDWt6rgxfkdcC9wd\"}",
+                "key_factors": [],
+                "what_would_change": []
+              }
+            }
+          }
+        },
+        {
+          "lender_id": "LND-002",
+          "borrower_id": "BRW-005",
+          "decision": "REJECT",
+          "offer_valid_weeks": 1,
+          "bandwidth_limited": false,
+          "reasoning": "[LLM_ERROR] LLM evaluation failed: 401 {\"type\":\"error\",\"error\":{\"type\":\"authentication_error\",\"message\":\"invalid x-api-key\"},\"request_id\":\"req_011CYaTLQBHW5YQvhc8wKir5\"}",
+          "term_sheet": null,
+          "tokens_in": 0,
+          "tokens_out": 0,
+          "cost_usd": 0,
+          "tool_calls": 0,
+          "chain_of_thought": "Built underwriting prompt: 17800 chars, model=mistralai/mistral-small-3.2-24b-instruct\n\nLLM call failed: 401 {\"type\":\"error\",\"error\":{\"type\":\"authentication_error\",\"message\":\"invalid x-api-key\"},\"request_id\":\"req_011CYaTLQBHW5YQvhc8wKir5\"}",
+          "los_detail": {
+            "inputs": {
+              "financials": {
+                "revenue_ttm": 1735000,
+                "gross_margin": 0.31354466858789626,
+                "ebitda_ttm": 544000,
+                "net_income": 544000,
+                "annual_expenses": 1191000
+              },
+              "banking": {
+                "avg_daily_balance_90d": 618666.67,
+                "nsf_12m": 0,
+                "total_deposits_12m": 1735000.0,
+                "total_withdrawals_12m": 1191000.0
+              },
+              "business": {
+                "industry": "Digital Media",
+                "years_trading": 7,
+                "employee_count": 28,
+                "company_name": "PixelForge Studios"
+              },
+              "raw_documents": [
+                {
+                  "doc_id": "bank_statements_12m",
+                  "type": "bank_statement",
+                  "bytes_sha": "706ad5ada58fba9a"
+                },
+                {
+                  "doc_id": "quarterly_income",
+                  "type": "pnl",
+                  "bytes_sha": "600bad4ac904c89a"
+                }
+              ],
+              "missing_info": []
+            },
+            "trace": {
+              "latency_ms": 374,
+              "steps": [
+                {
+                  "t": "2026-02-28T12:19:08.768Z",
+                  "type": "reasoning",
+                  "name": "prompt_construction",
+                  "args": {},
+                  "result": {},
+                  "content": "Built underwriting prompt: 17800 chars, model=mistralai/mistral-small-3.2-24b-instruct"
+                },
+                {
+                  "t": "2026-02-28T12:19:08.935Z",
+                  "type": "note",
+                  "name": "llm_error",
+                  "args": {},
+                  "result": {},
+                  "content": "LLM call failed: 401 {\"type\":\"error\",\"error\":{\"type\":\"authentication_error\",\"message\":\"invalid x-api-key\"},\"request_id\":\"req_011CYaTLQBHW5YQvhc8wKir5\"}"
+                }
+              ],
+              "cost": {
+                "tokens_in": 0,
+                "tokens_out": 0,
+                "estimated_cost_usd": 0
+              }
+            },
+            "decision": {
+              "action": "decline",
+              "risk_grade": "D",
+              "prob_default_12m": 0.5,
+              "confidence": 0,
+              "conditions": [],
+              "covenants": [],
+              "terms": {
+                "amount": 0.0,
+                "apr": 0.0,
+                "tenor_months": 0,
+                "fees": {}
+              },
+              "rationale": {
+                "summary": "LLM evaluation failed: 401 {\"type\":\"error\",\"error\":{\"type\":\"authentication_error\",\"message\":\"invalid x-api-key\"},\"request_id\":\"req_011CYaTLQBHW5YQvhc8wKir5\"}",
+                "key_factors": [],
+                "what_would_change": []
+              }
+            }
+          }
+        },
+        {
+          "lender_id": "LND-002",
+          "borrower_id": "BRW-034",
+          "decision": "REJECT",
+          "offer_valid_weeks": 1,
+          "bandwidth_limited": false,
+          "reasoning": "[LLM_ERROR] LLM evaluation failed: 401 {\"type\":\"error\",\"error\":{\"type\":\"authentication_error\",\"message\":\"invalid x-api-key\"},\"request_id\":\"req_011CYaTLQQBP6cmsTYEcz5YZ\"}",
+          "term_sheet": null,
+          "tokens_in": 0,
+          "tokens_out": 0,
+          "cost_usd": 0,
+          "tool_calls": 0,
+          "chain_of_thought": "Built underwriting prompt: 17879 chars, model=mistralai/mistral-small-3.2-24b-instruct\n\nLLM call failed: 401 {\"type\":\"error\",\"error\":{\"type\":\"authentication_error\",\"message\":\"invalid x-api-key\"},\"request_id\":\"req_011CYaTLQQBP6cmsTYEcz5YZ\"}",
+          "los_detail": {
+            "inputs": {
+              "financials": {
+                "revenue_ttm": 2041000,
+                "gross_margin": 0.2817246447819696,
+                "ebitda_ttm": 575000,
+                "net_income": 575000,
+                "annual_expenses": 1466000
+              },
+              "banking": {
+                "avg_daily_balance_90d": 639666.67,
+                "nsf_12m": 0,
+                "total_deposits_12m": 2041000.0,
+                "total_withdrawals_12m": 1466000.0
+              },
+              "business": {
+                "industry": "Construction Services",
+                "years_trading": 12,
+                "employee_count": 35,
+                "company_name": "Silverline HVAC Services"
+              },
+              "raw_documents": [
+                {
+                  "doc_id": "bank_statements_12m",
+                  "type": "bank_statement",
+                  "bytes_sha": "ca8017c42e671f29"
+                },
+                {
+                  "doc_id": "quarterly_income",
+                  "type": "pnl",
+                  "bytes_sha": "ee7ec1650df61e17"
+                }
+              ],
+              "missing_info": []
+            },
+            "trace": {
+              "latency_ms": 428,
+              "steps": [
+                {
+                  "t": "2026-02-28T12:19:08.802Z",
+                  "type": "reasoning",
+                  "name": "prompt_construction",
+                  "args": {},
+                  "result": {},
+                  "content": "Built underwriting prompt: 17879 chars, model=mistralai/mistral-small-3.2-24b-instruct"
+                },
+                {
+                  "t": "2026-02-28T12:19:08.991Z",
+                  "type": "note",
+                  "name": "llm_error",
+                  "args": {},
+                  "result": {},
+                  "content": "LLM call failed: 401 {\"type\":\"error\",\"error\":{\"type\":\"authentication_error\",\"message\":\"invalid x-api-key\"},\"request_id\":\"req_011CYaTLQQBP6cmsTYEcz5YZ\"}"
+                }
+              ],
+              "cost": {
+                "tokens_in": 0,
+                "tokens_out": 0,
+                "estimated_cost_usd": 0
+              }
+            },
+            "decision": {
+              "action": "decline",
+              "risk_grade": "D",
+              "prob_default_12m": 0.5,
+              "confidence": 0,
+              "conditions": [],
+              "covenants": [],
+              "terms": {
+                "amount": 0.0,
+                "apr": 0.0,
+                "tenor_months": 0,
+                "fees": {}
+              },
+              "rationale": {
+                "summary": "LLM evaluation failed: 401 {\"type\":\"error\",\"error\":{\"type\":\"authentication_error\",\"message\":\"invalid x-api-key\"},\"request_id\":\"req_011CYaTLQQBP6cmsTYEcz5YZ\"}",
+                "key_factors": [],
+                "what_would_change": []
+              }
+            }
+          }
+        },
+        {
+          "lender_id": "LND-003",
+          "borrower_id": "BRW-005",
+          "decision": "REJECT",
+          "offer_valid_weeks": 1,
+          "bandwidth_limited": false,
+          "reasoning": "[LLM_ERROR] LLM evaluation failed: 401 {\"type\":\"error\",\"error\":{\"type\":\"authentication_error\",\"message\":\"invalid x-api-key\"},\"request_id\":\"req_011CYaTLQ65SQm6KrphdZjkY\"}",
+          "term_sheet": null,
+          "tokens_in": 0,
+          "tokens_out": 0,
+          "cost_usd": 0,
+          "tool_calls": 0,
+          "chain_of_thought": "Built underwriting prompt: 17858 chars, model=deepseek/deepseek-v3.2\n\nLLM call failed: 401 {\"type\":\"error\",\"error\":{\"type\":\"authentication_error\",\"message\":\"invalid x-api-key\"},\"request_id\":\"req_011CYaTLQ65SQm6KrphdZjkY\"}",
+          "los_detail": {
+            "inputs": {
+              "financials": {
+                "revenue_ttm": 1735000,
+                "gross_margin": 0.31354466858789626,
+                "ebitda_ttm": 544000,
+                "net_income": 544000,
+                "annual_expenses": 1191000
+              },
+              "banking": {
+                "avg_daily_balance_90d": 618666.67,
+                "nsf_12m": 0,
+                "total_deposits_12m": 1735000.0,
+                "total_withdrawals_12m": 1191000.0
+              },
+              "business": {
+                "industry": "Digital Media",
+                "years_trading": 7,
+                "employee_count": 28,
+                "company_name": "PixelForge Studios"
+              },
+              "raw_documents": [
+                {
+                  "doc_id": "bank_statements_12m",
+                  "type": "bank_statement",
+                  "bytes_sha": "706ad5ada58fba9a"
+                },
+                {
+                  "doc_id": "quarterly_income",
+                  "type": "pnl",
+                  "bytes_sha": "600bad4ac904c89a"
+                }
+              ],
+              "missing_info": []
+            },
+            "trace": {
+              "latency_ms": 351,
+              "steps": [
+                {
+                  "t": "2026-02-28T12:19:08.766Z",
+                  "type": "reasoning",
+                  "name": "prompt_construction",
+                  "args": {},
+                  "result": {},
+                  "content": "Built underwriting prompt: 17858 chars, model=deepseek/deepseek-v3.2"
+                },
+                {
+                  "t": "2026-02-28T12:19:08.922Z",
+                  "type": "note",
+                  "name": "llm_error",
+                  "args": {},
+                  "result": {},
+                  "content": "LLM call failed: 401 {\"type\":\"error\",\"error\":{\"type\":\"authentication_error\",\"message\":\"invalid x-api-key\"},\"request_id\":\"req_011CYaTLQ65SQm6KrphdZjkY\"}"
+                }
+              ],
+              "cost": {
+                "tokens_in": 0,
+                "tokens_out": 0,
+                "estimated_cost_usd": 0
+              }
+            },
+            "decision": {
+              "action": "decline",
+              "risk_grade": "D",
+              "prob_default_12m": 0.5,
+              "confidence": 0,
+              "conditions": [],
+              "covenants": [],
+              "terms": {
+                "amount": 0.0,
+                "apr": 0.0,
+                "tenor_months": 0,
+                "fees": {}
+              },
+              "rationale": {
+                "summary": "LLM evaluation failed: 401 {\"type\":\"error\",\"error\":{\"type\":\"authentication_error\",\"message\":\"invalid x-api-key\"},\"request_id\":\"req_011CYaTLQ65SQm6KrphdZjkY\"}",
+                "key_factors": [],
+                "what_would_change": []
+              }
+            }
+          }
+        },
+        {
+          "lender_id": "LND-003",
+          "borrower_id": "BRW-034",
+          "decision": "REJECT",
+          "offer_valid_weeks": 1,
+          "bandwidth_limited": false,
+          "reasoning": "[LLM_ERROR] LLM evaluation failed: 401 {\"type\":\"error\",\"error\":{\"type\":\"authentication_error\",\"message\":\"invalid x-api-key\"},\"request_id\":\"req_011CYaTLQ1N1wFvJzEakuBat\"}",
+          "term_sheet": null,
+          "tokens_in": 0,
+          "tokens_out": 0,
+          "cost_usd": 0,
+          "tool_calls": 0,
+          "chain_of_thought": "Built underwriting prompt: 17937 chars, model=deepseek/deepseek-v3.2\n\nLLM call failed: 401 {\"type\":\"error\",\"error\":{\"type\":\"authentication_error\",\"message\":\"invalid x-api-key\"},\"request_id\":\"req_011CYaTLQ1N1wFvJzEakuBat\"}",
+          "los_detail": {
+            "inputs": {
+              "financials": {
+                "revenue_ttm": 2041000,
+                "gross_margin": 0.2817246447819696,
+                "ebitda_ttm": 575000,
+                "net_income": 575000,
+                "annual_expenses": 1466000
+              },
+              "banking": {
+                "avg_daily_balance_90d": 639666.67,
+                "nsf_12m": 0,
+                "total_deposits_12m": 2041000.0,
+                "total_withdrawals_12m": 1466000.0
+              },
+              "business": {
+                "industry": "Construction Services",
+                "years_trading": 12,
+                "employee_count": 35,
+                "company_name": "Silverline HVAC Services"
+              },
+              "raw_documents": [
+                {
+                  "doc_id": "bank_statements_12m",
+                  "type": "bank_statement",
+                  "bytes_sha": "ca8017c42e671f29"
+                },
+                {
+                  "doc_id": "quarterly_income",
+                  "type": "pnl",
+                  "bytes_sha": "ee7ec1650df61e17"
+                }
+              ],
+              "missing_info": []
+            },
+            "trace": {
+              "latency_ms": 313,
+              "steps": [
+                {
+                  "t": "2026-02-28T12:19:08.745Z",
+                  "type": "reasoning",
+                  "name": "prompt_construction",
+                  "args": {},
+                  "result": {},
+                  "content": "Built underwriting prompt: 17937 chars, model=deepseek/deepseek-v3.2"
+                },
+                {
+                  "t": "2026-02-28T12:19:08.893Z",
+                  "type": "note",
+                  "name": "llm_error",
+                  "args": {},
+                  "result": {},
+                  "content": "LLM call failed: 401 {\"type\":\"error\",\"error\":{\"type\":\"authentication_error\",\"message\":\"invalid x-api-key\"},\"request_id\":\"req_011CYaTLQ1N1wFvJzEakuBat\"}"
+                }
+              ],
+              "cost": {
+                "tokens_in": 0,
+                "tokens_out": 0,
+                "estimated_cost_usd": 0
+              }
+            },
+            "decision": {
+              "action": "decline",
+              "risk_grade": "D",
+              "prob_default_12m": 0.5,
+              "confidence": 0,
+              "conditions": [],
+              "covenants": [],
+              "terms": {
+                "amount": 0.0,
+                "apr": 0.0,
+                "tenor_months": 0,
+                "fees": {}
+              },
+              "rationale": {
+                "summary": "LLM evaluation failed: 401 {\"type\":\"error\",\"error\":{\"type\":\"authentication_error\",\"message\":\"invalid x-api-key\"},\"request_id\":\"req_011CYaTLQ1N1wFvJzEakuBat\"}",
+                "key_factors": [],
+                "what_would_change": []
+              }
+            }
+          }
+        },
+        {
+          "lender_id": "LND-004",
+          "borrower_id": "BRW-005",
+          "decision": "REJECT",
+          "offer_valid_weeks": 1,
+          "bandwidth_limited": false,
+          "reasoning": "[LLM_ERROR] LLM evaluation failed: 401 {\"type\":\"error\",\"error\":{\"type\":\"authentication_error\",\"message\":\"invalid x-api-key\"},\"request_id\":\"req_011CYaTLQFznYg6EtxV3uqP9\"}",
+          "term_sheet": null,
+          "tokens_in": 0,
+          "tokens_out": 0,
+          "cost_usd": 0,
+          "tool_calls": 0,
+          "chain_of_thought": "Built underwriting prompt: 17762 chars, model=qwen/qwen3-30b-a3b\n\nLLM call failed: 401 {\"type\":\"error\",\"error\":{\"type\":\"authentication_error\",\"message\":\"invalid x-api-key\"},\"request_id\":\"req_011CYaTLQFznYg6EtxV3uqP9\"}",
+          "los_detail": {
+            "inputs": {
+              "financials": {
+                "revenue_ttm": 1735000,
+                "gross_margin": 0.31354466858789626,
+                "ebitda_ttm": 544000,
+                "net_income": 544000,
+                "annual_expenses": 1191000
+              },
+              "banking": {
+                "avg_daily_balance_90d": 618666.67,
+                "nsf_12m": 0,
+                "total_deposits_12m": 1735000.0,
+                "total_withdrawals_12m": 1191000.0
+              },
+              "business": {
+                "industry": "Digital Media",
+                "years_trading": 7,
+                "employee_count": 28,
+                "company_name": "PixelForge Studios"
+              },
+              "raw_documents": [
+                {
+                  "doc_id": "bank_statements_12m",
+                  "type": "bank_statement",
+                  "bytes_sha": "706ad5ada58fba9a"
+                },
+                {
+                  "doc_id": "quarterly_income",
+                  "type": "pnl",
+                  "bytes_sha": "600bad4ac904c89a"
+                }
+              ],
+              "missing_info": []
+            },
+            "trace": {
+              "latency_ms": 360,
+              "steps": [
+                {
+                  "t": "2026-02-28T12:19:08.769Z",
+                  "type": "reasoning",
+                  "name": "prompt_construction",
+                  "args": {},
+                  "result": {},
+                  "content": "Built underwriting prompt: 17762 chars, model=qwen/qwen3-30b-a3b"
+                },
+                {
+                  "t": "2026-02-28T12:19:08.948Z",
+                  "type": "note",
+                  "name": "llm_error",
+                  "args": {},
+                  "result": {},
+                  "content": "LLM call failed: 401 {\"type\":\"error\",\"error\":{\"type\":\"authentication_error\",\"message\":\"invalid x-api-key\"},\"request_id\":\"req_011CYaTLQFznYg6EtxV3uqP9\"}"
+                }
+              ],
+              "cost": {
+                "tokens_in": 0,
+                "tokens_out": 0,
+                "estimated_cost_usd": 0
+              }
+            },
+            "decision": {
+              "action": "decline",
+              "risk_grade": "D",
+              "prob_default_12m": 0.5,
+              "confidence": 0,
+              "conditions": [],
+              "covenants": [],
+              "terms": {
+                "amount": 0.0,
+                "apr": 0.0,
+                "tenor_months": 0,
+                "fees": {}
+              },
+              "rationale": {
+                "summary": "LLM evaluation failed: 401 {\"type\":\"error\",\"error\":{\"type\":\"authentication_error\",\"message\":\"invalid x-api-key\"},\"request_id\":\"req_011CYaTLQFznYg6EtxV3uqP9\"}",
+                "key_factors": [],
+                "what_would_change": []
+              }
+            }
+          }
+        },
+        {
+          "lender_id": "LND-004",
+          "borrower_id": "BRW-034",
+          "decision": "REJECT",
+          "offer_valid_weeks": 1,
+          "bandwidth_limited": false,
+          "reasoning": "[LLM_ERROR] LLM evaluation failed: 401 {\"type\":\"error\",\"error\":{\"type\":\"authentication_error\",\"message\":\"invalid x-api-key\"},\"request_id\":\"req_011CYaTLQSQmJtQT567nDC1K\"}",
+          "term_sheet": null,
+          "tokens_in": 0,
+          "tokens_out": 0,
+          "cost_usd": 0,
+          "tool_calls": 0,
+          "chain_of_thought": "Built underwriting prompt: 17841 chars, model=qwen/qwen3-30b-a3b\n\nLLM call failed: 401 {\"type\":\"error\",\"error\":{\"type\":\"authentication_error\",\"message\":\"invalid x-api-key\"},\"request_id\":\"req_011CYaTLQSQmJtQT567nDC1K\"}",
+          "los_detail": {
+            "inputs": {
+              "financials": {
+                "revenue_ttm": 2041000,
+                "gross_margin": 0.2817246447819696,
+                "ebitda_ttm": 575000,
+                "net_income": 575000,
+                "annual_expenses": 1466000
+              },
+              "banking": {
+                "avg_daily_balance_90d": 639666.67,
+                "nsf_12m": 0,
+                "total_deposits_12m": 2041000.0,
+                "total_withdrawals_12m": 1466000.0
+              },
+              "business": {
+                "industry": "Construction Services",
+                "years_trading": 12,
+                "employee_count": 35,
+                "company_name": "Silverline HVAC Services"
+              },
+              "raw_documents": [
+                {
+                  "doc_id": "bank_statements_12m",
+                  "type": "bank_statement",
+                  "bytes_sha": "ca8017c42e671f29"
+                },
+                {
+                  "doc_id": "quarterly_income",
+                  "type": "pnl",
+                  "bytes_sha": "ee7ec1650df61e17"
+                }
+              ],
+              "missing_info": []
+            },
+            "trace": {
+              "latency_ms": 402,
+              "steps": [
+                {
+                  "t": "2026-02-28T12:19:08.803Z",
+                  "type": "reasoning",
+                  "name": "prompt_construction",
+                  "args": {},
+                  "result": {},
+                  "content": "Built underwriting prompt: 17841 chars, model=qwen/qwen3-30b-a3b"
+                },
+                {
+                  "t": "2026-02-28T12:19:08.995Z",
+                  "type": "note",
+                  "name": "llm_error",
+                  "args": {},
+                  "result": {},
+                  "content": "LLM call failed: 401 {\"type\":\"error\",\"error\":{\"type\":\"authentication_error\",\"message\":\"invalid x-api-key\"},\"request_id\":\"req_011CYaTLQSQmJtQT567nDC1K\"}"
+                }
+              ],
+              "cost": {
+                "tokens_in": 0,
+                "tokens_out": 0,
+                "estimated_cost_usd": 0
+              }
+            },
+            "decision": {
+              "action": "decline",
+              "risk_grade": "D",
+              "prob_default_12m": 0.5,
+              "confidence": 0,
+              "conditions": [],
+              "covenants": [],
+              "terms": {
+                "amount": 0.0,
+                "apr": 0.0,
+                "tenor_months": 0,
+                "fees": {}
+              },
+              "rationale": {
+                "summary": "LLM evaluation failed: 401 {\"type\":\"error\",\"error\":{\"type\":\"authentication_error\",\"message\":\"invalid x-api-key\"},\"request_id\":\"req_011CYaTLQSQmJtQT567nDC1K\"}",
+                "key_factors": [],
+                "what_would_change": []
+              }
+            }
+          }
+        },
+        {
+          "lender_id": "LND-005",
+          "borrower_id": "BRW-005",
+          "decision": "REJECT",
+          "offer_valid_weeks": 1,
+          "bandwidth_limited": false,
+          "reasoning": "[LLM_ERROR] LLM evaluation failed: 401 {\"type\":\"error\",\"error\":{\"type\":\"authentication_error\",\"message\":\"invalid x-api-key\"},\"request_id\":\"req_011CYaTLQSufDj5zyJheE7Pt\"}",
+          "term_sheet": null,
+          "tokens_in": 0,
+          "tokens_out": 0,
+          "cost_usd": 0,
+          "tool_calls": 0,
+          "chain_of_thought": "Built underwriting prompt: 18021 chars, model=meta-llama/llama-3.3-70b-instruct\n\nLLM call failed: 401 {\"type\":\"error\",\"error\":{\"type\":\"authentication_error\",\"message\":\"invalid x-api-key\"},\"request_id\":\"req_011CYaTLQSufDj5zyJheE7Pt\"}",
+          "los_detail": {
+            "inputs": {
+              "financials": {
+                "revenue_ttm": 1735000,
+                "gross_margin": 0.31354466858789626,
+                "ebitda_ttm": 544000,
+                "net_income": 544000,
+                "annual_expenses": 1191000
+              },
+              "banking": {
+                "avg_daily_balance_90d": 618666.67,
+                "nsf_12m": 0,
+                "total_deposits_12m": 1735000.0,
+                "total_withdrawals_12m": 1191000.0
+              },
+              "business": {
+                "industry": "Digital Media",
+                "years_trading": 7,
+                "employee_count": 28,
+                "company_name": "PixelForge Studios"
+              },
+              "raw_documents": [
+                {
+                  "doc_id": "bank_statements_12m",
+                  "type": "bank_statement",
+                  "bytes_sha": "706ad5ada58fba9a"
+                },
+                {
+                  "doc_id": "quarterly_income",
+                  "type": "pnl",
+                  "bytes_sha": "600bad4ac904c89a"
+                }
+              ],
+              "missing_info": []
+            },
+            "trace": {
+              "latency_ms": 395,
+              "steps": [
+                {
+                  "t": "2026-02-28T12:19:08.770Z",
+                  "type": "reasoning",
+                  "name": "prompt_construction",
+                  "args": {},
+                  "result": {},
+                  "content": "Built underwriting prompt: 18021 chars, model=meta-llama/llama-3.3-70b-instruct"
+                },
+                {
+                  "t": "2026-02-28T12:19:08.994Z",
+                  "type": "note",
+                  "name": "llm_error",
+                  "args": {},
+                  "result": {},
+                  "content": "LLM call failed: 401 {\"type\":\"error\",\"error\":{\"type\":\"authentication_error\",\"message\":\"invalid x-api-key\"},\"request_id\":\"req_011CYaTLQSufDj5zyJheE7Pt\"}"
+                }
+              ],
+              "cost": {
+                "tokens_in": 0,
+                "tokens_out": 0,
+                "estimated_cost_usd": 0
+              }
+            },
+            "decision": {
+              "action": "decline",
+              "risk_grade": "D",
+              "prob_default_12m": 0.5,
+              "confidence": 0,
+              "conditions": [],
+              "covenants": [],
+              "terms": {
+                "amount": 0.0,
+                "apr": 0.0,
+                "tenor_months": 0,
+                "fees": {}
+              },
+              "rationale": {
+                "summary": "LLM evaluation failed: 401 {\"type\":\"error\",\"error\":{\"type\":\"authentication_error\",\"message\":\"invalid x-api-key\"},\"request_id\":\"req_011CYaTLQSufDj5zyJheE7Pt\"}",
+                "key_factors": [],
+                "what_would_change": []
+              }
+            }
+          }
+        },
+        {
+          "lender_id": "LND-005",
+          "borrower_id": "BRW-034",
+          "decision": "REJECT",
+          "offer_valid_weeks": 1,
+          "bandwidth_limited": false,
+          "reasoning": "[LLM_ERROR] LLM evaluation failed: 401 {\"type\":\"error\",\"error\":{\"type\":\"authentication_error\",\"message\":\"invalid x-api-key\"},\"request_id\":\"req_011CYaTLQJEFgqbLhDqeRmRU\"}",
+          "term_sheet": null,
+          "tokens_in": 0,
+          "tokens_out": 0,
+          "cost_usd": 0,
+          "tool_calls": 0,
+          "chain_of_thought": "Built underwriting prompt: 18100 chars, model=meta-llama/llama-3.3-70b-instruct\n\nLLM call failed: 401 {\"type\":\"error\",\"error\":{\"type\":\"authentication_error\",\"message\":\"invalid x-api-key\"},\"request_id\":\"req_011CYaTLQJEFgqbLhDqeRmRU\"}",
+          "los_detail": {
+            "inputs": {
+              "financials": {
+                "revenue_ttm": 2041000,
+                "gross_margin": 0.2817246447819696,
+                "ebitda_ttm": 575000,
+                "net_income": 575000,
+                "annual_expenses": 1466000
+              },
+              "banking": {
+                "avg_daily_balance_90d": 639666.67,
+                "nsf_12m": 0,
+                "total_deposits_12m": 2041000.0,
+                "total_withdrawals_12m": 1466000.0
+              },
+              "business": {
+                "industry": "Construction Services",
+                "years_trading": 12,
+                "employee_count": 35,
+                "company_name": "Silverline HVAC Services"
+              },
+              "raw_documents": [
+                {
+                  "doc_id": "bank_statements_12m",
+                  "type": "bank_statement",
+                  "bytes_sha": "ca8017c42e671f29"
+                },
+                {
+                  "doc_id": "quarterly_income",
+                  "type": "pnl",
+                  "bytes_sha": "ee7ec1650df61e17"
+                }
+              ],
+              "missing_info": []
+            },
+            "trace": {
+              "latency_ms": 383,
+              "steps": [
+                {
+                  "t": "2026-02-28T12:19:08.769Z",
+                  "type": "reasoning",
+                  "name": "prompt_construction",
+                  "args": {},
+                  "result": {},
+                  "content": "Built underwriting prompt: 18100 chars, model=meta-llama/llama-3.3-70b-instruct"
+                },
+                {
+                  "t": "2026-02-28T12:19:08.958Z",
+                  "type": "note",
+                  "name": "llm_error",
+                  "args": {},
+                  "result": {},
+                  "content": "LLM call failed: 401 {\"type\":\"error\",\"error\":{\"type\":\"authentication_error\",\"message\":\"invalid x-api-key\"},\"request_id\":\"req_011CYaTLQJEFgqbLhDqeRmRU\"}"
+                }
+              ],
+              "cost": {
+                "tokens_in": 0,
+                "tokens_out": 0,
+                "estimated_cost_usd": 0
+              }
+            },
+            "decision": {
+              "action": "decline",
+              "risk_grade": "D",
+              "prob_default_12m": 0.5,
+              "confidence": 0,
+              "conditions": [],
+              "covenants": [],
+              "terms": {
+                "amount": 0.0,
+                "apr": 0.0,
+                "tenor_months": 0,
+                "fees": {}
+              },
+              "rationale": {
+                "summary": "LLM evaluation failed: 401 {\"type\":\"error\",\"error\":{\"type\":\"authentication_error\",\"message\":\"invalid x-api-key\"},\"request_id\":\"req_011CYaTLQJEFgqbLhDqeRmRU\"}",
+                "key_factors": [],
+                "what_would_change": []
+              }
+            }
+          }
+        }
+      ],
+      "booked_loans": [],
+      "events": [
+        "  [Velocity Capital] Capital decay: -$3,633 on $1,816,360 idle (cumulative: $7,273)",
+        "  [Heritage Trust Bank] Capital decay: -$4,990 on $2,495,000 idle (cumulative: $9,990)",
+        "  [Meridian Partners] Capital decay: -$4,591 on $2,295,400 idle (cumulative: $9,191)",
+        "  [Pinnacle Finance] Capital decay: -$4,631 on $2,315,360 idle (cumulative: $9,271)",
+        "  [Atlas Credit] Capital decay: -$5,449 on $2,724,540 idle (cumulative: $10,909)"
+      ],
+      "bandwidth": {
+        "arrival_phases": 1,
+        "deep_uw_slots_per_week": 0,
+        "slots_used": {}
+      },
+      "lender_snapshots": {
+        "LND-001": {
+          "name": "Velocity Capital",
+          "model": "openai/gpt-4.1-nano",
+          "net_pnl": 0.0,
+          "deployed": 1180000,
+          "available": 1812727.28,
+          "effective_capital": 2992727.28,
+          "deals_won": 0,
+          "deals_rejected": 0,
+          "deals_passed": 0,
+          "deals_lost": 0,
+          "active_loans": 0,
+          "active_loans_detail": [],
+          "cumulative_interest": 0.0,
+          "cumulative_losses": 0.0,
+          "cumulative_fees": 0.0,
+          "cumulative_workout_cost": 0.0,
+          "defaults": 0,
+          "frauds_funded": 0,
+          "deep_uw_deferred": 0,
+          "deep_uw_used_this_week": 0,
+          "tokens_in": 0,
+          "tokens_out": 0,
+          "cost_usd": 0.0
+        },
+        "LND-002": {
+          "name": "Heritage Trust Bank",
+          "model": "mistralai/mistral-small-3.2-24b-instruct",
+          "net_pnl": 0.0,
+          "deployed": 1500000,
+          "available": 2490010.0,
+          "effective_capital": 3990010.0,
+          "deals_won": 0,
+          "deals_rejected": 0,
+          "deals_passed": 0,
+          "deals_lost": 0,
+          "active_loans": 0,
+          "active_loans_detail": [],
+          "cumulative_interest": 0.0,
+          "cumulative_losses": 0.0,
+          "cumulative_fees": 0.0,
+          "cumulative_workout_cost": 0.0,
+          "defaults": 0,
+          "frauds_funded": 0,
+          "deep_uw_deferred": 0,
+          "deep_uw_used_this_week": 0,
+          "tokens_in": 0,
+          "tokens_out": 0,
+          "cost_usd": 0.0
+        },
+        "LND-003": {
+          "name": "Meridian Partners",
+          "model": "deepseek/deepseek-v3.2",
+          "net_pnl": 0.0,
+          "deployed": 1200000,
+          "available": 2290809.2,
+          "effective_capital": 3490809.2,
+          "deals_won": 0,
+          "deals_rejected": 0,
+          "deals_passed": 0,
+          "deals_lost": 0,
+          "active_loans": 0,
+          "active_loans_detail": [],
+          "cumulative_interest": 0.0,
+          "cumulative_losses": 0.0,
+          "cumulative_fees": 0.0,
+          "cumulative_workout_cost": 0.0,
+          "defaults": 0,
+          "frauds_funded": 0,
+          "deep_uw_deferred": 0,
+          "deep_uw_used_this_week": 0,
+          "tokens_in": 0,
+          "tokens_out": 0,
+          "cost_usd": 0.0
+        },
+        "LND-004": {
+          "name": "Pinnacle Finance",
+          "model": "qwen/qwen3-30b-a3b",
+          "net_pnl": 0.0,
+          "deployed": 880000,
+          "available": 2310729.28,
+          "effective_capital": 3190729.28,
+          "deals_won": 0,
+          "deals_rejected": 0,
+          "deals_passed": 0,
+          "deals_lost": 0,
+          "active_loans": 0,
+          "active_loans_detail": [],
+          "cumulative_interest": 0.0,
+          "cumulative_losses": 0.0,
+          "cumulative_fees": 0.0,
+          "cumulative_workout_cost": 0.0,
+          "defaults": 0,
+          "frauds_funded": 0,
+          "deep_uw_deferred": 0,
+          "deep_uw_used_this_week": 0,
+          "tokens_in": 0,
+          "tokens_out": 0,
+          "cost_usd": 0.0
+        },
+        "LND-005": {
+          "name": "Atlas Credit",
+          "model": "meta-llama/llama-3.3-70b-instruct",
+          "net_pnl": 0.0,
+          "deployed": 1070000,
+          "available": 2719090.92,
+          "effective_capital": 3789090.92,
+          "deals_won": 0,
+          "deals_rejected": 0,
+          "deals_passed": 0,
+          "deals_lost": 0,
+          "active_loans": 0,
+          "active_loans_detail": [],
+          "cumulative_interest": 0.0,
+          "cumulative_losses": 0.0,
+          "cumulative_fees": 0.0,
+          "cumulative_workout_cost": 0.0,
+          "defaults": 0,
+          "frauds_funded": 0,
+          "deep_uw_deferred": 0,
+          "deep_uw_used_this_week": 0,
+          "tokens_in": 0,
+          "tokens_out": 0,
+          "cost_usd": 0.0
+        }
+      }
+    },
+    {
+      "week": 3,
+      "final_resolution": true,
+      "borrowers": [],
+      "decisions": [],
+      "booked_loans": [],
+      "events": [],
+      "lender_snapshots": {
+        "LND-001": {
+          "name": "Velocity Capital",
+          "model": "openai/gpt-4.1-nano",
+          "net_pnl": 0.0,
+          "deployed": 1180000,
+          "available": 1812727.28,
+          "effective_capital": 2992727.28,
+          "deals_won": 0,
+          "deals_rejected": 0,
+          "deals_passed": 0,
+          "deals_lost": 0,
+          "active_loans": 0,
+          "active_loans_detail": [],
+          "cumulative_interest": 0.0,
+          "cumulative_losses": 0.0,
+          "cumulative_fees": 0.0,
+          "cumulative_workout_cost": 0.0,
+          "defaults": 0,
+          "frauds_funded": 0,
+          "deep_uw_deferred": 0,
+          "tokens_in": 0,
+          "tokens_out": 0,
+          "cost_usd": 0.0
+        },
+        "LND-002": {
+          "name": "Heritage Trust Bank",
+          "model": "mistralai/mistral-small-3.2-24b-instruct",
+          "net_pnl": 0.0,
+          "deployed": 1500000,
+          "available": 2490010.0,
+          "effective_capital": 3990010.0,
+          "deals_won": 0,
+          "deals_rejected": 0,
+          "deals_passed": 0,
+          "deals_lost": 0,
+          "active_loans": 0,
+          "active_loans_detail": [],
+          "cumulative_interest": 0.0,
+          "cumulative_losses": 0.0,
+          "cumulative_fees": 0.0,
+          "cumulative_workout_cost": 0.0,
+          "defaults": 0,
+          "frauds_funded": 0,
+          "deep_uw_deferred": 0,
+          "tokens_in": 0,
+          "tokens_out": 0,
+          "cost_usd": 0.0
+        },
+        "LND-003": {
+          "name": "Meridian Partners",
+          "model": "deepseek/deepseek-v3.2",
+          "net_pnl": 0.0,
+          "deployed": 1200000,
+          "available": 2290809.2,
+          "effective_capital": 3490809.2,
+          "deals_won": 0,
+          "deals_rejected": 0,
+          "deals_passed": 0,
+          "deals_lost": 0,
+          "active_loans": 0,
+          "active_loans_detail": [],
+          "cumulative_interest": 0.0,
+          "cumulative_losses": 0.0,
+          "cumulative_fees": 0.0,
+          "cumulative_workout_cost": 0.0,
+          "defaults": 0,
+          "frauds_funded": 0,
+          "deep_uw_deferred": 0,
+          "tokens_in": 0,
+          "tokens_out": 0,
+          "cost_usd": 0.0
+        },
+        "LND-004": {
+          "name": "Pinnacle Finance",
+          "model": "qwen/qwen3-30b-a3b",
+          "net_pnl": 0.0,
+          "deployed": 880000,
+          "available": 2310729.28,
+          "effective_capital": 3190729.28,
+          "deals_won": 0,
+          "deals_rejected": 0,
+          "deals_passed": 0,
+          "deals_lost": 0,
+          "active_loans": 0,
+          "active_loans_detail": [],
+          "cumulative_interest": 0.0,
+          "cumulative_losses": 0.0,
+          "cumulative_fees": 0.0,
+          "cumulative_workout_cost": 0.0,
+          "defaults": 0,
+          "frauds_funded": 0,
+          "deep_uw_deferred": 0,
+          "tokens_in": 0,
+          "tokens_out": 0,
+          "cost_usd": 0.0
+        },
+        "LND-005": {
+          "name": "Atlas Credit",
+          "model": "meta-llama/llama-3.3-70b-instruct",
+          "net_pnl": 0.0,
+          "deployed": 1070000,
+          "available": 2719090.92,
+          "effective_capital": 3789090.92,
+          "deals_won": 0,
+          "deals_rejected": 0,
+          "deals_passed": 0,
+          "deals_lost": 0,
+          "active_loans": 0,
+          "active_loans_detail": [],
+          "cumulative_interest": 0.0,
+          "cumulative_losses": 0.0,
+          "cumulative_fees": 0.0,
+          "cumulative_workout_cost": 0.0,
+          "defaults": 0,
+          "frauds_funded": 0,
+          "deep_uw_deferred": 0,
+          "tokens_in": 0,
+          "tokens_out": 0,
+          "cost_usd": 0.0
+        }
+      }
+    }
+  ]
+}
