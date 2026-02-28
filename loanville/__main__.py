@@ -23,7 +23,7 @@ from dotenv import load_dotenv
 
 from .data import MIX_PRESETS, SCENARIOS, get_borrowers, get_lenders, get_scenario
 from .engine import SimulationEngine
-from .models import EconomicsConfig, ECONOMICS_PRESETS, SeasonConfig
+from .models import EconomicsConfig, ECONOMICS_PRESETS, LosConfig, SeasonConfig
 from .presets import (
     apply_lender_preset,
     list_lender_presets,
@@ -381,6 +381,19 @@ def main() -> None:
                         default=None,
                         help="Per-lender borrower view differences "
                              "(default: none, or scenario preset value)")
+    # Agent sim arguments
+    parser.add_argument("--agent-sim", action="store_true",
+                        help="Run agentic LOS simulation (models drive the LOS autonomously)")
+    parser.add_argument("--agent-mode", default="tool_call",
+                        choices=["tool_call", "cli", "repl"],
+                        help="Agent interaction mode (default: tool_call)")
+    parser.add_argument("--agent-max-turns", type=int, default=20,
+                        help="Max turns per agent task (default: 20)")
+    parser.add_argument("--agent-tasks", default="simple_underwrite",
+                        help="Comma-separated task types (default: simple_underwrite)")
+    parser.add_argument("--agent-cases", type=int, default=3,
+                        help="Number of borrower cases for agent sim (default: 3)")
+
     # Leaderboard
     parser.add_argument("--leaderboard", action="store_true", default=True,
                         help="Emit match record to leaderboard after scoring (default: on)")
@@ -520,6 +533,23 @@ def main() -> None:
             print(f"CRM simulation summary exported to: {args.crm_export}")
         return
 
+    if args.agent_sim:
+        from .agent_sim import AgentSimConfig, run_agent_sim
+
+        agent_config = AgentSimConfig(
+            mode=args.agent_mode,
+            max_turns=args.agent_max_turns,
+            tasks=[t.strip() for t in args.agent_tasks.split(",")],
+            cases=args.agent_cases,
+            los_url=args.los_url,
+            provider=args.los_provider,
+            mix=args.mix,
+            seed=args.seed if args.seed is not None else 42,
+            los_model=args.los_model,
+        )
+        asyncio.run(run_agent_sim(config=agent_config, lenders=lenders))
+        return
+
     if season_mode:
         weeks = args.weeks if args.weeks is not None else scenario_overrides.get("weeks", SEASON_DEFAULTS["weeks"])
         cohort_size = (
@@ -579,6 +609,13 @@ def main() -> None:
             or args.custom_tools
         )
 
+        # Parse los_config from scenario overrides
+        los_config_raw = scenario_overrides.get("los_config", {})
+        los_config = LosConfig(
+            disabled_guards=los_config_raw.get("disabled_guards", []),
+            gate_policies=los_config_raw.get("gate_policies", []),
+        ) if los_config_raw else LosConfig()
+
         season_config = SeasonConfig(
             weeks=weeks,
             cohort_size=cohort_size,
@@ -588,6 +625,7 @@ def main() -> None:
             speed_scoring=speed_scoring,
             custom_tools=custom_tools,
             economics=economics,
+            los_config=los_config,
             arrival_phases=arrival_phases,
             deep_uw_slots_per_week=deep_uw_slots,
             info_asymmetry=info_asymmetry,

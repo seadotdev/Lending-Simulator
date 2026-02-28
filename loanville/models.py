@@ -273,6 +273,13 @@ class ActiveLoan:
 
 
 @dataclass
+class LosConfig:
+    """Per-scenario LOS configuration: which guards to disable, gate policies to bootstrap."""
+    disabled_guards: list[str] = field(default_factory=list)
+    gate_policies: list[dict] = field(default_factory=list)
+
+
+@dataclass
 class SeasonConfig:
     weeks: int = 10
     cohort_size: int = 5
@@ -301,6 +308,9 @@ class SeasonConfig:
     # statement months.  "redacted" = some financial fields are hidden
     # per-lender.
     info_asymmetry: str = "none"  # none | partial_statements | redacted
+
+    # Per-scenario LOS configuration (disabled guards, gate policies)
+    los_config: LosConfig = field(default_factory=LosConfig)
 
     # Strategic pipeline pressure (post-v1 roadmap item): optional phase-based
     # arrival and a weekly cap on full deep-underwrite capacity.

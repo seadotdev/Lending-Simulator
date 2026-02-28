@@ -34,6 +34,7 @@ from .models import (
     Borrower,
     LenderConfig,
     LenderDecision,
+    LosConfig,
     TermSheet,
 )
 from .llm import _record_call_trace, _record_usage
@@ -71,6 +72,53 @@ async def check_los_health(los_url: str = DEFAULT_LOS_URL, timeout: float = 5.0)
         raise RuntimeError(
             f"Open LOS at {los_url} returned {exc.response.status_code} on health check."
         )
+
+
+async def bootstrap_los_tenant(
+    tenant_id: str,
+    los_config: LosConfig,
+    los_url: str = DEFAULT_LOS_URL,
+    timeout: float = 10.0,
+) -> None:
+    """Bootstrap LOS tenant configuration at season start.
+
+    Sends disabled_guards via PUT /v1/settings and creates gate policies
+    via POST /v1/gates/policies for the given tenant.
+    """
+    base = los_url.rstrip("/")
+    headers = {
+        "Content-Type": "application/json",
+        "X-Tenant-Id": tenant_id,
+        "X-Actor": "sim:bootstrap",
+    }
+
+    async with httpx.AsyncClient(timeout=timeout, headers=headers) as client:
+        # 1. Set disabled guards
+        if los_config.disabled_guards:
+            resp = await client.put(
+                f"{base}/v1/settings",
+                json={"disabled_guards": los_config.disabled_guards},
+            )
+            resp.raise_for_status()
+            logger.info(
+                "Bootstrapped tenant %s: disabled_guards=%s",
+                tenant_id,
+                los_config.disabled_guards,
+            )
+
+        # 2. Create gate policies
+        for policy in los_config.gate_policies:
+            resp = await client.post(
+                f"{base}/v1/gates/policies",
+                json=policy,
+            )
+            resp.raise_for_status()
+            logger.info(
+                "Bootstrapped gate policy for tenant %s: action=%s mode=%s",
+                tenant_id,
+                policy.get("action", "?"),
+                policy.get("mode", "?"),
+            )
 
 
 def serialize_dossier(borrower: Borrower, borrower_view: Borrower | None = None) -> dict:

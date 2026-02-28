@@ -8,3 +8,13 @@ info_asymmetry: none
 data_mode: full
 speed_scoring: false
 custom_tools: false
+
+# Per-scenario LOS configuration (optional).
+# Uncomment to disable optional stage guards or bootstrap gate policies.
+# los_config:
+#   disabled_guards:
+#     - spread_created
+#     - documents_uploaded
+#   gate_policies:
+#     - action: deal.stage_advance
+#       mode: auto

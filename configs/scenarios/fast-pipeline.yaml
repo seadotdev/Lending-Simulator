@@ -1,0 +1,23 @@
+name: Fast Pipeline
+description: >
+  Relaxed LOS pipeline — disables spread and document upload guards so deals
+  can advance to underwriting without ceremony. Useful for speed-run benchmarks
+  or testing LLM evaluation quality in isolation.
+
+weeks: 5
+cohort_size: 5
+months_per_week: 2
+season_mix: realistic
+seed: 42
+speed_scoring: false
+custom_tools: false
+info_asymmetry: none
+data_mode: full
+
+los_config:
+  disabled_guards:
+    - spread_created
+    - documents_uploaded
+  gate_policies:
+    - action: deal.stage_advance
+      mode: auto

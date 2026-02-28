@@ -10,6 +10,7 @@ from .borrower_gen import generate_cohort
 from .cost_tracking import print_season_cost_summary
 from .custom_tools import LenderToolkit
 from .engine import SimulationEngine, resolve_loan_period
+from .los_adapter import bootstrap_los_tenant
 from .market_pool import MarketPool
 from .models import (
     ActiveLoan,
@@ -535,6 +536,19 @@ class SeasonEngine:
     async def run_season(self) -> None:
         _print_season_header(self.config)
 
+        # Bootstrap per-tenant LOS config if the scenario provides one
+        los_config = self.config.los_config
+        if los_config.disabled_guards or los_config.gate_policies:
+            los_url = self.engine_kwargs.get("los_url", "http://localhost:3000")
+            for lender in self.base_lenders:
+                tenant_id = f"lender_{lender.id}"
+                try:
+                    await bootstrap_los_tenant(
+                        tenant_id, los_config, los_url=los_url,
+                    )
+                except Exception as exc:
+                    print(f"  [WARN] Failed to bootstrap LOS config for {tenant_id}: {exc}")
+
         for week in range(1, self.config.weeks + 1):
             _print_week_header(week, self.config.weeks)
 
@@ -1004,9 +1018,7 @@ class SeasonEngine:
             if self.engine_kwargs.get("mock"):
                 self._mock_tooling(toolkit, state, week)
             else:
-                # Until a dedicated live tooling call is implemented, apply the
-                # same deterministic heuristics so toolkits evolve in live mode.
-                self._mock_tooling(toolkit, state, week)
+                self._live_tooling(toolkit, state, lender, week)
 
             # Keep season scoring state in sync with the toolkit registry.
             state.custom_tools = list(toolkit.tools)
@@ -1049,6 +1061,116 @@ class SeasonEngine:
                 implementation="target rate = max(floor_rate, market_avg - 0.5%)",
                 week=week,
             )
+
+    def _live_tooling(
+        self, toolkit: LenderToolkit, state: SeasonLenderState,
+        lender: LenderConfig, week: int,
+    ) -> None:
+        """LLM-driven tool creation between season weeks.
+
+        The lender's model sees its performance history and decides
+        whether to create, update, or skip tool creation.
+        Falls back to _mock_tooling if the LLM call fails.
+        """
+        import asyncio
+        import json
+        import os
+
+        import httpx
+
+        api_key = os.environ.get("OPENROUTER_API_KEY", "")
+        if not api_key:
+            # No API key — fall back to deterministic heuristics
+            self._mock_tooling(toolkit, state, week)
+            return
+
+        # Build performance summary
+        defaults = sum(1 for lo in state.resolved_loans if lo.defaulted)
+        active_count = len(state.active_loans)
+        deployed = sum(lo.remaining_balance for lo in state.active_loans)
+        existing_tools = [t.name for t in toolkit.tools]
+
+        perf_summary = (
+            f"Week {week} performance: "
+            f"{active_count} active loans, ${deployed:,.0f} deployed, "
+            f"{defaults} defaults, {state.deals_lost} deals lost to competitors, "
+            f"{state.total_rejections} rejections. "
+            f"Current tools: {existing_tools or 'none'}."
+        )
+
+        prompt = f"""TOOLING PHASE (Week {week})
+
+You are managing tools for a lending institution. Based on performance, decide whether to CREATE a new tool, UPDATE an existing one, or SKIP.
+
+{perf_summary}
+
+Rules:
+- Maximum {toolkit.MAX_TOOLS} tools allowed
+- Tools should help with underwriting analysis
+- Each tool has a name, description, and bash implementation
+- Creating a tool costs {toolkit.CREATION_COST} efficiency points, updating costs {toolkit.UPDATE_COST}
+
+Respond with JSON:
+- To create: {{"action": "create", "name": "tool_name", "description": "what it does", "implementation": "bash script"}}
+- To update: {{"action": "update", "name": "existing_tool", "description": "new desc", "implementation": "new script"}}
+- To skip: {{"action": "skip"}}
+"""
+
+        async def _call() -> dict | None:
+            url = "https://openrouter.ai/api/v1/chat/completions"
+            headers = {
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json",
+            }
+            body = {
+                "model": lender.model,
+                "messages": [
+                    {"role": "system", "content": "You are a tool creation assistant for a lending platform. Respond only with valid JSON."},
+                    {"role": "user", "content": prompt},
+                ],
+                "temperature": 0.3,
+                "max_tokens": 512,
+            }
+            try:
+                async with httpx.AsyncClient(timeout=30.0) as client:
+                    resp = await client.post(url, headers=headers, json=body)
+                    if resp.status_code != 200:
+                        return None
+                    data = resp.json()
+                    content = data["choices"][0]["message"]["content"]
+                    # Extract JSON from response
+                    import re
+                    m = re.search(r'\{.*\}', content, re.DOTALL)
+                    if m:
+                        return json.loads(m.group())
+                    return None
+            except Exception:
+                return None
+
+        try:
+            tool_decision = asyncio.get_event_loop().run_until_complete(_call())
+        except RuntimeError:
+            # No event loop running — create one
+            tool_decision = asyncio.run(_call())
+
+        if tool_decision is None:
+            # LLM call failed — fall back to deterministic
+            self._mock_tooling(toolkit, state, week)
+            return
+
+        action = tool_decision.get("action", "skip")
+        if action == "create":
+            name = tool_decision.get("name", "")
+            desc = tool_decision.get("description", "")
+            impl = tool_decision.get("implementation", "echo 'not implemented'")
+            if name and desc:
+                toolkit.create_tool(name=name, description=desc, implementation=impl, week=week)
+        elif action == "update":
+            name = tool_decision.get("name", "")
+            desc = tool_decision.get("description")
+            impl = tool_decision.get("implementation")
+            if name:
+                toolkit.update_tool(name=name, description=desc, implementation=impl)
 
     # ------------------------------------------------------------------
     # Result ingestion

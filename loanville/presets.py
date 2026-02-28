@@ -42,6 +42,7 @@ _SCENARIO_KEYS = {
     "custom_tools",
     "info_asymmetry",
     "data_mode",
+    "los_config",
 }
 _SEASON_MIX_VALUES = {"gentle", "realistic", "adversarial", "stress", "escalating"}
 _INFO_ASYMMETRY_VALUES = {"none", "partial_statements", "redacted"}
@@ -233,6 +234,12 @@ def load_scenario_preset(spec: str) -> tuple[dict[str, Any], Path]:
                     f"Scenario preset '{path}' key 'data_mode' must be one of: {options}"
                 )
             normalized[key] = mode
+        elif key == "los_config":
+            if not isinstance(value, dict):
+                raise ValueError(
+                    f"Scenario preset '{path}' key 'los_config' must be a mapping."
+                )
+            normalized[key] = value
         else:
             normalized[key] = str(value).strip()
 
