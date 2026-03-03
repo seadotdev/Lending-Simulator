@@ -1,0 +1,25 @@
+# Broken league — intentionally broken models for testing preflight checks
+#
+# Use with: python -m loanville --scenario realistic-10w --lenders broken-league
+
+# WILL ALWAYS FAIL: completely made-up model ID
+- id: LND-001
+  model: fake-vendor/nonexistent-model-v99
+
+# FAIL on OpenRouter: valid Anthropic model but wrong ID format for OR
+# (correct OR ID would be anthropic/claude-sonnet-4-5)
+- id: LND-002
+  model: anthropic/claude-sonnet-4-5-20250929
+
+# FAIL on OpenRouter: model exists but doesn't support tool_choice
+# (OpenRouter returns 404 "no endpoints support tool_choice")
+- id: LND-003
+  model: qwen/qwen3-235b-a22b
+
+# SHOULD PASS: known-good model on OpenRouter
+- id: LND-004
+  model: openai/gpt-4.1-mini
+
+# SHOULD PASS: another known-good model
+- id: LND-005
+  model: deepseek/deepseek-chat-v3-0324

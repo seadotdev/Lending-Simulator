@@ -26,6 +26,8 @@ import time
 import uuid
 from typing import Optional
 
+import os
+
 import httpx
 
 logger = logging.getLogger(__name__)
@@ -72,6 +74,208 @@ async def check_los_health(los_url: str = DEFAULT_LOS_URL, timeout: float = 5.0)
         raise RuntimeError(
             f"Open LOS at {los_url} returned {exc.response.status_code} on health check."
         )
+
+
+async def preflight_season(
+    lenders: list[LenderConfig],
+    los_url: str = DEFAULT_LOS_URL,
+    provider: str = "openrouter",
+    timeout: float = 30.0,
+    total_evaluations: int = 0,
+) -> None:
+    """Run preflight checks before a season starts.
+
+    Validates LOS health, OpenRouter credits, and that every unique model
+    across lenders actually works (correct ID, supports tool_choice, etc.).
+    Raises RuntimeError with an actionable summary on any failure.
+    """
+    print("\n  PREFLIGHT CHECK")
+    failures: list[str] = []
+
+    # --- Check 1: LOS health ---
+    try:
+        await check_los_health(los_url, timeout=5.0)
+        print(f"    LOS health .................. OK")
+    except RuntimeError as exc:
+        msg = str(exc)
+        print(f"    LOS health .................. FAIL: {msg}")
+        failures.append(f"LOS health: {msg}")
+        # Can't continue without LOS
+        raise RuntimeError(
+            f"PREFLIGHT FAILED: LOS not reachable.\n  {msg}"
+        )
+
+    # --- Check 2: Credit / API key check ---
+    if provider == "openrouter":
+        or_key = os.environ.get("OPENROUTER_API_KEY", "")
+        if or_key:
+            try:
+                async with httpx.AsyncClient(timeout=10.0) as client:
+                    resp = await client.get(
+                        "https://openrouter.ai/api/v1/credits",
+                        headers={"Authorization": f"Bearer {or_key}"},
+                    )
+                    resp.raise_for_status()
+                    data = resp.json().get("data", {})
+                    total_credits = data.get("total_credits", 0.0)
+                    total_usage = data.get("total_usage", 0.0)
+                    balance = total_credits - total_usage
+
+                    # Also fetch rate limit info
+                    rl_resp = await client.get(
+                        "https://openrouter.ai/api/v1/auth/key",
+                        headers={"Authorization": f"Bearer {or_key}"},
+                    )
+                    rl_resp.raise_for_status()
+                    rl_data = rl_resp.json().get("data", {})
+                    rate_remaining = rl_data.get("limit_remaining")
+
+                    # Estimate season cost if we know total evaluations
+                    est_cost = 0.0
+                    if total_evaluations > 0:
+                        from .cost_tracking import _estimate_cost_per_eval
+                        # Weight by number of lenders using each model
+                        model_counts: dict[str, int] = {}
+                        for l in lenders:
+                            model_counts[l.model] = model_counts.get(l.model, 0) + 1
+                        evals_per_lender = total_evaluations / len(lenders) if lenders else 0
+                        for model, count in model_counts.items():
+                            est_cost += _estimate_cost_per_eval(model) * evals_per_lender * count
+
+                    est_tag = f", ~${est_cost:.2f} estimated" if est_cost > 0 else ""
+                    status = f"${balance:.2f} balance, ${rate_remaining:.2f} rate limit{est_tag}"
+
+                    if balance <= 0:
+                        print(f"    OpenRouter credits .......... FAIL: {status}")
+                        failures.append(f"OpenRouter credits: no balance remaining ({status})")
+                    elif rate_remaining is not None and rate_remaining <= 0:
+                        print(f"    OpenRouter credits .......... FAIL: {status}")
+                        failures.append(f"OpenRouter credits: rate limit exhausted ({status})")
+                    elif est_cost > 0 and balance < est_cost:
+                        print(f"    OpenRouter credits .......... WARN: {status} — may not complete")
+                    elif balance < 1.0 or (rate_remaining is not None and rate_remaining < 1.0):
+                        print(f"    OpenRouter credits .......... WARN: {status}")
+                    else:
+                        print(f"    OpenRouter credits .......... {status}")
+            except Exception as exc:
+                print(f"    OpenRouter credits .......... WARN: could not check ({exc})")
+        else:
+            print(f"    OpenRouter credits .......... SKIP (no OPENROUTER_API_KEY)")
+    elif provider == "anthropic":
+        ak = os.environ.get("ANTHROPIC_API_KEY", "")
+        if ak:
+            print(f"    Anthropic API key ........... present ({ak[:12]}...)")
+        else:
+            print(f"    Anthropic API key ........... FAIL: no ANTHROPIC_API_KEY")
+            failures.append("Anthropic API key: ANTHROPIC_API_KEY not set")
+    elif provider == "openai":
+        ok = os.environ.get("OPENAI_API_KEY", "")
+        if ok:
+            print(f"    OpenAI API key .............. present ({ok[:12]}...)")
+        else:
+            print(f"    OpenAI API key .............. FAIL: no OPENAI_API_KEY")
+            failures.append("OpenAI API key: OPENAI_API_KEY not set")
+    else:
+        print(f"    API credentials ............. SKIP (no check for provider={provider})")
+
+    # --- Check 3: Per-model smoke test via LOS /v1/underwrite ---
+    unique_models: dict[str, list[str]] = {}  # model -> [lender names]
+    for lender in lenders:
+        model = lender.model
+        unique_models.setdefault(model, []).append(lender.name)
+
+    smoke_dossier = {
+        "company_name": "Preflight Test",
+        "sector": "Technology",
+        "years_in_business": 5,
+        "employee_count": 10,
+        "narrative": "Smoke test for preflight validation.",
+        "loan_request_amount": 50000,
+        "loan_purpose": "Smoke test",
+        "annual_revenue": 500000,
+        "annual_expenses": 400000,
+        "net_income": 100000,
+    }
+    smoke_policy = {
+        "policy_id": "p_preflight",
+        "model": "",  # filled per-model
+        "persona": "You are a loan underwriter. Evaluate this application.",
+        "target_yield_pct": 10.0,
+        "max_single_loan": 50000,
+        "total_capital": 1000000,
+        "sector_limits": {},
+    }
+
+    base = los_url.rstrip("/")
+    model_failures = 0
+    total_models = len(unique_models)
+
+    for model_id, lender_names in unique_models.items():
+        label = model_id
+        # Pad with dots for alignment
+        dots = "." * max(2, 36 - len(label))
+        try:
+            t0 = time.time()
+            policy = {**smoke_policy, "model": model_id}
+            async with httpx.AsyncClient(timeout=timeout) as client:
+                resp = await client.post(
+                    f"{base}/v1/underwrite",
+                    json={
+                        "dossier": smoke_dossier,
+                        "policy": policy,
+                        "provider": provider,
+                        "models": {"default": model_id},
+                    },
+                    headers={
+                        "Content-Type": "application/json",
+                        "X-Actor": "sim:preflight",
+                        "X-Tenant-Id": "preflight",
+                    },
+                )
+            elapsed = time.time() - t0
+
+            if resp.status_code >= 400:
+                body = resp.text[:200]
+                print(f"    {label} {dots} FAIL: {resp.status_code} {body}")
+                failures.append(f"{model_id}: HTTP {resp.status_code} — {body}")
+                model_failures += 1
+            else:
+                result = resp.json()
+                decision = result.get("decision", {})
+                action = decision.get("action", "")
+                rationale = decision.get("rationale", {})
+                summary = rationale.get("summary", "") if isinstance(rationale, dict) else str(rationale)
+
+                if summary.startswith("LLM evaluation failed:"):
+                    # LOS caught an LLM error and returned a synthetic decline
+                    error_detail = summary[len("LLM evaluation failed:"):].strip()
+                    print(f"    {label} {dots} FAIL: {error_detail[:120]}")
+                    failures.append(f"{model_id}: {error_detail[:200]}")
+                    model_failures += 1
+                elif not action:
+                    print(f"    {label} {dots} WARN: no action in response ({elapsed:.1f}s)")
+                else:
+                    print(f"    {label} {dots} OK ({elapsed:.1f}s)")
+
+        except httpx.TimeoutException:
+            print(f"    {label} {dots} FAIL: timeout after {timeout:.0f}s")
+            failures.append(f"{model_id}: timeout after {timeout:.0f}s")
+            model_failures += 1
+        except Exception as exc:
+            print(f"    {label} {dots} FAIL: {exc}")
+            failures.append(f"{model_id}: {exc}")
+            model_failures += 1
+
+    # --- Summary ---
+    if failures:
+        summary_lines = [f"\n  PREFLIGHT FAILED: {len(failures)} issue(s) found."]
+        for f in failures:
+            summary_lines.append(f"    - {f}")
+        summary_lines.append("  Fix these before running the season.")
+        print("\n".join(summary_lines))
+        raise RuntimeError(f"Preflight failed: {len(failures)} issue(s). See above.")
+    else:
+        print(f"    All {total_models} model(s) passed. Ready to go.\n")
 
 
 async def bootstrap_los_tenant(

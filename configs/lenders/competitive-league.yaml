@@ -1,0 +1,12 @@
+# Competitive league — strong models at reasonable OpenRouter pricing
+# Estimated ~$0.01-0.02 per evaluation across these models
+- id: LND-001
+  model: openai/gpt-4.1-mini
+- id: LND-002
+  model: google/gemini-2.5-flash
+- id: LND-003
+  model: deepseek/deepseek-chat-v3-0324
+- id: LND-004
+  model: anthropic/claude-sonnet-4-5
+- id: LND-005
+  model: qwen/qwen3-30b-a3b

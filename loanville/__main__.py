@@ -399,6 +399,8 @@ def main() -> None:
                         help="Emit match record to leaderboard after scoring (default: on)")
     parser.add_argument("--no-leaderboard", action="store_false", dest="leaderboard",
                         help="Disable leaderboard match record emission")
+    parser.add_argument("--skip-preflight", action="store_true",
+                        help="Skip preflight model validation before season runs")
     parser.add_argument("-v", "--verbose", action="store_true",
                         help="Enable detailed logging (LOS calls, per-borrower progress)")
     parser.add_argument("--export", type=str, default=None, metavar="FILE",
@@ -650,6 +652,18 @@ def main() -> None:
             los_model=args.los_model,
             formal_los_only=formal_los_only,
         )
+
+        # Preflight checks — validate LOS, credits, and models before burning evaluations
+        if args.los_mode == "full" and not mock and not args.skip_preflight:
+            from .los_adapter import preflight_season
+            total_evals = weeks * cohort_size * len(lenders)
+            asyncio.run(preflight_season(
+                lenders=lenders,
+                los_url=args.los_url,
+                provider=args.los_provider,
+                total_evaluations=total_evals,
+            ))
+
         asyncio.run(season.run_season())
 
         # Score and report

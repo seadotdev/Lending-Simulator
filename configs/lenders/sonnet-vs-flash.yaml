@@ -1,0 +1,5 @@
+# Head-to-head: Claude Sonnet 4.5 vs Gemini 2.5 Flash
+- id: LND-001
+  model: anthropic/claude-sonnet-4-5
+- id: LND-002
+  model: google/gemini-2.5-flash
