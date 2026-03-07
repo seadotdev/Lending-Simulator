@@ -242,17 +242,11 @@ export class TownScene {
       const name = lenderNames[bld.id] || `Lender ${bld.id}`;
       const labelDiv = document.createElement('div');
       labelDiv.className = 'bank-signpost';
-      labelDiv.innerHTML =
-        `<div class="signpost-name">${name}</div>` +
-        `<div class="signpost-stats">` +
-        `<div class="signpost-stat"><div class="signpost-stat-label">Approve</div><div class="signpost-stat-value">—</div></div>` +
-        `<div class="signpost-stat"><div class="signpost-stat-label">P&L</div><div class="signpost-stat-value">—</div></div>` +
-        `</div>` +
-        `<div class="signpost-metrics">` +
-        `<div class="signpost-metric"><span class="signpost-metric-label">Loan</span><span class="signpost-metric-value signpost-loan-value">—</span></div>` +
-        `<div class="signpost-metric"><span class="signpost-metric-label">AUM</span><span class="signpost-metric-value signpost-aum-value">—</span></div>` +
-        `</div>` +
-        `<div class="signpost-borrowers"></div>`;
+      labelDiv.innerHTML = this._signpostHTML(name);
+      labelDiv.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this._toggleSignpost(labelDiv);
+      });
       const label = new CSS2DObject(labelDiv);
       label.position.set(0, 2.5, 0);
       model.add(label);
@@ -394,18 +388,11 @@ export class TownScene {
       const slotCount = (layout?.portfolioSlotsByLender?.[lenderIndex] || []).length;
       const labelDiv = document.createElement('div');
       labelDiv.className = 'bank-signpost portfolio-signpost';
-      labelDiv.innerHTML =
-        `<div class="signpost-name">${name}</div>` +
-        `<div class="signpost-stats">` +
-        `<div class="signpost-stat"><div class="signpost-stat-label">Approve</div><div class="signpost-stat-value">—</div></div>` +
-        `<div class="signpost-stat"><div class="signpost-stat-label">P&L</div><div class="signpost-stat-value">—</div></div>` +
-        `</div>` +
-        `<div class="signpost-metrics">` +
-        `<div class="signpost-metric"><span class="signpost-metric-label">Loan</span><span class="signpost-metric-value signpost-loan-value">—</span></div>` +
-        `<div class="signpost-metric"><span class="signpost-metric-label">AUM</span><span class="signpost-metric-value signpost-aum-value">—</span></div>` +
-        `</div>` +
-        `<div class="signpost-borrowers"></div>` +
-        `<div class="portfolio-capacity">${slotCount} slots</div>`;
+      labelDiv.innerHTML = this._signpostHTML(name, slotCount);
+      labelDiv.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this._toggleSignpost(labelDiv);
+      });
       const label = new CSS2DObject(labelDiv);
       label.position.set(0, 2.2, 0);
       core.add(label);
@@ -718,29 +705,40 @@ export class TownScene {
     const nameEl = el.querySelector('.signpost-name');
     if (nameEl) nameEl.textContent = name;
 
-    const values = el.querySelectorAll('.signpost-stat-value');
-    if (values.length >= 2) {
-      // Approval rate
-      values[0].textContent = approvalRate !== null ? `${Math.round(approvalRate)}%` : '—';
-
-      // P&L
-      if (pnl === null || pnl === undefined) {
-        values[1].textContent = '—';
-        values[1].className = 'signpost-stat-value';
-      } else {
+    // Update collapsed summary line
+    const summaryEl = el.querySelector('.signpost-summary');
+    if (summaryEl) {
+      if (pnl !== null && pnl !== undefined) {
         const pnlStr = pnl >= 0 ? `+$${fmtK(pnl)}` : `-$${fmtK(Math.abs(pnl))}`;
-        values[1].textContent = pnlStr;
-        values[1].className = 'signpost-stat-value ' + (pnl >= 0 ? 'positive' : 'negative');
+        summaryEl.textContent = pnlStr;
+        summaryEl.className = 'signpost-summary ' + (pnl >= 0 ? 'positive' : 'negative');
+      } else {
+        summaryEl.textContent = '';
+        summaryEl.className = 'signpost-summary';
       }
     }
 
-    const loanEl = el.querySelector('.signpost-loan-value');
-    if (loanEl) {
-      loanEl.textContent = avgLoanSize !== null && avgLoanSize !== undefined ? `$${fmtK(avgLoanSize)}` : '—';
-    }
-    const aumEl = el.querySelector('.signpost-aum-value');
-    if (aumEl) {
-      aumEl.textContent = aum !== null && aum !== undefined ? `$${fmtK(aum)}` : '—';
+    // Update expanded grid cells
+    const cells = el.querySelectorAll('.signpost-cell-value');
+    if (cells.length >= 4) {
+      // Approve %
+      cells[0].textContent = approvalRate !== null ? `${Math.round(approvalRate)}%` : '—';
+
+      // P&L
+      if (pnl === null || pnl === undefined) {
+        cells[1].textContent = '—';
+        cells[1].className = 'signpost-cell-value';
+      } else {
+        const pnlStr = pnl >= 0 ? `+$${fmtK(pnl)}` : `-$${fmtK(Math.abs(pnl))}`;
+        cells[1].textContent = pnlStr;
+        cells[1].className = 'signpost-cell-value ' + (pnl >= 0 ? 'positive' : 'negative');
+      }
+
+      // Avg Loan
+      cells[2].textContent = avgLoanSize !== null && avgLoanSize !== undefined ? `$${fmtK(avgLoanSize)}` : '—';
+
+      // AUM
+      cells[3].textContent = aum !== null && aum !== undefined ? `$${fmtK(aum)}` : '—';
     }
   }
 
@@ -757,6 +755,63 @@ export class TownScene {
       .slice(0, 8)
       .map(name => `<div class="signpost-borrower">${escapeHtml(name)}</div>`)
       .join('');
+  }
+
+  _signpostHTML(name, slotCount = null) {
+    let html =
+      `<div class="signpost-name">${escapeHtml(name)}</div>` +
+      `<div class="signpost-summary"></div>` +
+      `<div class="signpost-detail">` +
+        `<div class="signpost-grid">` +
+          `<div class="signpost-cell"><div class="signpost-cell-label">Approve</div><div class="signpost-cell-value">—</div></div>` +
+          `<div class="signpost-cell"><div class="signpost-cell-label">P&amp;L</div><div class="signpost-cell-value">—</div></div>` +
+          `<div class="signpost-cell"><div class="signpost-cell-label">Avg Loan</div><div class="signpost-cell-value">—</div></div>` +
+          `<div class="signpost-cell"><div class="signpost-cell-label">AUM</div><div class="signpost-cell-value">—</div></div>` +
+        `</div>` +
+        `<div class="signpost-borrowers"></div>`;
+    if (slotCount !== null) {
+      html += `<div class="portfolio-capacity">${slotCount} slots</div>`;
+    }
+    html += `</div>`;
+    return html;
+  }
+
+  _toggleSignpost(labelDiv) {
+    // Close any other expanded signpost
+    this._closeAllSignposts(labelDiv);
+    labelDiv.classList.toggle('expanded');
+
+    // Add/remove click-outside listener
+    if (labelDiv.classList.contains('expanded')) {
+      this._outsideClickHandler = (e) => {
+        if (!labelDiv.contains(e.target)) {
+          labelDiv.classList.remove('expanded');
+          document.removeEventListener('pointerdown', this._outsideClickHandler, true);
+          this._outsideClickHandler = null;
+        }
+      };
+      // Use capture + delay so the current click doesn't immediately close it
+      setTimeout(() => {
+        if (this._outsideClickHandler) {
+          document.addEventListener('pointerdown', this._outsideClickHandler, true);
+        }
+      }, 0);
+    } else if (this._outsideClickHandler) {
+      document.removeEventListener('pointerdown', this._outsideClickHandler, true);
+      this._outsideClickHandler = null;
+    }
+  }
+
+  _closeAllSignposts(except = null) {
+    const root = this.labelRenderer?.domElement || this.container;
+    const allSignposts = root?.querySelectorAll('.bank-signpost.expanded') || [];
+    for (const sp of allSignposts) {
+      if (sp !== except) sp.classList.remove('expanded');
+    }
+    if (this._outsideClickHandler) {
+      document.removeEventListener('pointerdown', this._outsideClickHandler, true);
+      this._outsideClickHandler = null;
+    }
   }
 
   updateLenderVisualState(lenderIndex, state = {}) {
@@ -1100,6 +1155,10 @@ export class TownScene {
     this.disposed = true;
     this.tweens = [];
     this.mixers = [];
+    if (this._outsideClickHandler) {
+      document.removeEventListener('pointerdown', this._outsideClickHandler, true);
+      this._outsideClickHandler = null;
+    }
     if (this.animationFrame) {
       cancelAnimationFrame(this.animationFrame);
       this.animationFrame = null;
