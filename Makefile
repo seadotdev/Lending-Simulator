@@ -1,4 +1,4 @@
-.PHONY: help install setup sim mock season season-mock smoke view replay-check clean
+.PHONY: help install setup sim mock season season-mock smoke view replay-check agent-sim clean
 
 help: ## Show available targets
 	@grep -E '^[a-zA-Z_-]+:.*##' $(MAKEFILE_LIST) | awk -F ':.*## ' '{printf "  \033[36m%-16s\033[0m %s\n", $$1, $$2}'
@@ -27,6 +27,9 @@ season: ## Run multi-week season via LOS
 
 season-mock: ## Run multi-week season in mock mode
 	python -m loanville --season --mock --allow-non-los-formal
+
+agent-sim: ## Run agentic LOS sim (models drive the LOS autonomously)
+	python -m loanville --agent-sim --agent-cases 3 --agent-mode tool_call
 
 smoke: ## Run smoke test (1 week, 3 borrowers per model)
 	python run_smoke_test.py
