@@ -258,6 +258,11 @@ SEASON_DEFAULTS = {
     "data_mode": "full",
     "borrower_patience_weeks": 1,
     "offer_validity_weeks": 1,
+    "scratchpad": True,
+    "consistency_samples": 0,
+    "consistency_sample_pct": 0.30,
+    "underwriting_cost_mode": "simulated",
+    "uw_cost_multiplier": 1.0,
 }
 
 
@@ -386,6 +391,23 @@ def main() -> None:
                         default=None,
                         help="Per-lender borrower view differences "
                              "(default: none, or scenario preset value)")
+    parser.add_argument("--scratchpad", action="store_true", default=None,
+                        help="Enable persistent strategy scratchpad in season mode "
+                             "(default: on)")
+    parser.add_argument("--no-scratchpad", action="store_false", dest="scratchpad",
+                        help="Disable strategy scratchpad")
+    parser.add_argument("--consistency-samples", type=int, default=None,
+                        help="Pass@k consistency: number of re-evaluations per borrower "
+                             "to measure decision stability (0=disabled, default: 0)")
+    parser.add_argument("--consistency-sample-pct", type=float, default=None,
+                        help="Fraction of each cohort to re-test for consistency "
+                             "(default: 0.30)")
+    parser.add_argument("--real-uw-costs", action="store_true", default=None,
+                        help="Use actual API cost (× multiplier) as underwriting cost "
+                             "in P&L instead of flat simulated rate")
+    parser.add_argument("--uw-cost-multiplier", type=float, default=None,
+                        help="Scale factor for API→underwriting cost mapping "
+                             "(e.g., 2000 maps $0.01 API → $20 UW cost; default: 1.0)")
     # Agent sim arguments
     parser.add_argument("--agent-sim", action="store_true",
                         help="Run agentic LOS simulation (models drive the LOS autonomously)")
@@ -678,6 +700,34 @@ def main() -> None:
             or args.custom_tools
         )
 
+        scratchpad = (
+            args.scratchpad
+            if args.scratchpad is not None
+            else scenario_overrides.get("scratchpad", True)
+        )
+        consistency_samples = (
+            args.consistency_samples
+            if args.consistency_samples is not None
+            else scenario_overrides.get("consistency_samples", 0)
+        )
+        consistency_sample_pct = (
+            args.consistency_sample_pct
+            if args.consistency_sample_pct is not None
+            else scenario_overrides.get("consistency_sample_pct", 0.30)
+        )
+        uw_cost_mode = "simulated"
+        if args.real_uw_costs:
+            uw_cost_mode = "real"
+        elif scenario_overrides.get("underwriting_cost_mode"):
+            uw_cost_mode = scenario_overrides["underwriting_cost_mode"]
+        uw_cost_multiplier = (
+            args.uw_cost_multiplier
+            if args.uw_cost_multiplier is not None
+            else scenario_overrides.get(
+                "uw_cost_multiplier", SEASON_DEFAULTS["uw_cost_multiplier"]
+            )
+        )
+
         # Parse los_config from scenario overrides
         los_config_raw = scenario_overrides.get("los_config", {})
         los_config = LosConfig(
@@ -694,6 +744,11 @@ def main() -> None:
             speed_scoring=speed_scoring,
             custom_tools=custom_tools,
             economics=economics,
+            scratchpad=scratchpad,
+            consistency_samples=consistency_samples,
+            consistency_sample_pct=consistency_sample_pct,
+            underwriting_cost_mode=uw_cost_mode,
+            uw_cost_multiplier=uw_cost_multiplier,
             los_config=los_config,
             arrival_phases=arrival_phases,
             deep_uw_slots_per_week=deep_uw_slots,

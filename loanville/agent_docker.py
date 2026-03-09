@@ -43,7 +43,7 @@ logger = logging.getLogger(__name__)
 IMAGE_NAME = "loanville-agent"
 REPO_ROOT = Path(__file__).resolve().parent.parent
 DOCKER_DIR = REPO_ROOT / "docker" / "agent"
-RUNS_DIR = Path("runs")
+RUNS_DIR = REPO_ROOT / "runs"
 
 MAX_IDLE_SECS = 300  # kill container if no events for 5 min
 BUDGET_POLL_INTERVAL_S = 30
@@ -265,7 +265,16 @@ def run_model_container(
                     if usage is not None and usage != last_injected_usage:
                         remaining = max(0.0, budget_usd - usage)
                         pct = int(remaining / budget_usd * 100) if budget_usd > 0 else 0
-                        budget_line = f"Budget: ${remaining:.3f} remaining of ${budget_usd:.2f} ({pct}% left)"
+                        fraction = usage / budget_usd if budget_usd > 0 else 1.0
+
+                        # Warning levels
+                        if fraction >= 0.95:
+                            budget_line = f"CRITICAL: ${remaining:.3f} remaining ({pct}%). Write decision NOW."
+                        elif fraction >= 0.80:
+                            budget_line = f"WARNING: ${remaining:.3f} remaining ({pct}%). Wrap up soon."
+                        else:
+                            budget_line = f"Budget: ${remaining:.3f} remaining of ${budget_usd:.2f} ({pct}% left)"
+
                         # Write budget.txt into workspace
                         try:
                             subprocess.run(
@@ -276,12 +285,13 @@ def run_model_container(
                         except Exception:
                             pass
                         last_injected_usage = usage
-                        ev_logger.log("budget_poll", usage=usage, remaining=remaining)
+                        ev_logger.log("budget_poll", usage=usage, remaining=remaining, fraction=round(fraction, 3))
                         tlog(f"  [budget] {budget_line}")
 
-                        # Budget exhausted — kill
+                        # Budget exhausted — give 10s grace to collect decision, then kill
                         if remaining <= 0:
-                            tlog(f"\n  BUDGET EXHAUSTED: ${usage:.3f} spent.")
+                            tlog(f"\n  BUDGET EXHAUSTED: ${usage:.3f} spent. Waiting 10s for decision...")
+                            time.sleep(10)
                             proc.kill()
                             summary["error"] = "budget_exhausted"
                             break
@@ -304,9 +314,17 @@ def run_model_container(
                 event = {"type": "raw", "data": line}
 
             events.append(event)
-            ev_logger.log(event.get("type", "raw"), **{
-                k: v for k, v in event.items() if k != "type"
-            })
+
+            # Enrich events with truncated args/results for analysis
+            log_extras = {k: v for k, v in event.items() if k != "type"}
+            if event.get("type") == "tool_execution_start":
+                args_str = str(event.get("args", ""))
+                log_extras["args_truncated"] = args_str[:500]
+            elif event.get("type") == "tool_execution_end":
+                result_str = str(event.get("result", ""))
+                log_extras["result_truncated"] = result_str[:1000]
+
+            ev_logger.log(event.get("type", "raw"), **log_extras)
 
             # Print relevant events
             _print_event(event)
@@ -334,14 +352,60 @@ def run_model_container(
         summary["error"] = str(e)
         tlog(f"\n  ERROR: {e}")
 
-    # Read decision from output
+    # Read and validate decision from output
     decision_path = workspace / "decision.json"
     if decision_path.exists():
         try:
-            summary["decision"] = json.loads(decision_path.read_text())
-            tlog(f"  Decision: {summary['decision'].get('decision', '?')}")
-        except Exception:
-            pass
+            dec = json.loads(decision_path.read_text())
+            # Validate required fields
+            valid_decisions = {"approve", "decline", "counter", "refer"}
+            if not isinstance(dec, dict):
+                tlog(f"  Decision: INVALID (not an object)")
+                summary["decision_error"] = "not_an_object"
+            elif dec.get("decision") not in valid_decisions:
+                tlog(f"  Decision: INVALID ('{dec.get('decision')}' not in {valid_decisions})")
+                summary["decision_error"] = f"invalid_decision_value:{dec.get('decision')}"
+                summary["decision"] = dec  # keep raw for debugging
+            elif not dec.get("reasoning"):
+                tlog(f"  Decision: {dec['decision']} (WARNING: no reasoning)")
+                summary["decision"] = dec
+                summary["decision_error"] = "missing_reasoning"
+            else:
+                summary["decision"] = dec
+                tlog(f"  Decision: {dec['decision']}")
+        except json.JSONDecodeError as e:
+            tlog(f"  Decision: INVALID JSON ({e})")
+            summary["decision_error"] = f"invalid_json:{e}"
+
+    # Behavioral telemetry — scan events for analysis quality signals
+    spread_created = False
+    ratios_reviewed = False
+    stage_reached = "unknown"
+    doc_count = 0
+    evaluate_called = False
+    check_guards_called = False
+    for ev in events:
+        tool = ev.get("toolName", "")
+        result_text = str(ev.get("result", ""))
+        if "spread" in tool.lower() and ev.get("type") == "tool_execution_end":
+            spread_created = True
+        if "ratio" in tool.lower() and ev.get("type") == "tool_execution_end":
+            ratios_reviewed = True
+        if "doc" in tool.lower() and "upload" in tool.lower() and ev.get("type") == "tool_execution_end":
+            doc_count += 1
+        if "evaluate" in tool.lower():
+            evaluate_called = True
+        if "check-guards" in tool.lower() or "check_guards" in tool.lower():
+            check_guards_called = True
+        # Try to detect stage from results
+        if "stage" in result_text:
+            for s in ("monitoring", "closing", "underwriting", "origination", "broker"):
+                if s in result_text:
+                    stage_reached = s
+                    break
+
+    # Independent decision = model created spread AND didn't just delegate to evaluate
+    independent_decision = spread_created and not (evaluate_called and not spread_created)
 
     # Cost
     finished_at = datetime.now(timezone.utc)
@@ -350,6 +414,13 @@ def run_model_container(
     summary["duration_s"] = round((finished_at - started_at).total_seconds())
     summary["tool_calls"] = tool_call_count
     summary["has_deal"] = has_deal
+    summary["spread_created"] = spread_created
+    summary["ratios_reviewed"] = ratios_reviewed
+    summary["stage_reached"] = stage_reached
+    summary["doc_count"] = doc_count
+    summary["evaluate_called"] = evaluate_called
+    summary["check_guards_called"] = check_guards_called
+    summary["independent_decision"] = independent_decision
 
     # Final usage poll
     time.sleep(3)

@@ -309,8 +309,33 @@ class SeasonConfig:
     # per-lender.
     info_asymmetry: str = "none"  # none | partial_statements | redacted
 
+    # Persistent strategy scratchpad — enable lender scratchpad that
+    # carries across weeks (inspired by YC-Bench).
+    scratchpad: bool = True
+
+    # Pass@k decision consistency — number of additional evaluations per
+    # borrower to measure decision stability.  0 = disabled.
+    # Only a random subset of borrowers are re-evaluated each week to
+    # control cost (see consistency_sample_pct).
+    consistency_samples: int = 0
+    consistency_sample_pct: float = 0.30  # fraction of cohort to re-test
+
     # Per-scenario LOS configuration (disabled guards, gate policies)
     los_config: LosConfig = field(default_factory=LosConfig)
+
+    # Underwriting cost mode — controls how API costs map to in-game P&L.
+    # Inspired by snake-arena pi-docker harness where API spend is a real
+    # resource constraint.
+    #
+    # "simulated" (default): flat per-application cost from economics config
+    #   ($20-30/eval), actual API cost tracked but scored separately.
+    # "real": actual API cost × uw_cost_multiplier replaces the flat
+    #   simulated cost.  This makes expensive models genuinely more costly
+    #   to operate, creating natural tension between thoroughness and margin.
+    #   The multiplier maps micro API costs ($0.01) to realistic underwriting
+    #   costs ($20) — e.g., multiplier=2000 means $0.01 API → $20 UW cost.
+    underwriting_cost_mode: str = "simulated"  # simulated | real
+    uw_cost_multiplier: float = 1.0  # only used when mode="real"
 
     # Strategic pipeline pressure (post-v1 roadmap item): optional phase-based
     # arrival and a weekly cap on full deep-underwrite capacity.
@@ -334,6 +359,10 @@ class SeasonConfig:
             raise ValueError(
                 f"info_asymmetry must be one of {valid_asymmetry}, got '{self.info_asymmetry}'"
             )
+        if self.consistency_samples < 0:
+            raise ValueError("consistency_samples must be >= 0")
+        if not (0.0 < self.consistency_sample_pct <= 1.0):
+            raise ValueError("consistency_sample_pct must be in (0, 1]")
         if self.arrival_phases <= 0:
             raise ValueError("arrival_phases must be > 0")
         if self.deep_uw_slots_per_week < 0:
@@ -342,6 +371,14 @@ class SeasonConfig:
             raise ValueError("borrower_patience_weeks must be > 0")
         if self.offer_validity_weeks <= 0:
             raise ValueError("offer_validity_weeks must be > 0")
+        valid_uw_modes = ("simulated", "real")
+        if self.underwriting_cost_mode not in valid_uw_modes:
+            raise ValueError(
+                f"underwriting_cost_mode must be one of {valid_uw_modes}, "
+                f"got '{self.underwriting_cost_mode}'"
+            )
+        if self.uw_cost_multiplier < 0:
+            raise ValueError("uw_cost_multiplier must be >= 0")
 
 
 @dataclass
@@ -388,6 +425,19 @@ class SeasonLenderState:
     cumulative_tokens_in: int = 0
     cumulative_tokens_out: int = 0
     cumulative_cost_usd: float = 0.0
+    # Persistent strategy scratchpad — carries across season weeks.
+    # Models can record observations, hypotheses, and strategy adjustments
+    # that survive context window truncation (inspired by YC-Bench).
+    scratchpad: str = ""
+    # Pass@k decision consistency tracking — measures how stable a model's
+    # underwriting decisions are across repeated evaluations of the same
+    # borrower (inspired by InteractiveBench).
+    consistency_checks: list[dict] = field(default_factory=list)
+    # Running agreement rate (fraction of re-evaluations matching original)
+    consistency_agreement_rate: float = 0.0
+    # Cumulative underwriting ops cost charged to P&L during the season
+    # (only populated when underwriting_cost_mode="real").
+    cumulative_uw_ops_cost: float = 0.0
 
 
 @dataclass

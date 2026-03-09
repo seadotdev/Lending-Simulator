@@ -23,6 +23,8 @@ All commands use the `los` prefix. Output is JSON.
   los deal get <id>
   los deal update <id> [-b <borrower>] [-a <amount>] [--outcome <reject|need_info|proceed|refer>] [--primary-entity <id>]
   los deal advance <id> -t <stage> [-r <rationale>] [--override true --override-rationale <text>]
+  los deal check-guards <id> -t <stage>     # check what's needed before advancing
+  los deal evaluate <id> [--mode full|rules_only]
   los deal history <id>
 
 ### Entities
@@ -36,7 +38,8 @@ All commands use the `los` prefix. Output is JSON.
   los relationship create --from <id> --to <id> --type <owns|guarantees|directs> [--ownership-pct <pct>]
 
 ### Documents
-  los doc upload <deal_id> --type <type> --file <path>
+  los doc upload <deal_id> --type <type> --file <path>    # from file
+  los doc upload <deal_id> --type <type> --data '<json>'  # inline JSON
   los doc list <deal_id>
 
 ### Spreads
