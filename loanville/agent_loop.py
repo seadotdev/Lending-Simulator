@@ -24,6 +24,9 @@ import httpx
 
 load_dotenv()
 
+from .agent_budget import BudgetTracker
+from .agent_eject import EjectDecision, EjectPolicy
+from .agent_events import EventLogger
 from .agent_prompts import build_system_prompt, build_task_prompt
 from .custom_tools import LenderToolkit
 from .executors import CLIExecutor, REPLExecutor, ToolCallExecutor, extract_los_commands
@@ -43,6 +46,10 @@ class AgentLoopConfig:
     los_url: str = "http://localhost:3000"
     provider: str = "openrouter"
     toolkit: LenderToolkit | None = None
+    event_logger: EventLogger | None = None
+    budget_tracker: BudgetTracker | None = None
+    eject_policies: list[EjectPolicy] = field(default_factory=list)
+    log_prefix: str = ""  # e.g. "[alias] " for parallel runs
 
 
 @dataclass
@@ -114,16 +121,41 @@ async def run_agent_loop(
             cli_executor = CLIExecutor(config.los_url, config.tenant_id, config.actor)
 
     api_key = os.environ.get("OPENROUTER_API_KEY", "")
+    if config.budget_tracker:
+        api_key = config.budget_tracker.api_key or api_key
     if not api_key:
         result.termination = "error"
         result.error = "OPENROUTER_API_KEY not set"
         return result
 
+    ev = config.event_logger
+    prefix = config.log_prefix
+    budget = config.budget_tracker
+    _last_budget_turn = -999
+
     try:
         for turn in range(config.max_turns):
             result.turns = turn + 1
 
+            # Budget check: poll and inject message periodically
+            if budget:
+                budget.poll()
+                if budget.exhausted:
+                    result.termination = "budget_exhausted"
+                    if ev:
+                        ev.log("budget_exhausted", turn=turn + 1)
+                    break
+                # Inject budget status every 5 turns
+                if turn - _last_budget_turn >= 5:
+                    _last_budget_turn = turn
+                    msg = budget.inject_message()
+                    if msg:
+                        messages.append({"role": "system", "content": msg})
+
             # Call the model
+            if ev:
+                ev.log("model_call", turn=turn + 1, model=config.model)
+
             resp = await _call_model(
                 messages=messages,
                 model=config.model,
@@ -154,7 +186,10 @@ async def run_agent_loop(
                 if tool_calls:
                     result.tool_call_count += len(tool_calls)
                     tool_names = [tc.get("function", {}).get("name", "?") for tc in tool_calls]
-                    logger.info("  turn %d tools: %s", turn + 1, ", ".join(tool_names))
+                    logger.info("%s  turn %d tools: %s", prefix, turn + 1, ", ".join(tool_names))
+
+                    if ev:
+                        ev.log("tool_call", turn=turn + 1, tools=tool_names)
 
                     # Check for agent_done
                     for tc in tool_calls:
@@ -168,6 +203,10 @@ async def run_agent_loop(
 
                     # Execute all tool calls
                     tool_results = await executor.execute(tool_calls)
+
+                    if ev:
+                        ev.log("tool_result", turn=turn + 1,
+                               results=[{"name": tr.name, "len": len(tr.content)} for tr in tool_results])
 
                     # Track custom tool usage
                     for tr in tool_results:
@@ -206,7 +245,11 @@ async def run_agent_loop(
 
                 if commands:
                     result.tool_call_count += len(commands)
+                    if ev:
+                        ev.log("tool_call", turn=turn + 1, tools=commands)
                     output = cli_executor.execute(commands)
+                    if ev:
+                        ev.log("tool_result", turn=turn + 1, output_len=len(output))
                     messages.append({
                         "role": "user",
                         "content": f"[LOS Output]\n{output}",
@@ -223,6 +266,26 @@ async def run_agent_loop(
                         result.termination = "model_done"
                         break
 
+            # Eject policy checks
+            if config.eject_policies:
+                los_dict = await _quick_los_state(config.los_url, config.tenant_id)
+                bfs = budget.fraction_spent() if budget else None
+                for policy in config.eject_policies:
+                    decision_ej = policy.check(turn + 1, config.max_turns, los_dict, bfs)
+                    if decision_ej.reason and not decision_ej.should_eject:
+                        # Warning
+                        if ev:
+                            ev.log("eject_warning", turn=turn + 1, reason=decision_ej.reason)
+                        logger.info("%s  eject warning: %s", prefix, decision_ej.reason)
+                    if decision_ej.should_eject:
+                        result.termination = f"ejected:{decision_ej.reason}"
+                        if ev:
+                            ev.log("ejected", turn=turn + 1, reason=decision_ej.reason)
+                        logger.info("%s  EJECTED: %s", prefix, decision_ej.reason)
+                        break
+                if result.termination.startswith("ejected:"):
+                    break
+
         else:
             result.termination = "max_turns"
 
@@ -232,6 +295,11 @@ async def run_agent_loop(
         logger.exception("Agent loop error")
 
     finally:
+        if ev:
+            ev.log("loop_end", turns=result.turns, termination=result.termination,
+                   tool_call_count=result.tool_call_count,
+                   decision=(result.final_decision or {}).get("decision", ""),
+                   tokens_in=result.tokens_in, tokens_out=result.tokens_out)
         await executor.close()
         if hasattr(cli_executor, "close"):
             cli_executor.close()
@@ -239,6 +307,24 @@ async def run_agent_loop(
     result.messages = messages
     result.latency_ms = int((time.time() - start) * 1000)
     return result
+
+
+async def _quick_los_state(los_url: str, tenant_id: str) -> dict:
+    """Lightweight LOS state check for eject policies."""
+    base = los_url.rstrip("/")
+    headers = {"X-Tenant-Id": tenant_id}
+    state: dict = {"deals": [], "entities": []}
+    try:
+        async with httpx.AsyncClient(timeout=5.0, headers=headers) as client:
+            resp = await client.get(f"{base}/v1/deals")
+            if resp.status_code == 200:
+                data = resp.json()
+                state["deals"] = data.get("deals", data) if isinstance(data, dict) else data
+                for deal in state["deals"][:1]:
+                    state["stage"] = deal.get("stage", "")
+    except Exception:
+        pass
+    return state
 
 
 def _try_parse_decision(text: str | None) -> dict | None:

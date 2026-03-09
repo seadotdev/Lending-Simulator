@@ -286,6 +286,11 @@ def main() -> None:
     view_parser.add_argument("--port", type=int, default=8765,
                              help="HTTP server port (default: 8765)")
 
+    # `status` subcommand
+    status_parser = subparsers.add_parser("status", help="Show agent sim run status dashboard")
+    status_parser.add_argument("run_id", nargs="?", default=None,
+                               help="Run ID to inspect (default: latest)")
+
     parser.add_argument("--mock", action="store_true",
                         help="Use mock LLM responses (no API key needed)")
     parser.add_argument("--allow-non-los-formal", action="store_true",
@@ -393,6 +398,17 @@ def main() -> None:
                         help="Comma-separated task types (default: simple_underwrite)")
     parser.add_argument("--agent-cases", type=int, default=3,
                         help="Number of borrower cases for agent sim (default: 3)")
+    parser.add_argument("--agent-budget", type=float, default=None,
+                        help="Per-model budget in USD for agent sim (requires OR_ADMIN_KEY)")
+    parser.add_argument("--agent-parallel", action="store_true",
+                        help="Run agent sim lenders in parallel")
+    parser.add_argument("--agent-eject", action="store_true",
+                        help="Enable eject policies (no-progress + quality) for agent sim")
+    parser.add_argument("--agent-docker", action="store_true",
+                        help="Run agent sim in Docker containers (full bash+curl, pi-style). "
+                             "Requires Docker, OR_ADMIN_KEY, and --agent-budget.")
+    parser.add_argument("--agent-build", action="store_true",
+                        help="Build the Docker agent image and exit")
 
     # Leaderboard
     parser.add_argument("--leaderboard", action="store_true", default=True,
@@ -410,6 +426,12 @@ def main() -> None:
     # Handle `view` subcommand
     if args.command == "view":
         run_view(json_file=args.file, port=args.port)
+        return
+
+    # Handle `status` subcommand
+    if args.command == "status":
+        from .agent_status import main as status_main
+        status_main(run_id=args.run_id)
         return
 
     season_mode = args.season or bool(args.scenario)
@@ -535,6 +557,48 @@ def main() -> None:
             print(f"CRM simulation summary exported to: {args.crm_export}")
         return
 
+    if args.agent_build:
+        from .agent_docker import build_image
+        build_image()
+        return
+
+    if args.agent_docker:
+        from .agent_docker import run_agent_docker
+        from .agent_tasks import get_task
+        from .data import get_borrowers
+
+        admin_key = os.environ.get("OR_ADMIN_KEY", "")
+        or_key = os.environ.get("OPENROUTER_API_KEY", "")
+        if not admin_key:
+            parser.error("--agent-docker requires OR_ADMIN_KEY environment variable")
+        if not args.agent_budget:
+            parser.error("--agent-docker requires --agent-budget")
+
+        task_def = get_task(args.agent_tasks.split(",")[0].strip())
+        borrowers = get_borrowers(args.mix, seed=args.seed if args.seed is not None else 42)
+        if len(borrowers) > args.agent_cases:
+            borrowers = borrowers[:args.agent_cases]
+
+        # Build (model_id, alias) list from lenders
+        models = []
+        for l in lenders:
+            model = args.los_model or l.model
+            alias = l.id[:12]
+            models.append((model, alias))
+
+        run_agent_docker(
+            models=models,
+            lenders=lenders,
+            borrowers=borrowers,
+            task_prompt=task_def.task_prompt,
+            los_url=args.los_url,
+            budget_usd=args.agent_budget,
+            admin_key=admin_key,
+            or_key=or_key,
+            parallel=args.agent_parallel,
+        )
+        return
+
     if args.agent_sim:
         from .agent_sim import AgentSimConfig, run_agent_sim
 
@@ -548,6 +612,9 @@ def main() -> None:
             mix=args.mix,
             seed=args.seed if args.seed is not None else 42,
             los_model=args.los_model,
+            budget_usd=args.agent_budget,
+            parallel=args.agent_parallel,
+            eject=args.agent_eject,
         )
         asyncio.run(run_agent_sim(config=agent_config, lenders=lenders))
         return

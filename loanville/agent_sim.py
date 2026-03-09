@@ -7,18 +7,25 @@ LOS to determine what actually happened.
 
 from __future__ import annotations
 
+import asyncio
+import json
 import logging
+import os
 import time
 from dataclasses import dataclass, field
+from pathlib import Path
 
 import httpx
 
+from .agent_budget import BudgetTracker, preflight_budget, provision_key
+from .agent_eject import default_eject_policies
+from .agent_events import EventLogger
 from .agent_loop import AgentLoopConfig, AgentLoopResult, run_agent_loop
 from .agent_tasks import get_task
 from .custom_tools import LenderToolkit
 from .data import get_borrowers, get_lenders
 from .los_adapter import DEFAULT_LOS_URL, check_los_health
-from .models import LenderConfig
+from .models import Borrower, LenderConfig
 
 logger = logging.getLogger(__name__)
 
@@ -35,6 +42,9 @@ class AgentSimConfig:
     mix: str = "realistic"
     seed: int = 42
     los_model: str | None = None
+    budget_usd: float | None = None
+    parallel: bool = False
+    eject: bool = False
 
 
 @dataclass
@@ -210,6 +220,35 @@ def _describe_case(case: CaseResult) -> str:
 # Run the simulation
 # ---------------------------------------------------------------------------
 
+def _tlog(prefix: str, msg: str) -> None:
+    """Thread-safe prefixed print."""
+    print(f"{prefix}{msg}", flush=True)
+
+
+def _write_case_summary(
+    case_dir: Path, case: CaseResult, duration_s: float,
+) -> None:
+    """Write summary.json for a completed case."""
+    lr = case.loop_result
+    cost_est = (lr.tokens_in * 0.25 + lr.tokens_out * 1.0) / 1_000_000
+    summary = {
+        "lender": case.lender_name,
+        "borrower": case.borrower_name,
+        "termination": lr.termination,
+        "turns": lr.turns,
+        "tool_call_count": lr.tool_call_count,
+        "has_deal": bool(case.los_state.deals),
+        "decision": (lr.final_decision or {}).get("decision", ""),
+        "tokens_in": lr.tokens_in,
+        "tokens_out": lr.tokens_out,
+        "cost_estimate": f"${cost_est:.4f}",
+        "duration_s": round(duration_s, 1),
+        "custom_tools_used": lr.custom_tools_used,
+    }
+    case_dir.mkdir(parents=True, exist_ok=True)
+    (case_dir / "summary.json").write_text(json.dumps(summary, indent=2))
+
+
 async def run_agent_sim(
     config: AgentSimConfig,
     lenders: list[LenderConfig] | None = None,
@@ -217,6 +256,9 @@ async def run_agent_sim(
     """Run the agentic simulation."""
     import uuid
     run_id = uuid.uuid4().hex[:8]
+    ts = time.strftime("%Y%m%dT%H%M%S")
+    run_dir = Path("runs") / f"{ts}_{run_id}"
+    run_dir.mkdir(parents=True, exist_ok=True)
 
     await check_los_health(config.los_url)
 
@@ -226,6 +268,25 @@ async def run_agent_sim(
     borrowers = get_borrowers(config.mix, seed=config.seed)
     if len(borrowers) > config.cases:
         borrowers = borrowers[:config.cases]
+
+    # Budget: provision sub-keys if requested
+    admin_key = os.environ.get("OR_ADMIN_KEY", "")
+    provisioned_keys: dict[str, str] = {}  # model -> sub-key
+    if config.budget_usd and admin_key:
+        or_key = os.environ.get("OPENROUTER_API_KEY", "")
+        model_ids = list(dict.fromkeys(
+            config.los_model or lender.model for lender in lenders
+        ))
+        preflight_budget(admin_key, or_key, model_ids, config.budget_usd)
+        for lender in lenders:
+            model = config.los_model or lender.model
+            if model not in provisioned_keys:
+                try:
+                    label = f"loanville-{run_id}-{lender.id}"
+                    key = provision_key(admin_key, label, config.budget_usd)
+                    provisioned_keys[model] = key
+                except Exception as exc:
+                    logger.warning("Failed to provision key for %s: %s", model, exc)
 
     report = AgentSimReport(config=config)
     start = time.time()
@@ -238,6 +299,13 @@ async def run_agent_sim(
     print(f"  Mode: {config.mode} | Task: {task_def.name}")
     print(f"  {len(borrowers)} borrowers × {len(lenders)} lenders | max {config.max_turns} turns")
     print(f"  LOS: {config.los_url}")
+    if config.budget_usd:
+        print(f"  Budget: ${config.budget_usd:.2f}/model")
+    if config.eject:
+        print(f"  Eject policies: enabled")
+    if config.parallel:
+        print(f"  Execution: parallel")
+    print(f"  Run dir: {run_dir}")
 
     # Show borrower lineup
     print(f"\n  Borrowers:")
@@ -247,9 +315,32 @@ async def run_agent_sim(
               f"— ${b.dossier.loan_request_amount:,.0f} [{quality}]")
     print()
 
-    for lender in lenders:
+    async def run_case(
+        lender: LenderConfig, borrower: Borrower, prefix: str = "",
+    ) -> CaseResult:
         model = config.los_model or lender.model
-        print(f"  --- {lender.name} ({model}) ---")
+        quality = borrower.true_outcome or "good"
+        case_start = time.time()
+
+        _tlog(prefix, f"  {borrower.dossier.company_name}: starting...")
+
+        tenant_id = f"r{run_id}_{lender.id}_{borrower.id}"
+        case_dir = run_dir / lender.id / borrower.id
+        case_dir.mkdir(parents=True, exist_ok=True)
+
+        ev = EventLogger(case_dir / "events.jsonl")
+
+        # Budget tracker
+        budget_tracker = None
+        api_key_for_model = provisioned_keys.get(model)
+        if api_key_for_model and config.budget_usd:
+            budget_tracker = BudgetTracker(
+                api_key=api_key_for_model,
+                limit_usd=config.budget_usd,
+            )
+
+        # Eject policies
+        eject_policies = default_eject_policies() if config.eject else []
 
         portfolio_summary = ""
         if lender.existing_portfolio:
@@ -258,51 +349,79 @@ async def run_agent_sim(
 
         toolkit = LenderToolkit(lender.id)
 
-        for i, borrower in enumerate(borrowers):
-            quality = borrower.true_outcome or "good"
-            print(f"    {borrower.dossier.company_name}:", end=" ", flush=True)
+        loop_config = AgentLoopConfig(
+            model=model,
+            mode=config.mode,
+            max_turns=config.max_turns,
+            tenant_id=tenant_id,
+            actor=f"agent:{lender.id}",
+            los_url=config.los_url,
+            provider=config.provider,
+            toolkit=toolkit,
+            event_logger=ev,
+            budget_tracker=budget_tracker,
+            eject_policies=eject_policies,
+            log_prefix=prefix,
+        )
 
-            tenant_id = f"r{run_id}_{lender.id}_{borrower.id}"
+        loop_result = await run_agent_loop(
+            config=loop_config,
+            lender=lender,
+            borrower=borrower,
+            task_description=task_def.task_prompt,
+            portfolio_summary=portfolio_summary,
+        )
 
-            loop_config = AgentLoopConfig(
-                model=model,
-                mode=config.mode,
-                max_turns=config.max_turns,
-                tenant_id=tenant_id,
-                actor=f"agent:{lender.id}",
-                los_url=config.los_url,
-                provider=config.provider,
-                toolkit=toolkit,
-            )
+        ev.close()
 
-            loop_result = await run_agent_loop(
-                config=loop_config,
-                lender=lender,
-                borrower=borrower,
-                task_description=task_def.task_prompt,
-                portfolio_summary=portfolio_summary,
-            )
+        los_state = await _inspect_los_state(config.los_url, tenant_id)
 
-            los_state = await _inspect_los_state(config.los_url, tenant_id)
+        case = CaseResult(
+            lender_id=lender.id,
+            lender_name=lender.name,
+            borrower_id=borrower.id,
+            borrower_name=borrower.dossier.company_name,
+            task_name=task_def.name,
+            loop_result=loop_result,
+            los_state=los_state,
+            borrower_quality=quality,
+        )
 
-            case = CaseResult(
-                lender_id=lender.id,
-                lender_name=lender.name,
-                borrower_id=borrower.id,
-                borrower_name=borrower.dossier.company_name,
-                task_name=task_def.name,
-                loop_result=loop_result,
-                los_state=los_state,
-                borrower_quality=quality,
-            )
-            report.cases.append(case)
+        duration_s = time.time() - case_start
+        _write_case_summary(case_dir, case, duration_s)
 
-            report.total_tokens_in += loop_result.tokens_in
-            report.total_tokens_out += loop_result.tokens_out
+        _tlog(prefix, f"  {borrower.dossier.company_name}:")
+        _tlog("", _describe_case(case))
 
-            # Print inline result
-            print()
-            print(_describe_case(case))
+        return case
+
+    for lender in lenders:
+        model = config.los_model or lender.model
+        alias = lender.id[:12]
+        print(f"  --- {lender.name} ({model}) ---")
+
+        if config.parallel:
+            # Run all borrowers for this lender concurrently
+            prefix = f"[{alias}] "
+            tasks = [
+                run_case(lender, borrower, prefix=prefix)
+                for borrower in borrowers
+            ]
+            cases = await asyncio.gather(*tasks, return_exceptions=True)
+            for c in cases:
+                if isinstance(c, Exception):
+                    logger.error("%sCase failed: %s", prefix, c)
+                    continue
+                report.cases.append(c)
+                report.total_tokens_in += c.loop_result.tokens_in
+                report.total_tokens_out += c.loop_result.tokens_out
+        else:
+            # Sequential execution
+            for borrower in borrowers:
+                case = await run_case(lender, borrower)
+                report.cases.append(case)
+                report.total_tokens_in += case.loop_result.tokens_in
+                report.total_tokens_out += case.loop_result.tokens_out
 
     report.total_latency_ms = int((time.time() - start) * 1000)
 
