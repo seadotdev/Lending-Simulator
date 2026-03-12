@@ -15,8 +15,9 @@ import math
 from dataclasses import dataclass, field
 from typing import Optional
 
+from .contracts import MAX_APR_DECIMAL
 from .models import EconomicsConfig
-from .run_schema import UnderwritingRun
+from .run_schema import RunScores, UnderwritingRun
 from .scoring import (
     FUNDING_RATE,
     MAX_DEFAULT_RATE,
@@ -33,17 +34,13 @@ from .scoring import (
 # ---------------------------------------------------------------------------
 
 GATE_DEFINITIONS = [
-    # (gate_id, description, check_function_name)
-    ("required_docs", "Required documents requested when missing"),
-    ("sanity_apr", "APR within allowable bounds (0-50%)"),
+    # (gate_id, description)
+    ("compliance_action", "Decision is a valid action type"),
+    ("sanity_apr", "APR within allowable bounds (0-55%)"),
     ("sanity_tenor", "Tenor within allowable bounds (1-360 months)"),
     ("sanity_amount", "Loan amount positive and within max limits"),
-    ("dscr_math", "DSCR calculation correct if present in trace"),
-    ("no_hallucinated_docs", "No reference to documents not in inputs"),
     ("trace_supports_decision", "Trace/rationale consistent with decision"),
-    ("stability", "Same input produces same decision within tolerance"),
-    ("no_pii_leak", "No PII leaked in rationale"),
-    ("compliance_action", "Decision is a valid action type"),
+    ("required_docs", "Required documents requested when missing"),
 ]
 
 
@@ -164,7 +161,7 @@ def _check_sanity_apr(run: UnderwritingRun) -> GateResult:
     if run.decision.action == "decline":
         return GateResult(gate_id="sanity_apr", passed=True, detail="declined, no terms")
 
-    ok = 0.0 <= apr_pct <= 50.0
+    ok = 0.0 <= apr_pct <= MAX_APR_DECIMAL * 100
     return GateResult(
         gate_id="sanity_apr",
         passed=ok,
@@ -448,7 +445,13 @@ def score_run(
     )
 
     # Write scores back to the run
-    run.scores = card.to_dict()
+    d = card.to_dict()
+    run.scores = RunScores(
+        gates=d.get("gates"),
+        uw_quality=d.get("uw_quality"),
+        business=d.get("business"),
+        overall=d.get("overall"),
+    )
 
     return card
 

@@ -42,7 +42,7 @@
           "required": ["amount", "apr", "tenor_months"],
           "properties": {
             "amount": { "type": "number", "minimum": 0 },
-            "apr": { "type": "number", "minimum": 0, "maximum": 1 },
+            "apr": { "type": "number", "minimum": 0, "maximum": 0.55 },
             "tenor_months": { "type": "integer", "minimum": 0 }
           }
         },

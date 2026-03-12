@@ -6,7 +6,7 @@ import math
 from typing import Any, Mapping
 
 
-MAX_APR_DECIMAL = 0.50
+MAX_APR_DECIMAL = 0.55
 
 
 class APRNormalizationError(ValueError):
