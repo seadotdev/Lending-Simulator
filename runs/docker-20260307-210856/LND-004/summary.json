@@ -1,0 +1,18 @@
+{
+  "run_id": "docker-20260307-210856",
+  "model": "qwen/qwen3-30b-a3b",
+  "alias": "LND-004",
+  "lender": "Pinnacle Finance",
+  "borrower": "Summit Event Catering",
+  "tenant_id": "rdocker-20260307-210856_LND-004_BRW-025",
+  "started_at": "2026-03-07T21:10:41.161019+00:00",
+  "finished_at": "2026-03-07T21:13:13.156727+00:00",
+  "error": null,
+  "decision": null,
+  "cost": {
+    "measured_usd": 0.0003
+  },
+  "duration_s": 152,
+  "tool_calls": 3,
+  "has_deal": true
+}

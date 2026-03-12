@@ -1,0 +1,18 @@
+{
+  "run_id": "docker-20260307-210856",
+  "model": "deepseek/deepseek-v3.2",
+  "alias": "LND-003",
+  "lender": "Meridian Partners",
+  "borrower": "Summit Event Catering",
+  "tenant_id": "rdocker-20260307-210856_LND-003_BRW-025",
+  "started_at": "2026-03-07T21:09:46.129555+00:00",
+  "finished_at": "2026-03-07T21:10:37.577236+00:00",
+  "error": null,
+  "decision": null,
+  "cost": {
+    "measured_usd": 0.0033
+  },
+  "duration_s": 51,
+  "tool_calls": 6,
+  "has_deal": true
+}
