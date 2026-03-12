@@ -370,19 +370,28 @@ export class TownScene {
   }
 
   _buildPortfolioHex(layout, lenderNames) {
+    const RISE_DEPTH = -10;
     const centers = layout?.buildings || [];
     const maxRadius = centers.reduce((acc, b) => Math.max(acc, Math.hypot(b.x, b.z)), 8);
     this.controls.target.set(0, 0, 0);
     this.camera.position.set(0, Math.max(13, maxRadius * 1.75), Math.max(11, maxRadius * 1.55));
 
+    // 1. Landscape terrain rises from below
+    const landscapeTiles = this._buildHexWorldMap(layout);
+    for (const tile of landscapeTiles) tile.mesh.position.y = RISE_DEPTH;
+
+    // 2. Lender cores — start hidden above, will drop with a thud
+    const DROP_HEIGHT = 14;
+    const coreTiles = [];
     for (const bld of centers) {
       const lenderIndex = bld.id;
       const core = this._createPortfolioCore(lenderIndex);
-      core.position.set(bld.x, 0, bld.z);
+      core.position.set(bld.x, DROP_HEIGHT, bld.z);
       core.userData.lenderIndex = lenderIndex;
       this.scene.add(core);
       this.buildingMeshes.set(lenderIndex, core);
       this.portfolioHexMeshes.set(lenderIndex, []);
+      coreTiles.push({ mesh: core, wx: bld.x, wz: bld.z, lenderIndex });
 
       const name = lenderNames[lenderIndex] || `Lender ${lenderIndex}`;
       const slotCount = (layout?.portfolioSlotsByLender?.[lenderIndex] || []).length;
@@ -414,17 +423,320 @@ export class TownScene {
       this.buildingSmokeBadges.set(lenderIndex, smoke);
     }
 
+    // 3. Portfolio hex cells — stay underground, rise after their lender lands
     const hexRadius = layout?.hexRadius || 0.52;
+    const portfolioTilesByLender = new Map();
     for (const slot of layout?.portfolioSlots || []) {
       const hex = this._createPortfolioHexCell(slot.lenderIndex, hexRadius);
-      hex.position.set(slot.x, 0.08, slot.z);
+      hex.position.set(slot.x, RISE_DEPTH, slot.z);
       hex.userData.lenderIndex = slot.lenderIndex;
       hex.userData.slotIndex = slot.slotIndex;
       this.scene.add(hex);
       const lenderSlots = this.portfolioHexMeshes.get(slot.lenderIndex) || [];
       lenderSlots.push(hex);
       this.portfolioHexMeshes.set(slot.lenderIndex, lenderSlots);
+      if (!portfolioTilesByLender.has(slot.lenderIndex)) portfolioTilesByLender.set(slot.lenderIndex, []);
+      portfolioTilesByLender.get(slot.lenderIndex).push({ mesh: hex, finalY: 0.08, wx: slot.x, wz: slot.z });
     }
+
+    // Sequence: landscape rises → lenders drop with thuds → territory hexes rise
+    this._scheduleHexMapReveal(landscapeTiles, coreTiles, portfolioTilesByLender, layout);
+  }
+
+  // ---- Hex landscape terrain generation ----
+
+  _hashCoord(a, b) {
+    a = a | 0; b = b | 0;
+    let h = (Math.imul(a, 0x9e3779b9) ^ Math.imul(b, 0x6c62272e)) >>> 0;
+    h = Math.imul(h ^ (h >>> 16), 0x45d9f3b) >>> 0;
+    h ^= h >>> 15;
+    return (h >>> 0) / 4294967295;
+  }
+
+  _landscapeTerrainType(q, r) {
+    // Multi-scale noise creates natural biome patches
+    const c1 = this._hashCoord(Math.floor(q / 6), Math.floor(r / 6));
+    const c2 = this._hashCoord(Math.floor(q / 3) + 50, Math.floor(r / 3) + 50);
+    const fine = this._hashCoord(q + 200, r + 200);
+    const noise = c1 * 0.60 + c2 * 0.25 + fine * 0.15;
+    if (noise < 0.13) return 'water';
+    if (noise < 0.45) return 'grass';
+    if (noise < 0.68) return 'forest';
+    if (noise < 0.84) return 'hill';
+    return 'rock';
+  }
+
+  _buildHexWorldMap(layout) {
+    const hexRadius = layout.hexRadius || 0.52;
+    const tileSize = hexRadius * 2.0;  // landscape tiles are 2x portfolio hex size
+    const clusterExtent = (layout.buildings || []).reduce(
+      (acc, b) => Math.max(acc, Math.hypot(b.x, b.z)), 8
+    );
+    const worldExtent = clusterExtent + 7;
+    const gridR = Math.ceil(worldExtent / (tileSize * Math.sqrt(3))) + 1;
+
+    const portfolioPositions = (layout.portfolioSlots || []).map(s => [s.x, s.z]);
+    const corePositions = (layout.buildings || []).map(b => [b.x, b.z]);
+    const portfolioClear = tileSize * 0.9;
+    const coreClear = tileSize * 1.5;
+
+    const tiles = [];
+    for (let q = -gridR; q <= gridR; q++) {
+      for (let r = -gridR; r <= gridR; r++) {
+        const s = -q - r;
+        if (Math.max(Math.abs(q), Math.abs(r), Math.abs(s)) > gridR) continue;
+
+        const wx = tileSize * 1.5 * q;
+        const wz = tileSize * Math.sqrt(3) * (r + q / 2);
+
+        // Skip positions that overlap portfolio cluster cells or cores
+        let blocked = false;
+        for (const [px, pz] of portfolioPositions) {
+          if (Math.hypot(wx - px, wz - pz) < portfolioClear) { blocked = true; break; }
+        }
+        if (!blocked) {
+          for (const [cx, cz] of corePositions) {
+            if (Math.hypot(wx - cx, wz - cz) < coreClear) { blocked = true; break; }
+          }
+        }
+        if (blocked) continue;
+
+        const type = this._landscapeTerrainType(q, r);
+        const mesh = this._createTerrainHex(type, tileSize, q, r);
+        mesh.position.set(wx, 0, wz);
+        this.scene.add(mesh);
+        tiles.push({ mesh, finalY: 0, wx, wz });
+      }
+    }
+    return tiles;
+  }
+
+  _createTerrainHex(type, radius, q, r) {
+    const group = new THREE.Group();
+    const rng = (n) => this._hashCoord(q * 37 + n * 7, r * 53 + n * 13);
+
+    const HEIGHT = { water: 0.07, grass: 0.15, forest: 0.18, hill: 0.32, rock: 0.55 };
+    const BASE_COLOR = {
+      water: 0x1b4f72, grass: 0x3d6b32, forest: 0x2a5124, hill: 0x7a6a4c, rock: 0x52525e,
+    };
+
+    const h = HEIGHT[type] ?? 0.15;
+    const col = new THREE.Color(BASE_COLOR[type] ?? 0x3d6b32);
+    // Subtle color variation per tile
+    col.r = Math.max(0, Math.min(1, col.r + (rng(1) - 0.5) * 0.06));
+    col.g = Math.max(0, Math.min(1, col.g + (rng(2) - 0.5) * 0.06));
+    col.b = Math.max(0, Math.min(1, col.b + (rng(3) - 0.5) * 0.04));
+
+    const base = new THREE.Mesh(
+      new THREE.CylinderGeometry(radius * 0.95, radius, h, 6),
+      new THREE.MeshStandardMaterial({
+        color: col,
+        roughness: type === 'water' ? 0.15 : 0.88,
+        metalness: type === 'water' ? 0.12 : 0.04,
+      })
+    );
+    base.rotation.y = Math.PI / 6;
+    base.position.y = h / 2;
+    base.receiveShadow = true;
+    base.castShadow = type !== 'water';
+    group.add(base);
+
+    if (type === 'forest') {
+      const count = 2 + Math.floor(rng(4) * 3);
+      for (let i = 0; i < count; i++) {
+        const angle = rng(i * 3 + 5) * Math.PI * 2;
+        const dist = rng(i * 3 + 6) * radius * 0.52;
+        const tH = 0.32 + rng(i * 3 + 7) * 0.38;
+        const tR = 0.07 + rng(i * 3 + 8) * 0.06;
+        const treeCol = new THREE.Color(0x2d4f24);
+        treeCol.g += rng(i + 10) * 0.12;
+        const tree = new THREE.Mesh(
+          new THREE.ConeGeometry(tR, tH, 6),
+          new THREE.MeshStandardMaterial({ color: treeCol, roughness: 0.9 })
+        );
+        tree.position.set(Math.cos(angle) * dist, h + tH / 2, Math.sin(angle) * dist);
+        tree.castShadow = true;
+        group.add(tree);
+      }
+    } else if (type === 'hill') {
+      const cap = new THREE.Mesh(
+        new THREE.ConeGeometry(radius * 0.38, h * 0.55, 6),
+        new THREE.MeshStandardMaterial({ color: new THREE.Color(0x8f7c60), roughness: 0.92 })
+      );
+      cap.rotation.y = Math.PI / 6;
+      cap.position.y = h + h * 0.28;
+      cap.castShadow = true;
+      group.add(cap);
+    } else if (type === 'rock') {
+      const peak = new THREE.Mesh(
+        new THREE.ConeGeometry(radius * 0.42, h * 0.65, 5),
+        new THREE.MeshStandardMaterial({ color: new THREE.Color(0x666670), roughness: 0.85 })
+      );
+      peak.rotation.y = Math.PI / 7 + rng(9) * 0.4;
+      peak.position.y = h + h * 0.32;
+      peak.castShadow = true;
+      group.add(peak);
+      // Snow cap
+      const snow = new THREE.Mesh(
+        new THREE.ConeGeometry(radius * 0.16, h * 0.18, 5),
+        new THREE.MeshStandardMaterial({ color: new THREE.Color(0xe0e4ea), roughness: 0.95 })
+      );
+      snow.position.y = h + h * 0.32 + h * 0.42;
+      group.add(snow);
+    }
+    return group;
+  }
+
+  _scheduleHexMapReveal(landscapeTiles, coreTiles, portfolioTilesByLender, layout) {
+    const RISE_DEPTH = -10;
+    const WAVE_SPEED = 0.10;   // s per world unit — slower, more dramatic
+    const RISE_DURATION = 0.90;
+    const BASE_DELAY = 0.15;
+
+    // 1. Landscape tiles rise from below in an outward wave
+    let maxLandscapeDelay = BASE_DELAY;
+    for (const tile of landscapeTiles) {
+      const dist = Math.hypot(tile.wx || 0, tile.wz || 0);
+      const jitter = (this._hashCoord(
+        Math.round((tile.wx || 0) * 10),
+        Math.round((tile.wz || 0) * 10)
+      ) - 0.5) * 0.12;
+      const delay = Math.max(0, BASE_DELAY + dist * WAVE_SPEED + jitter);
+      maxLandscapeDelay = Math.max(maxLandscapeDelay, delay);
+
+      const { mesh, finalY } = tile;
+      const startPos = new THREE.Vector3(mesh.position.x, RISE_DEPTH, mesh.position.z);
+      const endPos = new THREE.Vector3(mesh.position.x, finalY ?? 0, mesh.position.z);
+
+      setTimeout(() => {
+        if (this.disposed) return;
+        this.tweens.push({ elapsed: 0, duration: RISE_DURATION, startPos, endPos, mesh, resolve: () => {} });
+      }, delay * 1000);
+    }
+
+    // 2. After landscape settles, drop lender cores one by one with a thud
+    const LENDER_INTERVAL = 0.55; // s between each lender landing
+    const coresStart = maxLandscapeDelay + RISE_DURATION + 0.35;
+
+    coreTiles.forEach((core, idx) => {
+      const dropTime = coresStart + idx * LENDER_INTERVAL;
+      setTimeout(() => {
+        if (this.disposed) return;
+        this._animateLenderDrop(core.mesh, core.wx, core.wz, () => {
+          // 3. After lender lands, portfolio hexes ripple outward from core
+          const pTiles = portfolioTilesByLender?.get(core.lenderIndex) || [];
+          this._schedulePortfolioRise(pTiles, core.wx, core.wz);
+        });
+      }, dropTime * 1000);
+    });
+  }
+
+  _animateLenderDrop(mesh, wx, wz, onLanded) {
+    const DROP_HEIGHT = mesh.position.y; // starts above ground
+    const LAND_Y = 0.0;
+    const DROP_MS = 560;
+    const BOUNCE_HEIGHT = 0.50;
+    const BOUNCE_MS = 220;
+
+    const start = performance.now();
+    const animate = (now) => {
+      if (this.disposed) return;
+      const t = Math.min((now - start) / DROP_MS, 1);
+      // Ease-in-cubic (gravity feel)
+      const eased = t * t * t;
+      mesh.position.y = DROP_HEIGHT + (LAND_Y - DROP_HEIGHT) * eased;
+
+      if (t < 1) {
+        requestAnimationFrame(animate);
+      } else {
+        mesh.position.y = LAND_Y;
+        this._spawnShockwave(wx, wz);
+        // Bounce
+        const bounceStart = performance.now();
+        const bounce = (now2) => {
+          if (this.disposed) return;
+          const bt = Math.min((now2 - bounceStart) / BOUNCE_MS, 1);
+          mesh.position.y = LAND_Y + Math.sin(bt * Math.PI) * BOUNCE_HEIGHT * (1 - bt * 0.4);
+          if (bt < 1) {
+            requestAnimationFrame(bounce);
+          } else {
+            mesh.position.y = LAND_Y;
+            if (onLanded) onLanded();
+          }
+        };
+        requestAnimationFrame(bounce);
+      }
+    };
+    requestAnimationFrame(animate);
+  }
+
+  _schedulePortfolioRise(tiles, coreCx, coreCz) {
+    const RISE_DEPTH = -10;
+    const RIPPLE_SPEED = 0.22; // s per world unit from core
+    const RISE_DURATION = 0.55;
+
+    for (const tile of tiles) {
+      const dist = Math.hypot((tile.wx || 0) - coreCx, (tile.wz || 0) - coreCz);
+      const jitter = (this._hashCoord(
+        Math.round((tile.wx || 0) * 10 + 1),
+        Math.round((tile.wz || 0) * 10 + 1)
+      ) - 0.5) * 0.08;
+      const delay = Math.max(0, dist * RIPPLE_SPEED + jitter);
+
+      const { mesh, finalY } = tile;
+      const startPos = new THREE.Vector3(mesh.position.x, RISE_DEPTH, mesh.position.z);
+      const endPos = new THREE.Vector3(mesh.position.x, finalY ?? 0.08, mesh.position.z);
+
+      setTimeout(() => {
+        if (this.disposed) return;
+        this.tweens.push({ elapsed: 0, duration: RISE_DURATION, startPos, endPos, mesh, resolve: () => {} });
+      }, delay * 1000);
+    }
+  }
+
+  _spawnShockwave(wx, wz) {
+    const DURATION = 600; // ms
+    const scene = this.scene;
+
+    const makeRing = (innerR, outerR, color, opacity) => {
+      const mat = new THREE.MeshBasicMaterial({
+        color, transparent: true, opacity, side: THREE.DoubleSide, depthWrite: false
+      });
+      const geo = new THREE.RingGeometry(innerR, outerR, 32);
+      const mesh = new THREE.Mesh(geo, mat);
+      mesh.rotation.x = -Math.PI / 2;
+      mesh.position.set(wx, 0.05, wz);
+      scene.add(mesh);
+      return { mesh, mat };
+    };
+
+    const inner = makeRing(0.1, 0.35, 0xffffff, 0.75);
+    const outer = makeRing(0.05, 0.18, 0xd4a832, 0.55);
+
+    const start = performance.now();
+    const expand = (now) => {
+      if (this.disposed) { scene.remove(inner.mesh); scene.remove(outer.mesh); return; }
+      const t = Math.min((now - start) / DURATION, 1);
+      const ease = 1 - (1 - t) * (1 - t); // ease-out quad
+
+      const iScale = 1 + ease * 5.5;
+      inner.mesh.scale.set(iScale, iScale, 1);
+      inner.mat.opacity = 0.75 * (1 - ease);
+
+      const oScale = 1 + ease * 9.0;
+      outer.mesh.scale.set(oScale, oScale, 1);
+      outer.mat.opacity = 0.55 * (1 - ease * 0.9);
+
+      if (t < 1) {
+        requestAnimationFrame(expand);
+      } else {
+        scene.remove(inner.mesh);
+        scene.remove(outer.mesh);
+        inner.geo?.dispose(); outer.geo?.dispose();
+        inner.mat.dispose(); outer.mat.dispose();
+      }
+    };
+    requestAnimationFrame(expand);
   }
 
   async addBorrower(borrowerId, assetLoader, borrowerInfo, spawnIndex, spawnTotal, spawnPos) {
