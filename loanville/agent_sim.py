@@ -17,7 +17,7 @@ from pathlib import Path
 
 import httpx
 
-from .agent_budget import BudgetTracker, preflight_budget, provision_key
+from .agent_budget import BudgetTracker, CallBudgetTracker, preflight_budget, provision_key
 from .agent_eject import default_eject_policies
 from .agent_events import EventLogger
 from .agent_loop import AgentLoopConfig, AgentLoopResult, run_agent_loop
@@ -45,6 +45,7 @@ class AgentSimConfig:
     budget_usd: float | None = None
     parallel: bool = False
     eject: bool = False
+    call_budget_total: int | None = None  # LOS call credits for multi-app allocation experiment
 
 
 @dataclass
@@ -507,4 +508,219 @@ def print_agent_report(report: AgentSimReport) -> None:
         print("  Issues:")
         for p in problems:
             print(p)
+        print()
+
+
+# ---------------------------------------------------------------------------
+# Multi-application allocation experiment (Option 1 + 2)
+# ---------------------------------------------------------------------------
+
+@dataclass
+class AppAllocationResult:
+    """Per-application outcome for the multi-app allocation experiment."""
+    app_num: int
+    borrower_name: str
+    borrower_quality: str
+    calls_used: int
+    decision: str
+    correct: bool
+    termination: str
+
+
+@dataclass
+class MultiAppReport:
+    """Results of the multi-app allocation experiment for one lender."""
+    lender_name: str
+    model: str
+    total_call_budget: int
+    total_calls_used: int
+    apps: list[AppAllocationResult] = field(default_factory=list)
+
+    @property
+    def avg_accuracy(self) -> float:
+        if not self.apps:
+            return 0.0
+        return sum(1 for a in self.apps if a.correct) / len(self.apps)
+
+    @property
+    def allocation_evenness(self) -> float:
+        """1.0 = perfectly even distribution; 0.0 = all credits on app 1."""
+        calls = [a.calls_used for a in self.apps]
+        if len(calls) < 2 or sum(calls) == 0:
+            return 0.0
+        mean = sum(calls) / len(calls)
+        if mean == 0:
+            return 0.0
+        stdev = (sum((c - mean) ** 2 for c in calls) / len(calls)) ** 0.5
+        cv = stdev / mean
+        return max(0.0, 1.0 - cv)
+
+    @property
+    def budget_efficiency(self) -> float:
+        """Accuracy per 10 calls used."""
+        if self.total_calls_used == 0:
+            return 0.0
+        return self.avg_accuracy / (self.total_calls_used / 10)
+
+
+async def run_multi_app_sim(
+    config: AgentSimConfig,
+    lenders: list[LenderConfig] | None = None,
+) -> list[MultiAppReport]:
+    """Run the multi-application budget allocation experiment.
+
+    Each lender gets N borrowers and a shared LOS call budget.
+    Loops run sequentially; each loop receives:
+      - how many credits remain
+      - which application number this is (X of N)
+      - the optimal spend per remaining application
+
+    A budget-aware model spreads evenly (~budget/N per app).
+    A naive model burns all credits on app 1 and guesses the rest.
+
+    Score = average decision accuracy across all N apps.
+    Allocation evenness (stdev of calls-per-app) is reported separately.
+    """
+    import uuid
+
+    if lenders is None:
+        lenders = get_lenders()
+
+    borrowers = get_borrowers(config.mix, seed=config.seed)
+    if len(borrowers) > config.cases:
+        borrowers = borrowers[:config.cases]
+
+    n_apps = len(borrowers)
+    call_budget = config.call_budget_total or (n_apps * 5)  # default: 5 credits/app
+
+    task_def = get_task(config.tasks[0] if config.tasks else "multi_app_allocation")
+
+    await check_los_health(config.los_url)
+
+    run_id = uuid.uuid4().hex[:8]
+    ts = time.strftime("%Y%m%dT%H%M%S")
+    run_dir = Path("runs") / f"{ts}_{run_id}_multiapp"
+    run_dir.mkdir(parents=True, exist_ok=True)
+
+    print(f"\n{'=' * 70}")
+    print(f"  LOANVILLE — MULTI-APP ALLOCATION EXPERIMENT")
+    print(f"{'=' * 70}")
+    print(f"  Task: {task_def.name} | {n_apps} applications | {call_budget} total call credits")
+    print(f"  Optimal allocation: ~{call_budget // n_apps} credits/app")
+    print(f"  Free tool: los_quick_assess | Expensive: los_deal_evaluate (2 credits)")
+    print(f"  LOS: {config.los_url}")
+    print()
+
+    reports: list[MultiAppReport] = []
+
+    for lender in lenders:
+        model = config.los_model or lender.model
+        tracker = CallBudgetTracker(total_calls=call_budget)
+
+        print(f"  --- {lender.name} ({model}) ---")
+        app_results: list[AppAllocationResult] = []
+
+        for app_num, borrower in enumerate(borrowers, 1):
+            calls_before = tracker.calls_made
+            budget_msg = tracker.inject_message(app_num, n_apps)
+
+            quality = borrower.true_outcome or "good"
+            tenant_id = f"r{run_id}_{lender.id}_{borrower.id}"
+            case_dir = run_dir / lender.id / borrower.id
+            case_dir.mkdir(parents=True, exist_ok=True)
+
+            ev = EventLogger(case_dir / "events.jsonl")
+            toolkit = LenderToolkit(lender.id)
+
+            loop_config = AgentLoopConfig(
+                model=model,
+                mode=config.mode,
+                max_turns=config.max_turns,
+                tenant_id=tenant_id,
+                actor=f"agent:{lender.id}",
+                los_url=config.los_url,
+                provider=config.provider,
+                toolkit=toolkit,
+                event_logger=ev,
+                call_budget_tracker=tracker,
+                call_budget_message=budget_msg,
+                eject_policies=default_eject_policies() if config.eject else [],
+            )
+
+            print(f"    [{app_num}/{n_apps}] {borrower.dossier.company_name} "
+                  f"({tracker.calls_remaining} credits remaining)...")
+
+            loop_result = await run_agent_loop(
+                config=loop_config,
+                lender=lender,
+                borrower=borrower,
+                task_description=task_def.task_prompt,
+            )
+
+            ev.close()
+
+            calls_used = tracker.calls_made - calls_before
+            dec = (loop_result.final_decision or {}).get("decision", "").lower()
+            expected = "decline" if quality in ("bad", "fraud") else "approve"
+            correct = dec == expected or (dec == "counter" and expected == "approve")
+
+            app_results.append(AppAllocationResult(
+                app_num=app_num,
+                borrower_name=borrower.dossier.company_name,
+                borrower_quality=quality,
+                calls_used=calls_used,
+                decision=dec or "(none)",
+                correct=correct,
+                termination=loop_result.termination,
+            ))
+
+            correctness_tag = "✓" if correct else "✗"
+            print(f"          {correctness_tag} decided {dec or '?'} "
+                  f"({calls_used} credits used, termination={loop_result.termination})")
+
+        report = MultiAppReport(
+            lender_name=lender.name,
+            model=model,
+            total_call_budget=call_budget,
+            total_calls_used=tracker.calls_made,
+            apps=app_results,
+        )
+        reports.append(report)
+
+    _print_multi_app_report(reports, n_apps, call_budget)
+    return reports
+
+
+def _print_multi_app_report(reports: list[MultiAppReport], n_apps: int, call_budget: int) -> None:
+    """Print allocation experiment results."""
+    print(f"\n{'=' * 70}")
+    print(f"  MULTI-APP ALLOCATION RESULTS")
+    print(f"{'=' * 70}")
+    print(f"  {n_apps} apps | {call_budget} total credits | optimal ~{call_budget // n_apps}/app")
+    print()
+
+    for r in reports:
+        calls_list = [f"{a.calls_used}" for a in r.apps]
+        print(f"  {r.lender_name} ({r.model})")
+        print(f"    Accuracy:          {r.avg_accuracy * 100:.0f}%  "
+              f"({sum(1 for a in r.apps if a.correct)}/{n_apps} correct)")
+        print(f"    Allocation:        [{', '.join(calls_list)}] credits per app")
+        print(f"    Evenness:          {r.allocation_evenness:.2f}  "
+              f"(1.0=even, 0.0=all on app1)")
+        print(f"    Budget used:       {r.total_calls_used}/{call_budget} credits")
+
+        for a in r.apps:
+            tag = "✓" if a.correct else "✗"
+            quality_tag = "RISKY" if a.borrower_quality in ("bad", "fraud") else "good"
+            print(f"      {tag} App {a.app_num}: {a.borrower_name} [{quality_tag}]  "
+                  f"→ {a.decision}  ({a.calls_used} credits, {a.termination})")
+        print()
+
+    if len(reports) > 1:
+        print(f"  {'Lender':<30s} {'Accuracy':>10s} {'Evenness':>10s} {'Credits':>10s}")
+        print(f"  {'─' * 62}")
+        for r in sorted(reports, key=lambda x: -x.avg_accuracy):
+            print(f"  {r.lender_name:<30s} {r.avg_accuracy * 100:>9.0f}% "
+                  f"{r.allocation_evenness:>9.2f}  "
+                  f"{r.total_calls_used:>6}/{r.total_call_budget}")
         print()

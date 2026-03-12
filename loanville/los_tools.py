@@ -192,8 +192,23 @@ LOS_TOOLS: list[dict] = [
         "currency": {"type": "string", "description": "Currency (default: USD)"},
     }, ["type", "holder"]),
     _tool("los_deposit_list", "List deposit accounts"),
+    # --- Budget experiment tools ---
+    _tool(
+        "los_quick_assess",
+        "FREE quick pre-screening (0 call credits). Rough pass/fail based on debt-service ratio "
+        "only — no LOS deal needed. Accuracy: ~70% (30% chance of wrong signal). "
+        "Use to triage applications cheaply before deciding whether to invest LOS call credits. "
+        "los_deal_evaluate costs 2 credits and gives reliable results.",
+        {
+            "borrower_name": {"type": "string", "description": "Borrower company name"},
+            "annual_revenue": {"type": "number", "description": "Annual revenue in dollars"},
+            "annual_expenses": {"type": "number", "description": "Annual expenses in dollars"},
+            "loan_amount": {"type": "number", "description": "Requested loan amount in dollars"},
+        },
+        ["borrower_name", "annual_revenue", "loan_amount"],
+    ),
     # --- Agent-specific evaluation tools ---
-    _tool("los_deal_evaluate", "Request automated underwriting evaluation for a deal. Returns a structured decision with risk grade, terms, and rationale.", {
+    _tool("los_deal_evaluate", "Request automated underwriting evaluation for a deal. Costs 2 call credits — reliable result (±5pp). Returns a structured decision with risk grade, terms, and rationale.", {
         "deal_id": {"type": "string", "description": "Deal ID to evaluate"},
         "mode": {"type": "string", "description": "Evaluation mode", "enum": ["full", "rules_only"]},
     }, ["deal_id"]),

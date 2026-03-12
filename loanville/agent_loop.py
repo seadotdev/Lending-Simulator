@@ -24,7 +24,7 @@ import httpx
 
 load_dotenv()
 
-from .agent_budget import BudgetTracker
+from .agent_budget import BudgetTracker, CallBudgetTracker
 from .agent_eject import EjectDecision, EjectPolicy
 from .agent_events import EventLogger
 from .agent_prompts import build_system_prompt, build_task_prompt
@@ -48,6 +48,8 @@ class AgentLoopConfig:
     toolkit: LenderToolkit | None = None
     event_logger: EventLogger | None = None
     budget_tracker: BudgetTracker | None = None
+    call_budget_tracker: CallBudgetTracker | None = None
+    call_budget_message: str = ""  # injected before turn 0 if set
     eject_policies: list[EjectPolicy] = field(default_factory=list)
     log_prefix: str = ""  # e.g. "[alias] " for parallel runs
 
@@ -97,6 +99,10 @@ async def run_agent_loop(
         {"role": "system", "content": system_prompt},
         {"role": "user", "content": user_prompt},
     ]
+
+    # Inject call-budget context before the first turn (multi-app allocation experiments)
+    if config.call_budget_message:
+        messages.append({"role": "system", "content": config.call_budget_message})
 
     # Build tool list for function-calling mode
     tools = None
@@ -201,12 +207,36 @@ async def run_agent_loop(
                                 args = {}
                             result.final_decision = args
 
+                    # If call budget is exhausted, block paid LOS calls
+                    call_budget = config.call_budget_tracker
+                    if call_budget and call_budget.exhausted:
+                        from .agent_budget import TOOL_CALL_CREDITS
+                        tool_calls = [
+                            tc for tc in tool_calls
+                            if TOOL_CALL_CREDITS.get(tc.get("function", {}).get("name", ""), 1) == 0
+                        ]
+
                     # Execute all tool calls
                     tool_results = await executor.execute(tool_calls)
+                    executed_names = [tc.get("function", {}).get("name", "?") for tc in tool_calls]
 
                     if ev:
                         ev.log("tool_result", turn=turn + 1,
                                results=[{"name": tr.name, "len": len(tr.content)} for tr in tool_results])
+
+                    # Charge call-count budget (multi-app allocation experiments)
+                    if call_budget and not call_budget.exhausted:
+                        call_budget.charge(executed_names)
+                        if call_budget.exhausted:
+                            messages.append({
+                                "role": "system",
+                                "content": (
+                                    f"LOS call budget exhausted (used {call_budget.calls_made} "
+                                    f"of {call_budget.total_calls} credits). "
+                                    "No further LOS calls will be executed. "
+                                    "You must make your underwriting decision now."
+                                ),
+                            })
 
                     # Track custom tool usage
                     for tr in tool_results:

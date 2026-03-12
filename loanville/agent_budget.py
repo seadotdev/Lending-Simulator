@@ -8,6 +8,22 @@ import time
 
 import httpx
 
+# ---------------------------------------------------------------------------
+# Tool call cost table (for CallBudgetTracker)
+# ---------------------------------------------------------------------------
+
+# How many call credits each tool consumes.
+# Unspecified tools cost 1 credit.  Free tools cost 0.  Expensive tools cost more.
+TOOL_CALL_CREDITS: dict[str, int] = {
+    # Free (no LOS traffic)
+    "agent_done": 0,
+    "los_quick_assess": 0,       # cheap/noisy — Option 2
+    # Standard LOS calls: 1 credit each (default)
+    # Expensive reliable evaluation: 2 credits
+    "los_deal_evaluate": 2,
+    "los_underwrite": 2,
+}
+
 logger = logging.getLogger(__name__)
 
 OR_BASE = "https://openrouter.ai/api/v1"
@@ -98,6 +114,71 @@ class BudgetTracker:
     @property
     def exhausted(self) -> bool:
         return self.fraction_spent() >= 1.0
+
+
+# ---------------------------------------------------------------------------
+# LOS call-count budget (for multi-application allocation experiments)
+# ---------------------------------------------------------------------------
+
+class CallBudgetTracker:
+    """Shared LOS-call-count budget across multiple agent loops.
+
+    Unlike BudgetTracker (which tracks real API spend), this counts
+    *LOS tool calls* made by the agent — a simulated resource that
+    the model must allocate across multiple borrower applications.
+
+    Experiment design (Option 1 — multi-app allocation):
+      - N borrowers share a pool of `total_calls` LOS call credits
+      - Each loop receives a "X calls remaining for Y remaining apps" message
+      - Score = average decision accuracy across all N apps
+      - A model that spreads evenly (~total/N per app) beats one that
+        burns all credits on app 1 and guesses for the rest
+
+    Tool cost table (TOOL_CALL_CREDITS in this module):
+      - los_quick_assess: 0  (free, noisy — Option 2)
+      - los_deal_evaluate: 2 (expensive, reliable)
+      - everything else: 1
+    """
+
+    def __init__(self, total_calls: int) -> None:
+        self.total_calls = total_calls
+        self._calls_made = 0
+
+    @property
+    def calls_made(self) -> int:
+        return self._calls_made
+
+    @property
+    def calls_remaining(self) -> int:
+        return max(0, self.total_calls - self._calls_made)
+
+    @property
+    def exhausted(self) -> bool:
+        return self._calls_made >= self.total_calls
+
+    def charge(self, tool_names: list[str]) -> int:
+        """Deduct credits for the given tool names. Returns remaining credits."""
+        cost = sum(TOOL_CALL_CREDITS.get(n, 1) for n in tool_names)
+        self._calls_made += cost
+        return self.calls_remaining
+
+    def fraction_spent(self) -> float:
+        if self.total_calls <= 0:
+            return 1.0
+        return min(1.0, self._calls_made / self.total_calls)
+
+    def inject_message(self, app_num: int, total_apps: int) -> str:
+        """Budget status string for injection at start of each loop."""
+        remaining = self.calls_remaining
+        apps_left = total_apps - app_num + 1
+        optimal = remaining // apps_left if apps_left > 0 else remaining
+        return (
+            f"LOS Call Budget: {remaining} of {self.total_calls} credits remaining. "
+            f"This is application {app_num} of {total_apps}. "
+            f"Recommended spend: ~{optimal} credits on this application "
+            f"({apps_left - 1} application(s) still need credits after this one). "
+            f"los_quick_assess is FREE. los_deal_evaluate costs 2. Other tools cost 1."
+        )
 
 
 def _check(name: str, ok: bool | None, detail: str = "") -> bool:

@@ -409,6 +409,14 @@ def main() -> None:
                              "Requires Docker, OR_ADMIN_KEY, and --agent-budget.")
     parser.add_argument("--agent-build", action="store_true",
                         help="Build the Docker agent image and exit")
+    parser.add_argument("--agent-multi-app", action="store_true",
+                        help="Run multi-application allocation experiment: models share a "
+                             "fixed LOS call budget across N borrower applications. "
+                             "Tests whether models spread effort evenly (Option 1 + 2).")
+    parser.add_argument("--agent-call-budget", type=int, default=None,
+                        help="Total LOS call credits for --agent-multi-app experiment. "
+                             "Default: 5 × number of cases. "
+                             "los_quick_assess=free, los_deal_evaluate=2, others=1.")
 
     # Leaderboard
     parser.add_argument("--leaderboard", action="store_true", default=True,
@@ -597,6 +605,27 @@ def main() -> None:
             or_key=or_key,
             parallel=args.agent_parallel,
         )
+        return
+
+    if args.agent_multi_app:
+        from .agent_sim import AgentSimConfig, run_multi_app_sim
+
+        default_task = "multi_app_allocation"
+        agent_config = AgentSimConfig(
+            mode=args.agent_mode,
+            max_turns=args.agent_max_turns,
+            tasks=[t.strip() for t in args.agent_tasks.split(",")]
+                  if args.agent_tasks != "simple_underwrite" else [default_task],
+            cases=args.agent_cases,
+            los_url=args.los_url,
+            provider=args.los_provider,
+            mix=args.mix,
+            seed=args.seed if args.seed is not None else 42,
+            los_model=args.los_model,
+            eject=args.agent_eject,
+            call_budget_total=args.agent_call_budget,
+        )
+        asyncio.run(run_multi_app_sim(config=agent_config, lenders=lenders))
         return
 
     if args.agent_sim:

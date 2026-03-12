@@ -105,6 +105,10 @@ class ToolCallExecutor:
                 content=json.dumps({"status": "done", **args}),
             )
 
+        # Free quick-assess tool — simulated, no LOS call (Option 2: cheap vs expensive)
+        if name == "los_quick_assess":
+            return self._simulate_quick_assess(args, tc_id)
+
         # Check custom tools first
         if self.toolkit:
             tool = self.toolkit.get_tool(name)
@@ -261,6 +265,48 @@ class ToolCallExecutor:
             return ToolResult(tc_id, name, json.dumps({"error": "Tool execution timed out"}), True)
         except Exception as exc:
             return ToolResult(tc_id, name, json.dumps({"error": str(exc)}), True)
+
+    def _simulate_quick_assess(self, args: dict, tc_id: str) -> ToolResult:
+        """Simulate los_quick_assess: free, noisy pre-screening (Option 2 — cheap vs expensive).
+
+        Computes a rough debt-service coverage check.  Adds ±30% noise (1-in-3 chance of
+        flipping the signal) to model the "2-game sample" behaviour described in the design.
+        No LOS API call is made — this is purely local.
+        """
+        import random
+        revenue = float(args.get("annual_revenue", 0))
+        expenses = float(args.get("annual_expenses", revenue * 0.8))
+        loan = float(args.get("loan_amount", 0))
+
+        net_income = revenue - expenses
+        # Simple DSC proxy: net income / loan amount > 15%
+        true_pass = (net_income > 0) and (loan <= 0 or net_income / loan > 0.15)
+
+        # 30% noise (mis-signals 1 in 3 times)
+        if random.random() < 0.30:
+            screen_result = "fail" if true_pass else "pass"
+            confidence = "low"
+        else:
+            screen_result = "pass" if true_pass else "fail"
+            confidence = "moderate"
+
+        net_margin = (net_income / revenue * 100) if revenue > 0 else 0
+        return ToolResult(
+            tool_call_id=tc_id,
+            name="los_quick_assess",
+            content=json.dumps({
+                "quick_screen": screen_result,
+                "confidence": confidence,
+                "note": (
+                    "Rough estimate only (~70% accuracy). "
+                    "Use los_deal_evaluate (2 credits) for a reliable result."
+                ),
+                "indicators": {
+                    "net_income_positive": net_income > 0,
+                    "estimated_net_margin_pct": round(net_margin, 1),
+                },
+            }),
+        )
 
 
 # ---------------------------------------------------------------------------

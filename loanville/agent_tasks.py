@@ -93,6 +93,52 @@ TASKS: dict[str, AgentTask] = {
         expected_artifacts=["entity", "deal", "document", "spread", "relationship"],
         difficulty="hard",
     ),
+    # --- Budget experiment tasks ---
+    "multi_app_allocation": AgentTask(
+        name="multi_app_allocation",
+        description="Allocate a fixed LOS call budget across multiple borrower applications",
+        task_prompt=(
+            "You have a SHARED LOS call budget across multiple applications in this run. "
+            "Each LOS tool call costs 1 credit (los_deal_evaluate costs 2; los_quick_assess is FREE). "
+            "Your score is the AVERAGE accuracy across all applications — not just this one. "
+            "\n\n"
+            "Strategy: use los_quick_assess (free) to triage first. If the screen is clearly "
+            "pass/fail, spend fewer paid credits. Save credits for borderline cases. "
+            "A model that burns all credits on the first application and guesses for the rest "
+            "will score much lower than one that spreads ~4 credits per application."
+            "\n\n"
+            "Process this borrower's application. Create the entity, deal, upload financials, "
+            "create a spread, and make your decision — but budget your LOS calls carefully."
+        ),
+        min_api_calls=3,  # minimum viable: entity + deal + quick assess
+        expected_artifacts=["entity", "deal"],
+        difficulty="medium",
+    ),
+    "explicit_allocation": AgentTask(
+        name="explicit_allocation",
+        description="Explicit cost/benefit allocation — choose actions from a priced menu",
+        task_prompt=(
+            "You have a FIXED call budget for this application. Choose your actions wisely.\n\n"
+            "## Action Cost Menu\n"
+            "- los_quick_assess ............. FREE  (noisy, ±30% error rate)\n"
+            "- los_entity_create ............  1 credit\n"
+            "- los_deal_create ..............  1 credit\n"
+            "- los_doc_upload ...............  1 credit each\n"
+            "- los_spread_create ............  1 credit\n"
+            "- los_deal_advance .............  1 credit\n"
+            "- los_deal_evaluate ............  2 credits (reliable, ±5% error)\n"
+            "- agent_done ...................  FREE\n\n"
+            "## Optimal pattern (4-credit budget)\n"
+            "1. los_quick_assess (free) — triage: is this obvious pass/fail?\n"
+            "2. los_entity_create + los_deal_create (2 credits) — establish the case\n"
+            "3. los_spread_create (1 credit) — compute ratios\n"
+            "4. agent_done — decide based on spread (skip evaluate if spread is clear)\n\n"
+            "Process this borrower and make your underwriting decision."
+        ),
+        min_api_calls=3,
+        expected_artifacts=["entity", "deal"],
+        difficulty="medium",
+    ),
 }
 
 
