@@ -21,7 +21,7 @@ const LENDER_COLORS = [
 ];
 
 const SPEED_LEVELS = [1, 2, 4];
-const DEFAULT_VISUALIZATION_MODE = 'town';
+const DEFAULT_VISUALIZATION_MODE = 'portfolio-hex';
 const DEFAULT_PORTFOLIO_SHARE_MODE = 'capital';
 const DEFAULT_LABEL_SIZE = 'large';
 
