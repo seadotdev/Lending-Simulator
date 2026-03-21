@@ -8,7 +8,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from .agent_events import EventLogger
+from agent_preflight import EventLogger
 
 
 RUNS_DIR = Path("runs")

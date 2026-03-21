@@ -1,0 +1,24 @@
+{
+  "run_id": "docker-20260307-210856",
+  "model": "meta-llama/llama-3.3-70b-instruct",
+  "alias": "LND-005",
+  "lender": "Atlas Credit",
+  "borrower": "Summit Event Catering",
+  "tenant_id": "rdocker-20260307-210856_LND-005_BRW-025",
+  "started_at": "2026-03-07T21:13:16.692303+00:00",
+  "finished_at": "2026-03-07T21:13:53.555799+00:00",
+  "error": null,
+  "decision": {
+    "decision": "approve",
+    "reasoning": "positive analysis of the company's financials and credit history",
+    "conditions": [
+      "interest rate of 9.5%"
+    ]
+  },
+  "cost": {
+    "measured_usd": 0.0024
+  },
+  "duration_s": 37,
+  "tool_calls": 4,
+  "has_deal": true
+}

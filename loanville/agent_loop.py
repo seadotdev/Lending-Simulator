@@ -24,9 +24,7 @@ import httpx
 
 load_dotenv()
 
-from .agent_budget import BudgetTracker
-from .agent_eject import EjectDecision, EjectPolicy
-from .agent_events import EventLogger
+from agent_preflight import BudgetStatus, BudgetTracker, EjectDecision, EjectPolicy, EventLogger
 from .agent_prompts import build_system_prompt, build_task_prompt
 from .custom_tools import LenderToolkit
 from .executors import CLIExecutor, REPLExecutor, ToolCallExecutor, extract_los_commands
@@ -139,8 +137,8 @@ async def run_agent_loop(
 
             # Budget check: poll and inject message periodically
             if budget:
-                budget.poll()
-                if budget.exhausted:
+                budget_status = budget.poll()
+                if budget.exceeded:
                     result.termination = "budget_exhausted"
                     if ev:
                         ev.log("budget_exhausted", turn=turn + 1)
@@ -148,7 +146,7 @@ async def run_agent_loop(
                 # Inject budget status every 5 turns
                 if turn - _last_budget_turn >= 5:
                     _last_budget_turn = turn
-                    msg = budget.inject_message()
+                    msg = budget.status_message()
                     if msg:
                         messages.append({"role": "system", "content": msg})
 
@@ -274,9 +272,22 @@ async def run_agent_loop(
             # Eject policy checks
             if config.eject_policies:
                 los_dict = await _quick_los_state(config.los_url, config.tenant_id)
-                bfs = budget.fraction_spent() if budget else None
+                eject_ctx = {
+                    "turn": turn + 1,
+                    "max_turns": config.max_turns,
+                    "los_state": los_dict,
+                }
+                eject_budget = (
+                    budget.poll() if budget
+                    else BudgetStatus(used=0, limit=1)
+                )
                 for policy in config.eject_policies:
-                    decision_ej = policy.check(turn + 1, config.max_turns, los_dict, bfs)
+                    decision_ej = policy.check(
+                        elapsed_s=time.time() - start,
+                        budget_status=eject_budget,
+                        events=[],
+                        context=eject_ctx,
+                    )
                     if decision_ej.reason and not decision_ej.should_eject:
                         # Warning
                         if ev:

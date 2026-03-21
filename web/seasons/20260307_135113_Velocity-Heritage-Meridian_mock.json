@@ -1,0 +1,5042 @@
+{
+  "type": "season",
+  "config": {
+    "weeks": 3,
+    "cohort_size": 3,
+    "months_per_week": 2,
+    "season_mix": "realistic",
+    "seed": 42,
+    "arrival_phases": 1,
+    "deep_uw_slots_per_week": 0,
+    "borrower_patience_weeks": 1,
+    "offer_validity_weeks": 1
+  },
+  "lenders": [
+    {
+      "id": "LND-001",
+      "name": "Velocity Capital",
+      "model": "openai/gpt-4.1-nano",
+      "total_capital": 3000000,
+      "net_pnl": 0.0,
+      "deployed": 1180000,
+      "deals_won": 0,
+      "deals_rejected": 0,
+      "deals_passed": 0,
+      "deals_lost": 9,
+      "cumulative_interest": 0.0,
+      "cumulative_losses": 0.0,
+      "cumulative_fees": 0.0,
+      "cumulative_workout_cost": 0.0,
+      "defaults": 0,
+      "frauds_funded": 0,
+      "weekly_utilization": [
+        0.3933,
+        0.3933,
+        0.3933
+      ],
+      "weekly_snapshots": [
+        {
+          "week": 1,
+          "effective_capital": 2996360.0,
+          "available_capital": 1816360.0,
+          "deployed_capital": 1180000,
+          "active_loans": 0,
+          "defaults_to_date": 0,
+          "frauds_to_date": 0,
+          "net_pnl": 0.0
+        },
+        {
+          "week": 2,
+          "effective_capital": 2992727.28,
+          "available_capital": 1812727.28,
+          "deployed_capital": 1180000,
+          "active_loans": 0,
+          "defaults_to_date": 0,
+          "frauds_to_date": 0,
+          "net_pnl": 0.0
+        },
+        {
+          "week": 3,
+          "effective_capital": 2989101.83,
+          "available_capital": 1809101.83,
+          "deployed_capital": 1180000,
+          "active_loans": 0,
+          "defaults_to_date": 0,
+          "frauds_to_date": 0,
+          "net_pnl": 0.0
+        },
+        {
+          "week": 4,
+          "effective_capital": 2989101.83,
+          "available_capital": 1809101.83,
+          "deployed_capital": 1180000,
+          "active_loans": 0,
+          "defaults_to_date": 0,
+          "frauds_to_date": 0,
+          "net_pnl": 0.0
+        }
+      ],
+      "deep_uw_deferred": 0,
+      "weekly_deep_uw_used": [
+        3,
+        3,
+        3
+      ],
+      "active_loans": [],
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "cost_usd": 0.0
+    },
+    {
+      "id": "LND-002",
+      "name": "Heritage Trust Bank",
+      "model": "mistralai/mistral-small-3.2-24b-instruct",
+      "total_capital": 4000000,
+      "net_pnl": 269454.46,
+      "deployed": 1500000.0,
+      "deals_won": 8,
+      "deals_rejected": 0,
+      "deals_passed": 0,
+      "deals_lost": 1,
+      "cumulative_interest": 243604.46,
+      "cumulative_losses": 0.0,
+      "cumulative_fees": 25850.0,
+      "cumulative_workout_cost": 0.0,
+      "defaults": 0,
+      "frauds_funded": 0,
+      "weekly_utilization": [
+        0.5125,
+        0.7364,
+        0.9883
+      ],
+      "weekly_snapshots": [
+        {
+          "week": 1,
+          "effective_capital": 3995000.0,
+          "available_capital": 1945000.0,
+          "deployed_capital": 2050000,
+          "active_loans": 2,
+          "defaults_to_date": 0,
+          "frauds_to_date": 0,
+          "net_pnl": 0.0
+        },
+        {
+          "week": 2,
+          "effective_capital": 4004644.33,
+          "available_capital": 1059204.55,
+          "deployed_capital": 2945439.78,
+          "active_loans": 5,
+          "defaults_to_date": 0,
+          "frauds_to_date": 0,
+          "net_pnl": 13620.69
+        },
+        {
+          "week": 3,
+          "effective_capital": 4031576.02,
+          "available_capital": 78283.53,
+          "deployed_capital": 3953292.49,
+          "active_loans": 8,
+          "defaults_to_date": 0,
+          "frauds_to_date": 0,
+          "net_pnl": 42933.71
+        },
+        {
+          "week": 4,
+          "effective_capital": 4258096.77,
+          "available_capital": 2758096.77,
+          "deployed_capital": 1500000.0,
+          "active_loans": 0,
+          "defaults_to_date": 0,
+          "frauds_to_date": 0,
+          "net_pnl": 269454.46
+        }
+      ],
+      "deep_uw_deferred": 0,
+      "weekly_deep_uw_used": [
+        3,
+        3,
+        3
+      ],
+      "active_loans": [],
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "cost_usd": 0.0
+    },
+    {
+      "id": "LND-003",
+      "name": "Meridian Partners",
+      "model": "deepseek/deepseek-v3.2",
+      "total_capital": 3500000,
+      "net_pnl": 0.0,
+      "deployed": 1200000,
+      "deals_won": 0,
+      "deals_rejected": 0,
+      "deals_passed": 0,
+      "deals_lost": 9,
+      "cumulative_interest": 0.0,
+      "cumulative_losses": 0.0,
+      "cumulative_fees": 0.0,
+      "cumulative_workout_cost": 0.0,
+      "defaults": 0,
+      "frauds_funded": 0,
+      "weekly_utilization": [
+        0.3429,
+        0.3429,
+        0.3429
+      ],
+      "weekly_snapshots": [
+        {
+          "week": 1,
+          "effective_capital": 3495400.0,
+          "available_capital": 2295400.0,
+          "deployed_capital": 1200000,
+          "active_loans": 0,
+          "defaults_to_date": 0,
+          "frauds_to_date": 0,
+          "net_pnl": 0.0
+        },
+        {
+          "week": 2,
+          "effective_capital": 3490809.2,
+          "available_capital": 2290809.2,
+          "deployed_capital": 1200000,
+          "active_loans": 0,
+          "defaults_to_date": 0,
+          "frauds_to_date": 0,
+          "net_pnl": 0.0
+        },
+        {
+          "week": 3,
+          "effective_capital": 3486227.58,
+          "available_capital": 2286227.58,
+          "deployed_capital": 1200000,
+          "active_loans": 0,
+          "defaults_to_date": 0,
+          "frauds_to_date": 0,
+          "net_pnl": 0.0
+        },
+        {
+          "week": 4,
+          "effective_capital": 3486227.58,
+          "available_capital": 2286227.58,
+          "deployed_capital": 1200000,
+          "active_loans": 0,
+          "defaults_to_date": 0,
+          "frauds_to_date": 0,
+          "net_pnl": 0.0
+        }
+      ],
+      "deep_uw_deferred": 0,
+      "weekly_deep_uw_used": [
+        3,
+        3,
+        3
+      ],
+      "active_loans": [],
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "cost_usd": 0.0
+    },
+    {
+      "id": "LND-004",
+      "name": "Pinnacle Finance",
+      "model": "qwen/qwen3-30b-a3b",
+      "total_capital": 3200000,
+      "net_pnl": 0.0,
+      "deployed": 880000,
+      "deals_won": 0,
+      "deals_rejected": 0,
+      "deals_passed": 0,
+      "deals_lost": 9,
+      "cumulative_interest": 0.0,
+      "cumulative_losses": 0.0,
+      "cumulative_fees": 0.0,
+      "cumulative_workout_cost": 0.0,
+      "defaults": 0,
+      "frauds_funded": 0,
+      "weekly_utilization": [
+        0.275,
+        0.275,
+        0.275
+      ],
+      "weekly_snapshots": [
+        {
+          "week": 1,
+          "effective_capital": 3195360.0,
+          "available_capital": 2315360.0,
+          "deployed_capital": 880000,
+          "active_loans": 0,
+          "defaults_to_date": 0,
+          "frauds_to_date": 0,
+          "net_pnl": 0.0
+        },
+        {
+          "week": 2,
+          "effective_capital": 3190729.28,
+          "available_capital": 2310729.28,
+          "deployed_capital": 880000,
+          "active_loans": 0,
+          "defaults_to_date": 0,
+          "frauds_to_date": 0,
+          "net_pnl": 0.0
+        },
+        {
+          "week": 3,
+          "effective_capital": 3186107.82,
+          "available_capital": 2306107.82,
+          "deployed_capital": 880000,
+          "active_loans": 0,
+          "defaults_to_date": 0,
+          "frauds_to_date": 0,
+          "net_pnl": 0.0
+        },
+        {
+          "week": 4,
+          "effective_capital": 3186107.82,
+          "available_capital": 2306107.82,
+          "deployed_capital": 880000,
+          "active_loans": 0,
+          "defaults_to_date": 0,
+          "frauds_to_date": 0,
+          "net_pnl": 0.0
+        }
+      ],
+      "deep_uw_deferred": 0,
+      "weekly_deep_uw_used": [
+        3,
+        3,
+        3
+      ],
+      "active_loans": [],
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "cost_usd": 0.0
+    },
+    {
+      "id": "LND-005",
+      "name": "Atlas Credit",
+      "model": "meta-llama/llama-3.3-70b-instruct",
+      "total_capital": 3800000,
+      "net_pnl": 33268.22,
+      "deployed": 1070000.0,
+      "deals_won": 1,
+      "deals_rejected": 0,
+      "deals_passed": 0,
+      "deals_lost": 8,
+      "cumulative_interest": 29268.22,
+      "cumulative_losses": 0.0,
+      "cumulative_fees": 4000.0,
+      "cumulative_workout_cost": 0.0,
+      "defaults": 0,
+      "frauds_funded": 0,
+      "weekly_utilization": [
+        0.3868,
+        0.3758,
+        0.3647
+      ],
+      "weekly_snapshots": [
+        {
+          "week": 1,
+          "effective_capital": 3794540.0,
+          "available_capital": 2324540.0,
+          "deployed_capital": 1470000,
+          "active_loans": 1,
+          "defaults_to_date": 0,
+          "frauds_to_date": 0,
+          "net_pnl": 0.0
+        },
+        {
+          "week": 2,
+          "effective_capital": 3799663.76,
+          "available_capital": 2371484.0,
+          "deployed_capital": 1428179.76,
+          "active_loans": 1,
+          "defaults_to_date": 0,
+          "frauds_to_date": 0,
+          "net_pnl": 9876.23
+        },
+        {
+          "week": 3,
+          "effective_capital": 3800068.46,
+          "available_capital": 2414342.11,
+          "deployed_capital": 1385726.35,
+          "active_loans": 1,
+          "defaults_to_date": 0,
+          "frauds_to_date": 0,
+          "net_pnl": 15119.29
+        },
+        {
+          "week": 4,
+          "effective_capital": 3818217.39,
+          "available_capital": 2748217.39,
+          "deployed_capital": 1070000.0,
+          "active_loans": 0,
+          "defaults_to_date": 0,
+          "frauds_to_date": 0,
+          "net_pnl": 33268.22
+        }
+      ],
+      "deep_uw_deferred": 0,
+      "weekly_deep_uw_used": [
+        3,
+        3,
+        3
+      ],
+      "active_loans": [],
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "cost_usd": 0.0
+    }
+  ],
+  "weeks": [
+    {
+      "week": 1,
+      "borrowers": [
+        {
+          "id": "BRW-002",
+          "name": "NovaBio Labs",
+          "sector": "Bio-Synthetics",
+          "amount": 300000,
+          "true_outcome": "good",
+          "arrival_phase": 1
+        },
+        {
+          "id": "BRW-029",
+          "name": "Metro Print & Design",
+          "sector": "Print Services",
+          "amount": 250000,
+          "true_outcome": "good",
+          "arrival_phase": 1
+        },
+        {
+          "id": "BRW-013",
+          "name": "IronClad Manufacturing",
+          "sector": "Advanced Manufacturing",
+          "amount": 400000,
+          "true_outcome": "good",
+          "arrival_phase": 1
+        }
+      ],
+      "decisions": [
+        {
+          "lender_id": "LND-001",
+          "borrower_id": "BRW-002",
+          "decision": "APPROVE",
+          "offer_valid_weeks": 1,
+          "bandwidth_limited": false,
+          "reasoning": "Acceptable risk profile. Revenue of $1,353,000 supports the requested loan amount. Cash flow appears adequate for debt service.",
+          "term_sheet": {
+            "amount": 300000,
+            "rate": 14.17,
+            "term_months": 25
+          },
+          "tokens_in": 0,
+          "tokens_out": 0,
+          "cost_usd": 0.0,
+          "tool_calls": 0,
+          "chain_of_thought": "",
+          "los_detail": {
+            "inputs": {
+              "financials": {
+                "revenue_ttm": 1353000,
+                "gross_margin": 0.3008130081300813,
+                "ebitda_ttm": 407000,
+                "net_income": 407000,
+                "annual_expenses": 946000
+              },
+              "banking": {
+                "avg_daily_balance_90d": 460666.67,
+                "nsf_12m": 0,
+                "total_deposits_12m": 1353000.0,
+                "total_withdrawals_12m": 946000.0
+              },
+              "business": {
+                "industry": "Bio-Synthetics",
+                "years_trading": 4,
+                "employee_count": 22,
+                "company_name": "NovaBio Labs"
+              },
+              "raw_documents": [
+                {
+                  "doc_id": "bank_statements_12m",
+                  "type": "bank_statement",
+                  "bytes_sha": "ddb4647c61c0d640"
+                },
+                {
+                  "doc_id": "quarterly_income",
+                  "type": "pnl",
+                  "bytes_sha": "82ddf793b9def389"
+                }
+              ],
+              "missing_info": []
+            },
+            "trace": {
+              "latency_ms": 0,
+              "steps": [],
+              "cost": {
+                "tokens_in": 0,
+                "tokens_out": 0,
+                "estimated_cost_usd": 0.0
+              }
+            },
+            "decision": {
+              "action": "approve",
+              "risk_grade": "",
+              "prob_default_12m": 0.0,
+              "confidence": 0.0,
+              "conditions": [],
+              "covenants": [],
+              "terms": {
+                "amount": 300000,
+                "apr": 0.1417,
+                "tenor_months": 25,
+                "fees": {}
+              },
+              "rationale": {
+                "summary": "Acceptable risk profile. Revenue of $1,353,000 supports the requested loan amount. Cash flow appears adequate for debt service.",
+                "key_factors": [],
+                "what_would_change": []
+              }
+            }
+          }
+        },
+        {
+          "lender_id": "LND-001",
+          "borrower_id": "BRW-029",
+          "decision": "APPROVE",
+          "offer_valid_weeks": 1,
+          "bandwidth_limited": false,
+          "reasoning": "Acceptable risk profile. Revenue of $1,870,000 supports the requested loan amount. Cash flow appears adequate for debt service.",
+          "term_sheet": {
+            "amount": 250000,
+            "rate": 13.33,
+            "term_months": 17
+          },
+          "tokens_in": 0,
+          "tokens_out": 0,
+          "cost_usd": 0.0,
+          "tool_calls": 0,
+          "chain_of_thought": "",
+          "los_detail": {
+            "inputs": {
+              "financials": {
+                "revenue_ttm": 1870000,
+                "gross_margin": 0.2641711229946524,
+                "ebitda_ttm": 494000,
+                "net_income": 494000,
+                "annual_expenses": 1376000
+              },
+              "banking": {
+                "avg_daily_balance_90d": 565000.0,
+                "nsf_12m": 0,
+                "total_deposits_12m": 1870000.0,
+                "total_withdrawals_12m": 1376000.0
+              },
+              "business": {
+                "industry": "Print Services",
+                "years_trading": 18,
+                "employee_count": 24,
+                "company_name": "Metro Print & Design"
+              },
+              "raw_documents": [
+                {
+                  "doc_id": "bank_statements_12m",
+                  "type": "bank_statement",
+                  "bytes_sha": "dd51dc17a4b73db6"
+                },
+                {
+                  "doc_id": "quarterly_income",
+                  "type": "pnl",
+                  "bytes_sha": "0d98726510c0bf4f"
+                }
+              ],
+              "missing_info": []
+            },
+            "trace": {
+              "latency_ms": 0,
+              "steps": [],
+              "cost": {
+                "tokens_in": 0,
+                "tokens_out": 0,
+                "estimated_cost_usd": 0.0
+              }
+            },
+            "decision": {
+              "action": "approve",
+              "risk_grade": "",
+              "prob_default_12m": 0.0,
+              "confidence": 0.0,
+              "conditions": [],
+              "covenants": [],
+              "terms": {
+                "amount": 250000,
+                "apr": 0.1333,
+                "tenor_months": 17,
+                "fees": {}
+              },
+              "rationale": {
+                "summary": "Acceptable risk profile. Revenue of $1,870,000 supports the requested loan amount. Cash flow appears adequate for debt service.",
+                "key_factors": [],
+                "what_would_change": []
+              }
+            }
+          }
+        },
+        {
+          "lender_id": "LND-001",
+          "borrower_id": "BRW-013",
+          "decision": "APPROVE",
+          "offer_valid_weeks": 1,
+          "bandwidth_limited": false,
+          "reasoning": "Acceptable risk profile. Revenue of $2,736,000 supports the requested loan amount. Cash flow appears adequate for debt service.",
+          "term_sheet": {
+            "amount": 400000,
+            "rate": 14.14,
+            "term_months": 25
+          },
+          "tokens_in": 0,
+          "tokens_out": 0,
+          "cost_usd": 0.0,
+          "tool_calls": 0,
+          "chain_of_thought": "",
+          "los_detail": {
+            "inputs": {
+              "financials": {
+                "revenue_ttm": 2736000,
+                "gross_margin": 0.2627923976608187,
+                "ebitda_ttm": 719000,
+                "net_income": 719000,
+                "annual_expenses": 2017000
+              },
+              "banking": {
+                "avg_daily_balance_90d": 848000.0,
+                "nsf_12m": 0,
+                "total_deposits_12m": 2736000.0,
+                "total_withdrawals_12m": 2017000.0
+              },
+              "business": {
+                "industry": "Advanced Manufacturing",
+                "years_trading": 12,
+                "employee_count": 65,
+                "company_name": "IronClad Manufacturing"
+              },
+              "raw_documents": [
+                {
+                  "doc_id": "bank_statements_12m",
+                  "type": "bank_statement",
+                  "bytes_sha": "b5237a8b9d5045fe"
+                },
+                {
+                  "doc_id": "quarterly_income",
+                  "type": "pnl",
+                  "bytes_sha": "cd224ffe1117ec6f"
+                }
+              ],
+              "missing_info": []
+            },
+            "trace": {
+              "latency_ms": 0,
+              "steps": [],
+              "cost": {
+                "tokens_in": 0,
+                "tokens_out": 0,
+                "estimated_cost_usd": 0.0
+              }
+            },
+            "decision": {
+              "action": "approve",
+              "risk_grade": "",
+              "prob_default_12m": 0.0,
+              "confidence": 0.0,
+              "conditions": [],
+              "covenants": [],
+              "terms": {
+                "amount": 400000,
+                "apr": 0.1414,
+                "tenor_months": 25,
+                "fees": {}
+              },
+              "rationale": {
+                "summary": "Acceptable risk profile. Revenue of $2,736,000 supports the requested loan amount. Cash flow appears adequate for debt service.",
+                "key_factors": [],
+                "what_would_change": []
+              }
+            }
+          }
+        },
+        {
+          "lender_id": "LND-002",
+          "borrower_id": "BRW-002",
+          "decision": "APPROVE",
+          "offer_valid_weeks": 1,
+          "bandwidth_limited": false,
+          "reasoning": "Acceptable risk profile. Revenue of $1,353,000 supports the requested loan amount. Cash flow appears adequate for debt service.",
+          "term_sheet": {
+            "amount": 300000,
+            "rate": 9.07,
+            "term_months": 34
+          },
+          "tokens_in": 0,
+          "tokens_out": 0,
+          "cost_usd": 0.0,
+          "tool_calls": 0,
+          "chain_of_thought": "",
+          "los_detail": {
+            "inputs": {
+              "financials": {
+                "revenue_ttm": 1353000,
+                "gross_margin": 0.3008130081300813,
+                "ebitda_ttm": 407000,
+                "net_income": 407000,
+                "annual_expenses": 946000
+              },
+              "banking": {
+                "avg_daily_balance_90d": 460666.67,
+                "nsf_12m": 0,
+                "total_deposits_12m": 1353000.0,
+                "total_withdrawals_12m": 946000.0
+              },
+              "business": {
+                "industry": "Bio-Synthetics",
+                "years_trading": 4,
+                "employee_count": 22,
+                "company_name": "NovaBio Labs"
+              },
+              "raw_documents": [
+                {
+                  "doc_id": "bank_statements_12m",
+                  "type": "bank_statement",
+                  "bytes_sha": "ddb4647c61c0d640"
+                },
+                {
+                  "doc_id": "quarterly_income",
+                  "type": "pnl",
+                  "bytes_sha": "82ddf793b9def389"
+                }
+              ],
+              "missing_info": []
+            },
+            "trace": {
+              "latency_ms": 0,
+              "steps": [],
+              "cost": {
+                "tokens_in": 0,
+                "tokens_out": 0,
+                "estimated_cost_usd": 0.0
+              }
+            },
+            "decision": {
+              "action": "approve",
+              "risk_grade": "",
+              "prob_default_12m": 0.0,
+              "confidence": 0.0,
+              "conditions": [],
+              "covenants": [],
+              "terms": {
+                "amount": 300000,
+                "apr": 0.0907,
+                "tenor_months": 34,
+                "fees": {}
+              },
+              "rationale": {
+                "summary": "Acceptable risk profile. Revenue of $1,353,000 supports the requested loan amount. Cash flow appears adequate for debt service.",
+                "key_factors": [],
+                "what_would_change": []
+              }
+            }
+          }
+        },
+        {
+          "lender_id": "LND-002",
+          "borrower_id": "BRW-029",
+          "decision": "APPROVE",
+          "offer_valid_weeks": 1,
+          "bandwidth_limited": false,
+          "reasoning": "Acceptable risk profile. Revenue of $1,870,000 supports the requested loan amount. Cash flow appears adequate for debt service.",
+          "term_sheet": {
+            "amount": 250000,
+            "rate": 8.87,
+            "term_months": 32
+          },
+          "tokens_in": 0,
+          "tokens_out": 0,
+          "cost_usd": 0.0,
+          "tool_calls": 0,
+          "chain_of_thought": "",
+          "los_detail": {
+            "inputs": {
+              "financials": {
+                "revenue_ttm": 1870000,
+                "gross_margin": 0.2641711229946524,
+                "ebitda_ttm": 494000,
+                "net_income": 494000,
+                "annual_expenses": 1376000
+              },
+              "banking": {
+                "avg_daily_balance_90d": 565000.0,
+                "nsf_12m": 0,
+                "total_deposits_12m": 1870000.0,
+                "total_withdrawals_12m": 1376000.0
+              },
+              "business": {
+                "industry": "Print Services",
+                "years_trading": 18,
+                "employee_count": 24,
+                "company_name": "Metro Print & Design"
+              },
+              "raw_documents": [
+                {
+                  "doc_id": "bank_statements_12m",
+                  "type": "bank_statement",
+                  "bytes_sha": "dd51dc17a4b73db6"
+                },
+                {
+                  "doc_id": "quarterly_income",
+                  "type": "pnl",
+                  "bytes_sha": "0d98726510c0bf4f"
+                }
+              ],
+              "missing_info": []
+            },
+            "trace": {
+              "latency_ms": 0,
+              "steps": [],
+              "cost": {
+                "tokens_in": 0,
+                "tokens_out": 0,
+                "estimated_cost_usd": 0.0
+              }
+            },
+            "decision": {
+              "action": "approve",
+              "risk_grade": "",
+              "prob_default_12m": 0.0,
+              "confidence": 0.0,
+              "conditions": [],
+              "covenants": [],
+              "terms": {
+                "amount": 250000,
+                "apr": 0.08869999999999999,
+                "tenor_months": 32,
+                "fees": {}
+              },
+              "rationale": {
+                "summary": "Acceptable risk profile. Revenue of $1,870,000 supports the requested loan amount. Cash flow appears adequate for debt service.",
+                "key_factors": [],
+                "what_would_change": []
+              }
+            }
+          }
+        },
+        {
+          "lender_id": "LND-002",
+          "borrower_id": "BRW-013",
+          "decision": "APPROVE",
+          "offer_valid_weeks": 1,
+          "bandwidth_limited": false,
+          "reasoning": "Acceptable risk profile. Revenue of $2,736,000 supports the requested loan amount. Cash flow appears adequate for debt service.",
+          "term_sheet": {
+            "amount": 400000,
+            "rate": 9.19,
+            "term_months": 35
+          },
+          "tokens_in": 0,
+          "tokens_out": 0,
+          "cost_usd": 0.0,
+          "tool_calls": 0,
+          "chain_of_thought": "",
+          "los_detail": {
+            "inputs": {
+              "financials": {
+                "revenue_ttm": 2736000,
+                "gross_margin": 0.2627923976608187,
+                "ebitda_ttm": 719000,
+                "net_income": 719000,
+                "annual_expenses": 2017000
+              },
+              "banking": {
+                "avg_daily_balance_90d": 848000.0,
+                "nsf_12m": 0,
+                "total_deposits_12m": 2736000.0,
+                "total_withdrawals_12m": 2017000.0
+              },
+              "business": {
+                "industry": "Advanced Manufacturing",
+                "years_trading": 12,
+                "employee_count": 65,
+                "company_name": "IronClad Manufacturing"
+              },
+              "raw_documents": [
+                {
+                  "doc_id": "bank_statements_12m",
+                  "type": "bank_statement",
+                  "bytes_sha": "b5237a8b9d5045fe"
+                },
+                {
+                  "doc_id": "quarterly_income",
+                  "type": "pnl",
+                  "bytes_sha": "cd224ffe1117ec6f"
+                }
+              ],
+              "missing_info": []
+            },
+            "trace": {
+              "latency_ms": 0,
+              "steps": [],
+              "cost": {
+                "tokens_in": 0,
+                "tokens_out": 0,
+                "estimated_cost_usd": 0.0
+              }
+            },
+            "decision": {
+              "action": "approve",
+              "risk_grade": "",
+              "prob_default_12m": 0.0,
+              "confidence": 0.0,
+              "conditions": [],
+              "covenants": [],
+              "terms": {
+                "amount": 400000,
+                "apr": 0.0919,
+                "tenor_months": 35,
+                "fees": {}
+              },
+              "rationale": {
+                "summary": "Acceptable risk profile. Revenue of $2,736,000 supports the requested loan amount. Cash flow appears adequate for debt service.",
+                "key_factors": [],
+                "what_would_change": []
+              }
+            }
+          }
+        },
+        {
+          "lender_id": "LND-003",
+          "borrower_id": "BRW-002",
+          "decision": "APPROVE",
+          "offer_valid_weeks": 1,
+          "bandwidth_limited": false,
+          "reasoning": "Acceptable risk profile. Revenue of $1,353,000 supports the requested loan amount. Cash flow appears adequate for debt service.",
+          "term_sheet": {
+            "amount": 300000,
+            "rate": 12.03,
+            "term_months": 33
+          },
+          "tokens_in": 0,
+          "tokens_out": 0,
+          "cost_usd": 0.0,
+          "tool_calls": 0,
+          "chain_of_thought": "",
+          "los_detail": {
+            "inputs": {
+              "financials": {
+                "revenue_ttm": 1353000,
+                "gross_margin": 0.3008130081300813,
+                "ebitda_ttm": 407000,
+                "net_income": 407000,
+                "annual_expenses": 946000
+              },
+              "banking": {
+                "avg_daily_balance_90d": 460666.67,
+                "nsf_12m": 0,
+                "total_deposits_12m": 1353000.0,
+                "total_withdrawals_12m": 946000.0
+              },
+              "business": {
+                "industry": "Bio-Synthetics",
+                "years_trading": 4,
+                "employee_count": 22,
+                "company_name": "NovaBio Labs"
+              },
+              "raw_documents": [
+                {
+                  "doc_id": "bank_statements_12m",
+                  "type": "bank_statement",
+                  "bytes_sha": "ddb4647c61c0d640"
+                },
+                {
+                  "doc_id": "quarterly_income",
+                  "type": "pnl",
+                  "bytes_sha": "82ddf793b9def389"
+                }
+              ],
+              "missing_info": []
+            },
+            "trace": {
+              "latency_ms": 0,
+              "steps": [],
+              "cost": {
+                "tokens_in": 0,
+                "tokens_out": 0,
+                "estimated_cost_usd": 0.0
+              }
+            },
+            "decision": {
+              "action": "approve",
+              "risk_grade": "",
+              "prob_default_12m": 0.0,
+              "confidence": 0.0,
+              "conditions": [],
+              "covenants": [],
+              "terms": {
+                "amount": 300000,
+                "apr": 0.12029999999999999,
+                "tenor_months": 33,
+                "fees": {}
+              },
+              "rationale": {
+                "summary": "Acceptable risk profile. Revenue of $1,353,000 supports the requested loan amount. Cash flow appears adequate for debt service.",
+                "key_factors": [],
+                "what_would_change": []
+              }
+            }
+          }
+        },
+        {
+          "lender_id": "LND-003",
+          "borrower_id": "BRW-029",
+          "decision": "APPROVE",
+          "offer_valid_weeks": 1,
+          "bandwidth_limited": false,
+          "reasoning": "Acceptable risk profile. Revenue of $1,870,000 supports the requested loan amount. Cash flow appears adequate for debt service.",
+          "term_sheet": {
+            "amount": 250000,
+            "rate": 10.55,
+            "term_months": 19
+          },
+          "tokens_in": 0,
+          "tokens_out": 0,
+          "cost_usd": 0.0,
+          "tool_calls": 0,
+          "chain_of_thought": "",
+          "los_detail": {
+            "inputs": {
+              "financials": {
+                "revenue_ttm": 1870000,
+                "gross_margin": 0.2641711229946524,
+                "ebitda_ttm": 494000,
+                "net_income": 494000,
+                "annual_expenses": 1376000
+              },
+              "banking": {
+                "avg_daily_balance_90d": 565000.0,
+                "nsf_12m": 0,
+                "total_deposits_12m": 1870000.0,
+                "total_withdrawals_12m": 1376000.0
+              },
+              "business": {
+                "industry": "Print Services",
+                "years_trading": 18,
+                "employee_count": 24,
+                "company_name": "Metro Print & Design"
+              },
+              "raw_documents": [
+                {
+                  "doc_id": "bank_statements_12m",
+                  "type": "bank_statement",
+                  "bytes_sha": "dd51dc17a4b73db6"
+                },
+                {
+                  "doc_id": "quarterly_income",
+                  "type": "pnl",
+                  "bytes_sha": "0d98726510c0bf4f"
+                }
+              ],
+              "missing_info": []
+            },
+            "trace": {
+              "latency_ms": 0,
+              "steps": [],
+              "cost": {
+                "tokens_in": 0,
+                "tokens_out": 0,
+                "estimated_cost_usd": 0.0
+              }
+            },
+            "decision": {
+              "action": "approve",
+              "risk_grade": "",
+              "prob_default_12m": 0.0,
+              "confidence": 0.0,
+              "conditions": [],
+              "covenants": [],
+              "terms": {
+                "amount": 250000,
+                "apr": 0.10550000000000001,
+                "tenor_months": 19,
+                "fees": {}
+              },
+              "rationale": {
+                "summary": "Acceptable risk profile. Revenue of $1,870,000 supports the requested loan amount. Cash flow appears adequate for debt service.",
+                "key_factors": [],
+                "what_would_change": []
+              }
+            }
+          }
+        },
+        {
+          "lender_id": "LND-003",
+          "borrower_id": "BRW-013",
+          "decision": "APPROVE",
+          "offer_valid_weeks": 1,
+          "bandwidth_limited": false,
+          "reasoning": "Acceptable risk profile. Revenue of $2,736,000 supports the requested loan amount. Cash flow appears adequate for debt service.",
+          "term_sheet": {
+            "amount": 400000,
+            "rate": 11.22,
+            "term_months": 26
+          },
+          "tokens_in": 0,
+          "tokens_out": 0,
+          "cost_usd": 0.0,
+          "tool_calls": 0,
+          "chain_of_thought": "",
+          "los_detail": {
+            "inputs": {
+              "financials": {
+                "revenue_ttm": 2736000,
+                "gross_margin": 0.2627923976608187,
+                "ebitda_ttm": 719000,
+                "net_income": 719000,
+                "annual_expenses": 2017000
+              },
+              "banking": {
+                "avg_daily_balance_90d": 848000.0,
+                "nsf_12m": 0,
+                "total_deposits_12m": 2736000.0,
+                "total_withdrawals_12m": 2017000.0
+              },
+              "business": {
+                "industry": "Advanced Manufacturing",
+                "years_trading": 12,
+                "employee_count": 65,
+                "company_name": "IronClad Manufacturing"
+              },
+              "raw_documents": [
+                {
+                  "doc_id": "bank_statements_12m",
+                  "type": "bank_statement",
+                  "bytes_sha": "b5237a8b9d5045fe"
+                },
+                {
+                  "doc_id": "quarterly_income",
+                  "type": "pnl",
+                  "bytes_sha": "cd224ffe1117ec6f"
+                }
+              ],
+              "missing_info": []
+            },
+            "trace": {
+              "latency_ms": 0,
+              "steps": [],
+              "cost": {
+                "tokens_in": 0,
+                "tokens_out": 0,
+                "estimated_cost_usd": 0.0
+              }
+            },
+            "decision": {
+              "action": "approve",
+              "risk_grade": "",
+              "prob_default_12m": 0.0,
+              "confidence": 0.0,
+              "conditions": [],
+              "covenants": [],
+              "terms": {
+                "amount": 400000,
+                "apr": 0.11220000000000001,
+                "tenor_months": 26,
+                "fees": {}
+              },
+              "rationale": {
+                "summary": "Acceptable risk profile. Revenue of $2,736,000 supports the requested loan amount. Cash flow appears adequate for debt service.",
+                "key_factors": [],
+                "what_would_change": []
+              }
+            }
+          }
+        },
+        {
+          "lender_id": "LND-004",
+          "borrower_id": "BRW-002",
+          "decision": "APPROVE",
+          "offer_valid_weeks": 1,
+          "bandwidth_limited": false,
+          "reasoning": "Acceptable risk profile. Revenue of $1,353,000 supports the requested loan amount. Cash flow appears adequate for debt service.",
+          "term_sheet": {
+            "amount": 300000,
+            "rate": 11.81,
+            "term_months": 22
+          },
+          "tokens_in": 0,
+          "tokens_out": 0,
+          "cost_usd": 0.0,
+          "tool_calls": 0,
+          "chain_of_thought": "",
+          "los_detail": {
+            "inputs": {
+              "financials": {
+                "revenue_ttm": 1353000,
+                "gross_margin": 0.3008130081300813,
+                "ebitda_ttm": 407000,
+                "net_income": 407000,
+                "annual_expenses": 946000
+              },
+              "banking": {
+                "avg_daily_balance_90d": 460666.67,
+                "nsf_12m": 0,
+                "total_deposits_12m": 1353000.0,
+                "total_withdrawals_12m": 946000.0
+              },
+              "business": {
+                "industry": "Bio-Synthetics",
+                "years_trading": 4,
+                "employee_count": 22,
+                "company_name": "NovaBio Labs"
+              },
+              "raw_documents": [
+                {
+                  "doc_id": "bank_statements_12m",
+                  "type": "bank_statement",
+                  "bytes_sha": "ddb4647c61c0d640"
+                },
+                {
+                  "doc_id": "quarterly_income",
+                  "type": "pnl",
+                  "bytes_sha": "82ddf793b9def389"
+                }
+              ],
+              "missing_info": []
+            },
+            "trace": {
+              "latency_ms": 0,
+              "steps": [],
+              "cost": {
+                "tokens_in": 0,
+                "tokens_out": 0,
+                "estimated_cost_usd": 0.0
+              }
+            },
+            "decision": {
+              "action": "approve",
+              "risk_grade": "",
+              "prob_default_12m": 0.0,
+              "confidence": 0.0,
+              "conditions": [],
+              "covenants": [],
+              "terms": {
+                "amount": 300000,
+                "apr": 0.11810000000000001,
+                "tenor_months": 22,
+                "fees": {}
+              },
+              "rationale": {
+                "summary": "Acceptable risk profile. Revenue of $1,353,000 supports the requested loan amount. Cash flow appears adequate for debt service.",
+                "key_factors": [],
+                "what_would_change": []
+              }
+            }
+          }
+        },
+        {
+          "lender_id": "LND-004",
+          "borrower_id": "BRW-029",
+          "decision": "APPROVE",
+          "offer_valid_weeks": 1,
+          "bandwidth_limited": false,
+          "reasoning": "Acceptable risk profile. Revenue of $1,870,000 supports the requested loan amount. Cash flow appears adequate for debt service.",
+          "term_sheet": {
+            "amount": 250000,
+            "rate": 13.02,
+            "term_months": 33
+          },
+          "tokens_in": 0,
+          "tokens_out": 0,
+          "cost_usd": 0.0,
+          "tool_calls": 0,
+          "chain_of_thought": "",
+          "los_detail": {
+            "inputs": {
+              "financials": {
+                "revenue_ttm": 1870000,
+                "gross_margin": 0.2641711229946524,
+                "ebitda_ttm": 494000,
+                "net_income": 494000,
+                "annual_expenses": 1376000
+              },
+              "banking": {
+                "avg_daily_balance_90d": 565000.0,
+                "nsf_12m": 0,
+                "total_deposits_12m": 1870000.0,
+                "total_withdrawals_12m": 1376000.0
+              },
+              "business": {
+                "industry": "Print Services",
+                "years_trading": 18,
+                "employee_count": 24,
+                "company_name": "Metro Print & Design"
+              },
+              "raw_documents": [
+                {
+                  "doc_id": "bank_statements_12m",
+                  "type": "bank_statement",
+                  "bytes_sha": "dd51dc17a4b73db6"
+                },
+                {
+                  "doc_id": "quarterly_income",
+                  "type": "pnl",
+                  "bytes_sha": "0d98726510c0bf4f"
+                }
+              ],
+              "missing_info": []
+            },
+            "trace": {
+              "latency_ms": 0,
+              "steps": [],
+              "cost": {
+                "tokens_in": 0,
+                "tokens_out": 0,
+                "estimated_cost_usd": 0.0
+              }
+            },
+            "decision": {
+              "action": "approve",
+              "risk_grade": "",
+              "prob_default_12m": 0.0,
+              "confidence": 0.0,
+              "conditions": [],
+              "covenants": [],
+              "terms": {
+                "amount": 250000,
+                "apr": 0.13019999999999998,
+                "tenor_months": 33,
+                "fees": {}
+              },
+              "rationale": {
+                "summary": "Acceptable risk profile. Revenue of $1,870,000 supports the requested loan amount. Cash flow appears adequate for debt service.",
+                "key_factors": [],
+                "what_would_change": []
+              }
+            }
+          }
+        },
+        {
+          "lender_id": "LND-004",
+          "borrower_id": "BRW-013",
+          "decision": "APPROVE",
+          "offer_valid_weeks": 1,
+          "bandwidth_limited": false,
+          "reasoning": "Acceptable risk profile. Revenue of $2,736,000 supports the requested loan amount. Cash flow appears adequate for debt service.",
+          "term_sheet": {
+            "amount": 400000,
+            "rate": 12.94,
+            "term_months": 33
+          },
+          "tokens_in": 0,
+          "tokens_out": 0,
+          "cost_usd": 0.0,
+          "tool_calls": 0,
+          "chain_of_thought": "",
+          "los_detail": {
+            "inputs": {
+              "financials": {
+                "revenue_ttm": 2736000,
+                "gross_margin": 0.2627923976608187,
+                "ebitda_ttm": 719000,
+                "net_income": 719000,
+                "annual_expenses": 2017000
+              },
+              "banking": {
+                "avg_daily_balance_90d": 848000.0,
+                "nsf_12m": 0,
+                "total_deposits_12m": 2736000.0,
+                "total_withdrawals_12m": 2017000.0
+              },
+              "business": {
+                "industry": "Advanced Manufacturing",
+                "years_trading": 12,
+                "employee_count": 65,
+                "company_name": "IronClad Manufacturing"
+              },
+              "raw_documents": [
+                {
+                  "doc_id": "bank_statements_12m",
+                  "type": "bank_statement",
+                  "bytes_sha": "b5237a8b9d5045fe"
+                },
+                {
+                  "doc_id": "quarterly_income",
+                  "type": "pnl",
+                  "bytes_sha": "cd224ffe1117ec6f"
+                }
+              ],
+              "missing_info": []
+            },
+            "trace": {
+              "latency_ms": 0,
+              "steps": [],
+              "cost": {
+                "tokens_in": 0,
+                "tokens_out": 0,
+                "estimated_cost_usd": 0.0
+              }
+            },
+            "decision": {
+              "action": "approve",
+              "risk_grade": "",
+              "prob_default_12m": 0.0,
+              "confidence": 0.0,
+              "conditions": [],
+              "covenants": [],
+              "terms": {
+                "amount": 400000,
+                "apr": 0.1294,
+                "tenor_months": 33,
+                "fees": {}
+              },
+              "rationale": {
+                "summary": "Acceptable risk profile. Revenue of $2,736,000 supports the requested loan amount. Cash flow appears adequate for debt service.",
+                "key_factors": [],
+                "what_would_change": []
+              }
+            }
+          }
+        },
+        {
+          "lender_id": "LND-005",
+          "borrower_id": "BRW-002",
+          "decision": "APPROVE",
+          "offer_valid_weeks": 1,
+          "bandwidth_limited": false,
+          "reasoning": "Strong application. Monthly free cash flow of $33,917 provides a DSCR of 3.1x on proposed payments. 4 years in business with consistent revenue trends. Sector exposure within limits.",
+          "term_sheet": {
+            "amount": 300000,
+            "rate": 9.81,
+            "term_months": 27
+          },
+          "tokens_in": 0,
+          "tokens_out": 0,
+          "cost_usd": 0.0,
+          "tool_calls": 0,
+          "chain_of_thought": "",
+          "los_detail": {
+            "inputs": {
+              "financials": {
+                "revenue_ttm": 1353000,
+                "gross_margin": 0.3008130081300813,
+                "ebitda_ttm": 407000,
+                "net_income": 407000,
+                "annual_expenses": 946000
+              },
+              "banking": {
+                "avg_daily_balance_90d": 460666.67,
+                "nsf_12m": 0,
+                "total_deposits_12m": 1353000.0,
+                "total_withdrawals_12m": 946000.0
+              },
+              "business": {
+                "industry": "Bio-Synthetics",
+                "years_trading": 4,
+                "employee_count": 22,
+                "company_name": "NovaBio Labs"
+              },
+              "raw_documents": [
+                {
+                  "doc_id": "bank_statements_12m",
+                  "type": "bank_statement",
+                  "bytes_sha": "ddb4647c61c0d640"
+                },
+                {
+                  "doc_id": "quarterly_income",
+                  "type": "pnl",
+                  "bytes_sha": "82ddf793b9def389"
+                }
+              ],
+              "missing_info": []
+            },
+            "trace": {
+              "latency_ms": 0,
+              "steps": [],
+              "cost": {
+                "tokens_in": 0,
+                "tokens_out": 0,
+                "estimated_cost_usd": 0.0
+              }
+            },
+            "decision": {
+              "action": "approve",
+              "risk_grade": "",
+              "prob_default_12m": 0.0,
+              "confidence": 0.0,
+              "conditions": [],
+              "covenants": [],
+              "terms": {
+                "amount": 300000,
+                "apr": 0.0981,
+                "tenor_months": 27,
+                "fees": {}
+              },
+              "rationale": {
+                "summary": "Strong application. Monthly free cash flow of $33,917 provides a DSCR of 3.1x on proposed payments. 4 years in business with consistent revenue trends. Sector exposure within limits.",
+                "key_factors": [],
+                "what_would_change": []
+              }
+            }
+          }
+        },
+        {
+          "lender_id": "LND-005",
+          "borrower_id": "BRW-029",
+          "decision": "APPROVE",
+          "offer_valid_weeks": 1,
+          "bandwidth_limited": false,
+          "reasoning": "Strong application. Monthly free cash flow of $41,167 provides a DSCR of 3.1x on proposed payments. 18 years in business with consistent revenue trends. Sector exposure within limits.",
+          "term_sheet": {
+            "amount": 250000,
+            "rate": 9.11,
+            "term_months": 19
+          },
+          "tokens_in": 0,
+          "tokens_out": 0,
+          "cost_usd": 0.0,
+          "tool_calls": 0,
+          "chain_of_thought": "",
+          "los_detail": {
+            "inputs": {
+              "financials": {
+                "revenue_ttm": 1870000,
+                "gross_margin": 0.2641711229946524,
+                "ebitda_ttm": 494000,
+                "net_income": 494000,
+                "annual_expenses": 1376000
+              },
+              "banking": {
+                "avg_daily_balance_90d": 565000.0,
+                "nsf_12m": 0,
+                "total_deposits_12m": 1870000.0,
+                "total_withdrawals_12m": 1376000.0
+              },
+              "business": {
+                "industry": "Print Services",
+                "years_trading": 18,
+                "employee_count": 24,
+                "company_name": "Metro Print & Design"
+              },
+              "raw_documents": [
+                {
+                  "doc_id": "bank_statements_12m",
+                  "type": "bank_statement",
+                  "bytes_sha": "dd51dc17a4b73db6"
+                },
+                {
+                  "doc_id": "quarterly_income",
+                  "type": "pnl",
+                  "bytes_sha": "0d98726510c0bf4f"
+                }
+              ],
+              "missing_info": []
+            },
+            "trace": {
+              "latency_ms": 0,
+              "steps": [],
+              "cost": {
+                "tokens_in": 0,
+                "tokens_out": 0,
+                "estimated_cost_usd": 0.0
+              }
+            },
+            "decision": {
+              "action": "approve",
+              "risk_grade": "",
+              "prob_default_12m": 0.0,
+              "confidence": 0.0,
+              "conditions": [],
+              "covenants": [],
+              "terms": {
+                "amount": 250000,
+                "apr": 0.0911,
+                "tenor_months": 19,
+                "fees": {}
+              },
+              "rationale": {
+                "summary": "Strong application. Monthly free cash flow of $41,167 provides a DSCR of 3.1x on proposed payments. 18 years in business with consistent revenue trends. Sector exposure within limits.",
+                "key_factors": [],
+                "what_would_change": []
+              }
+            }
+          }
+        },
+        {
+          "lender_id": "LND-005",
+          "borrower_id": "BRW-013",
+          "decision": "APPROVE",
+          "offer_valid_weeks": 1,
+          "bandwidth_limited": false,
+          "reasoning": "Strong application. Monthly free cash flow of $59,917 provides a DSCR of 2.7x on proposed payments. 12 years in business with consistent revenue trends. Sector exposure within limits.",
+          "term_sheet": {
+            "amount": 400000,
+            "rate": 9.05,
+            "term_months": 18
+          },
+          "tokens_in": 0,
+          "tokens_out": 0,
+          "cost_usd": 0.0,
+          "tool_calls": 0,
+          "chain_of_thought": "",
+          "los_detail": {
+            "inputs": {
+              "financials": {
+                "revenue_ttm": 2736000,
+                "gross_margin": 0.2627923976608187,
+                "ebitda_ttm": 719000,
+                "net_income": 719000,
+                "annual_expenses": 2017000
+              },
+              "banking": {
+                "avg_daily_balance_90d": 848000.0,
+                "nsf_12m": 0,
+                "total_deposits_12m": 2736000.0,
+                "total_withdrawals_12m": 2017000.0
+              },
+              "business": {
+                "industry": "Advanced Manufacturing",
+                "years_trading": 12,
+                "employee_count": 65,
+                "company_name": "IronClad Manufacturing"
+              },
+              "raw_documents": [
+                {
+                  "doc_id": "bank_statements_12m",
+                  "type": "bank_statement",
+                  "bytes_sha": "b5237a8b9d5045fe"
+                },
+                {
+                  "doc_id": "quarterly_income",
+                  "type": "pnl",
+                  "bytes_sha": "cd224ffe1117ec6f"
+                }
+              ],
+              "missing_info": []
+            },
+            "trace": {
+              "latency_ms": 0,
+              "steps": [],
+              "cost": {
+                "tokens_in": 0,
+                "tokens_out": 0,
+                "estimated_cost_usd": 0.0
+              }
+            },
+            "decision": {
+              "action": "approve",
+              "risk_grade": "",
+              "prob_default_12m": 0.0,
+              "confidence": 0.0,
+              "conditions": [],
+              "covenants": [],
+              "terms": {
+                "amount": 400000,
+                "apr": 0.09050000000000001,
+                "tenor_months": 18,
+                "fees": {}
+              },
+              "rationale": {
+                "summary": "Strong application. Monthly free cash flow of $59,917 provides a DSCR of 2.7x on proposed payments. 12 years in business with consistent revenue trends. Sector exposure within limits.",
+                "key_factors": [],
+                "what_would_change": []
+              }
+            }
+          }
+        }
+      ],
+      "booked_loans": [
+        {
+          "id": "LOAN-001",
+          "borrower_id": "BRW-002",
+          "borrower_name": "NovaBio Labs",
+          "lender_id": "LND-002",
+          "sector": "Bio-Synthetics",
+          "principal": 300000,
+          "interest_rate": 9.07,
+          "term_months": 34
+        },
+        {
+          "id": "LOAN-002",
+          "borrower_id": "BRW-029",
+          "borrower_name": "Metro Print & Design",
+          "lender_id": "LND-002",
+          "sector": "Print Services",
+          "principal": 250000,
+          "interest_rate": 8.87,
+          "term_months": 32
+        },
+        {
+          "id": "LOAN-003",
+          "borrower_id": "BRW-013",
+          "borrower_name": "IronClad Manufacturing",
+          "lender_id": "LND-005",
+          "sector": "Advanced Manufacturing",
+          "principal": 400000,
+          "interest_rate": 9.05,
+          "term_months": 18
+        }
+      ],
+      "events": [
+        "  [Velocity Capital] Capital decay: -$3,640 on $1,820,000 idle (cumulative: $3,640)",
+        "  [Heritage Trust Bank] Capital decay: -$5,000 on $2,500,000 idle (cumulative: $5,000)",
+        "  [Meridian Partners] Capital decay: -$4,600 on $2,300,000 idle (cumulative: $4,600)",
+        "  [Pinnacle Finance] Capital decay: -$4,640 on $2,320,000 idle (cumulative: $4,640)",
+        "  [Atlas Credit] Capital decay: -$5,460 on $2,730,000 idle (cumulative: $5,460)"
+      ],
+      "bandwidth": {
+        "arrival_phases": 1,
+        "deep_uw_slots_per_week": 0,
+        "slots_used": {}
+      },
+      "lender_snapshots": {
+        "LND-001": {
+          "name": "Velocity Capital",
+          "model": "openai/gpt-4.1-nano",
+          "net_pnl": 0.0,
+          "deployed": 1180000,
+          "available": 1816360.0,
+          "effective_capital": 2996360.0,
+          "deals_won": 0,
+          "deals_rejected": 0,
+          "deals_passed": 0,
+          "deals_lost": 3,
+          "active_loans": 0,
+          "active_loans_detail": [],
+          "cumulative_interest": 0.0,
+          "cumulative_losses": 0.0,
+          "cumulative_fees": 0.0,
+          "cumulative_workout_cost": 0.0,
+          "defaults": 0,
+          "frauds_funded": 0,
+          "deep_uw_deferred": 0,
+          "deep_uw_used_this_week": 0,
+          "tokens_in": 0,
+          "tokens_out": 0,
+          "cost_usd": 0.0
+        },
+        "LND-002": {
+          "name": "Heritage Trust Bank",
+          "model": "mistralai/mistral-small-3.2-24b-instruct",
+          "net_pnl": 0.0,
+          "deployed": 2050000,
+          "available": 1945000.0,
+          "effective_capital": 3995000.0,
+          "deals_won": 2,
+          "deals_rejected": 0,
+          "deals_passed": 0,
+          "deals_lost": 1,
+          "active_loans": 2,
+          "active_loans_detail": [
+            {
+              "loan_id": "LOAN-001",
+              "borrower_id": "BRW-002",
+              "borrower_name": "NovaBio Labs",
+              "status": "performing",
+              "months_elapsed": 0,
+              "term_months": 34,
+              "remaining_balance": 300000,
+              "total_interest_collected": 0.0,
+              "total_principal_repaid": 0.0
+            },
+            {
+              "loan_id": "LOAN-002",
+              "borrower_id": "BRW-029",
+              "borrower_name": "Metro Print & Design",
+              "status": "performing",
+              "months_elapsed": 0,
+              "term_months": 32,
+              "remaining_balance": 250000,
+              "total_interest_collected": 0.0,
+              "total_principal_repaid": 0.0
+            }
+          ],
+          "cumulative_interest": 0.0,
+          "cumulative_losses": 0.0,
+          "cumulative_fees": 0.0,
+          "cumulative_workout_cost": 0.0,
+          "defaults": 0,
+          "frauds_funded": 0,
+          "deep_uw_deferred": 0,
+          "deep_uw_used_this_week": 0,
+          "tokens_in": 0,
+          "tokens_out": 0,
+          "cost_usd": 0.0
+        },
+        "LND-003": {
+          "name": "Meridian Partners",
+          "model": "deepseek/deepseek-v3.2",
+          "net_pnl": 0.0,
+          "deployed": 1200000,
+          "available": 2295400.0,
+          "effective_capital": 3495400.0,
+          "deals_won": 0,
+          "deals_rejected": 0,
+          "deals_passed": 0,
+          "deals_lost": 3,
+          "active_loans": 0,
+          "active_loans_detail": [],
+          "cumulative_interest": 0.0,
+          "cumulative_losses": 0.0,
+          "cumulative_fees": 0.0,
+          "cumulative_workout_cost": 0.0,
+          "defaults": 0,
+          "frauds_funded": 0,
+          "deep_uw_deferred": 0,
+          "deep_uw_used_this_week": 0,
+          "tokens_in": 0,
+          "tokens_out": 0,
+          "cost_usd": 0.0
+        },
+        "LND-004": {
+          "name": "Pinnacle Finance",
+          "model": "qwen/qwen3-30b-a3b",
+          "net_pnl": 0.0,
+          "deployed": 880000,
+          "available": 2315360.0,
+          "effective_capital": 3195360.0,
+          "deals_won": 0,
+          "deals_rejected": 0,
+          "deals_passed": 0,
+          "deals_lost": 3,
+          "active_loans": 0,
+          "active_loans_detail": [],
+          "cumulative_interest": 0.0,
+          "cumulative_losses": 0.0,
+          "cumulative_fees": 0.0,
+          "cumulative_workout_cost": 0.0,
+          "defaults": 0,
+          "frauds_funded": 0,
+          "deep_uw_deferred": 0,
+          "deep_uw_used_this_week": 0,
+          "tokens_in": 0,
+          "tokens_out": 0,
+          "cost_usd": 0.0
+        },
+        "LND-005": {
+          "name": "Atlas Credit",
+          "model": "meta-llama/llama-3.3-70b-instruct",
+          "net_pnl": 0.0,
+          "deployed": 1470000,
+          "available": 2324540.0,
+          "effective_capital": 3794540.0,
+          "deals_won": 1,
+          "deals_rejected": 0,
+          "deals_passed": 0,
+          "deals_lost": 2,
+          "active_loans": 1,
+          "active_loans_detail": [
+            {
+              "loan_id": "LOAN-003",
+              "borrower_id": "BRW-013",
+              "borrower_name": "IronClad Manufacturing",
+              "status": "performing",
+              "months_elapsed": 0,
+              "term_months": 18,
+              "remaining_balance": 400000,
+              "total_interest_collected": 0.0,
+              "total_principal_repaid": 0.0
+            }
+          ],
+          "cumulative_interest": 0.0,
+          "cumulative_losses": 0.0,
+          "cumulative_fees": 0.0,
+          "cumulative_workout_cost": 0.0,
+          "defaults": 0,
+          "frauds_funded": 0,
+          "deep_uw_deferred": 0,
+          "deep_uw_used_this_week": 0,
+          "tokens_in": 0,
+          "tokens_out": 0,
+          "cost_usd": 0.0
+        }
+      }
+    },
+    {
+      "week": 2,
+      "borrowers": [
+        {
+          "id": "BRW-005",
+          "name": "PixelForge Studios",
+          "sector": "Digital Media",
+          "amount": 400000,
+          "true_outcome": "good",
+          "arrival_phase": 1
+        },
+        {
+          "id": "BRW-034",
+          "name": "Silverline HVAC Services",
+          "sector": "Construction Services",
+          "amount": 225000,
+          "true_outcome": "good",
+          "arrival_phase": 1
+        },
+        {
+          "id": "BRW-017",
+          "name": "Keystone Legal Tech",
+          "sector": "Legal Technology",
+          "amount": 300000,
+          "true_outcome": "good",
+          "arrival_phase": 1
+        }
+      ],
+      "decisions": [
+        {
+          "lender_id": "LND-001",
+          "borrower_id": "BRW-005",
+          "decision": "APPROVE",
+          "offer_valid_weeks": 1,
+          "bandwidth_limited": false,
+          "reasoning": "Acceptable risk profile. Revenue of $1,735,000 supports the requested loan amount. Cash flow appears adequate for debt service.",
+          "term_sheet": {
+            "amount": 400000,
+            "rate": 13.87,
+            "term_months": 22
+          },
+          "tokens_in": 0,
+          "tokens_out": 0,
+          "cost_usd": 0.0,
+          "tool_calls": 0,
+          "chain_of_thought": "",
+          "los_detail": {
+            "inputs": {
+              "financials": {
+                "revenue_ttm": 1735000,
+                "gross_margin": 0.31354466858789626,
+                "ebitda_ttm": 544000,
+                "net_income": 544000,
+                "annual_expenses": 1191000
+              },
+              "banking": {
+                "avg_daily_balance_90d": 618666.67,
+                "nsf_12m": 0,
+                "total_deposits_12m": 1735000.0,
+                "total_withdrawals_12m": 1191000.0
+              },
+              "business": {
+                "industry": "Digital Media",
+                "years_trading": 7,
+                "employee_count": 28,
+                "company_name": "PixelForge Studios"
+              },
+              "raw_documents": [
+                {
+                  "doc_id": "bank_statements_12m",
+                  "type": "bank_statement",
+                  "bytes_sha": "706ad5ada58fba9a"
+                },
+                {
+                  "doc_id": "quarterly_income",
+                  "type": "pnl",
+                  "bytes_sha": "600bad4ac904c89a"
+                }
+              ],
+              "missing_info": []
+            },
+            "trace": {
+              "latency_ms": 0,
+              "steps": [],
+              "cost": {
+                "tokens_in": 0,
+                "tokens_out": 0,
+                "estimated_cost_usd": 0.0
+              }
+            },
+            "decision": {
+              "action": "approve",
+              "risk_grade": "",
+              "prob_default_12m": 0.0,
+              "confidence": 0.0,
+              "conditions": [],
+              "covenants": [],
+              "terms": {
+                "amount": 400000,
+                "apr": 0.1387,
+                "tenor_months": 22,
+                "fees": {}
+              },
+              "rationale": {
+                "summary": "Acceptable risk profile. Revenue of $1,735,000 supports the requested loan amount. Cash flow appears adequate for debt service.",
+                "key_factors": [],
+                "what_would_change": []
+              }
+            }
+          }
+        },
+        {
+          "lender_id": "LND-001",
+          "borrower_id": "BRW-034",
+          "decision": "APPROVE",
+          "offer_valid_weeks": 1,
+          "bandwidth_limited": false,
+          "reasoning": "Acceptable risk profile. Revenue of $2,041,000 supports the requested loan amount. Cash flow appears adequate for debt service.",
+          "term_sheet": {
+            "amount": 225000,
+            "rate": 13.99,
+            "term_months": 23
+          },
+          "tokens_in": 0,
+          "tokens_out": 0,
+          "cost_usd": 0.0,
+          "tool_calls": 0,
+          "chain_of_thought": "",
+          "los_detail": {
+            "inputs": {
+              "financials": {
+                "revenue_ttm": 2041000,
+                "gross_margin": 0.2817246447819696,
+                "ebitda_ttm": 575000,
+                "net_income": 575000,
+                "annual_expenses": 1466000
+              },
+              "banking": {
+                "avg_daily_balance_90d": 639666.67,
+                "nsf_12m": 0,
+                "total_deposits_12m": 2041000.0,
+                "total_withdrawals_12m": 1466000.0
+              },
+              "business": {
+                "industry": "Construction Services",
+                "years_trading": 12,
+                "employee_count": 35,
+                "company_name": "Silverline HVAC Services"
+              },
+              "raw_documents": [
+                {
+                  "doc_id": "bank_statements_12m",
+                  "type": "bank_statement",
+                  "bytes_sha": "ca8017c42e671f29"
+                },
+                {
+                  "doc_id": "quarterly_income",
+                  "type": "pnl",
+                  "bytes_sha": "ee7ec1650df61e17"
+                }
+              ],
+              "missing_info": []
+            },
+            "trace": {
+              "latency_ms": 0,
+              "steps": [],
+              "cost": {
+                "tokens_in": 0,
+                "tokens_out": 0,
+                "estimated_cost_usd": 0.0
+              }
+            },
+            "decision": {
+              "action": "approve",
+              "risk_grade": "",
+              "prob_default_12m": 0.0,
+              "confidence": 0.0,
+              "conditions": [],
+              "covenants": [],
+              "terms": {
+                "amount": 225000,
+                "apr": 0.1399,
+                "tenor_months": 23,
+                "fees": {}
+              },
+              "rationale": {
+                "summary": "Acceptable risk profile. Revenue of $2,041,000 supports the requested loan amount. Cash flow appears adequate for debt service.",
+                "key_factors": [],
+                "what_would_change": []
+              }
+            }
+          }
+        },
+        {
+          "lender_id": "LND-001",
+          "borrower_id": "BRW-017",
+          "decision": "APPROVE",
+          "offer_valid_weeks": 1,
+          "bandwidth_limited": false,
+          "reasoning": "Acceptable risk profile. Revenue of $1,725,000 supports the requested loan amount. Cash flow appears adequate for debt service.",
+          "term_sheet": {
+            "amount": 300000,
+            "rate": 13.51,
+            "term_months": 19
+          },
+          "tokens_in": 0,
+          "tokens_out": 0,
+          "cost_usd": 0.0,
+          "tool_calls": 0,
+          "chain_of_thought": "",
+          "los_detail": {
+            "inputs": {
+              "financials": {
+                "revenue_ttm": 1725000,
+                "gross_margin": 0.3055072463768116,
+                "ebitda_ttm": 527000,
+                "net_income": 527000,
+                "annual_expenses": 1198000
+              },
+              "banking": {
+                "avg_daily_balance_90d": 597333.33,
+                "nsf_12m": 0,
+                "total_deposits_12m": 1725000.0,
+                "total_withdrawals_12m": 1198000.0
+              },
+              "business": {
+                "industry": "Legal Technology",
+                "years_trading": 7,
+                "employee_count": 30,
+                "company_name": "Keystone Legal Tech"
+              },
+              "raw_documents": [
+                {
+                  "doc_id": "bank_statements_12m",
+                  "type": "bank_statement",
+                  "bytes_sha": "186f8348e2ee36c7"
+                },
+                {
+                  "doc_id": "quarterly_income",
+                  "type": "pnl",
+                  "bytes_sha": "7f581e776b6cccfd"
+                }
+              ],
+              "missing_info": []
+            },
+            "trace": {
+              "latency_ms": 0,
+              "steps": [],
+              "cost": {
+                "tokens_in": 0,
+                "tokens_out": 0,
+                "estimated_cost_usd": 0.0
+              }
+            },
+            "decision": {
+              "action": "approve",
+              "risk_grade": "",
+              "prob_default_12m": 0.0,
+              "confidence": 0.0,
+              "conditions": [],
+              "covenants": [],
+              "terms": {
+                "amount": 300000,
+                "apr": 0.1351,
+                "tenor_months": 19,
+                "fees": {}
+              },
+              "rationale": {
+                "summary": "Acceptable risk profile. Revenue of $1,725,000 supports the requested loan amount. Cash flow appears adequate for debt service.",
+                "key_factors": [],
+                "what_would_change": []
+              }
+            }
+          }
+        },
+        {
+          "lender_id": "LND-002",
+          "borrower_id": "BRW-005",
+          "decision": "APPROVE",
+          "offer_valid_weeks": 1,
+          "bandwidth_limited": false,
+          "reasoning": "Acceptable risk profile. Revenue of $1,735,000 supports the requested loan amount. Cash flow appears adequate for debt service.",
+          "term_sheet": {
+            "amount": 400000,
+            "rate": 8.75,
+            "term_months": 31
+          },
+          "tokens_in": 0,
+          "tokens_out": 0,
+          "cost_usd": 0.0,
+          "tool_calls": 0,
+          "chain_of_thought": "",
+          "los_detail": {
+            "inputs": {
+              "financials": {
+                "revenue_ttm": 1735000,
+                "gross_margin": 0.31354466858789626,
+                "ebitda_ttm": 544000,
+                "net_income": 544000,
+                "annual_expenses": 1191000
+              },
+              "banking": {
+                "avg_daily_balance_90d": 618666.67,
+                "nsf_12m": 0,
+                "total_deposits_12m": 1735000.0,
+                "total_withdrawals_12m": 1191000.0
+              },
+              "business": {
+                "industry": "Digital Media",
+                "years_trading": 7,
+                "employee_count": 28,
+                "company_name": "PixelForge Studios"
+              },
+              "raw_documents": [
+                {
+                  "doc_id": "bank_statements_12m",
+                  "type": "bank_statement",
+                  "bytes_sha": "706ad5ada58fba9a"
+                },
+                {
+                  "doc_id": "quarterly_income",
+                  "type": "pnl",
+                  "bytes_sha": "600bad4ac904c89a"
+                }
+              ],
+              "missing_info": []
+            },
+            "trace": {
+              "latency_ms": 0,
+              "steps": [],
+              "cost": {
+                "tokens_in": 0,
+                "tokens_out": 0,
+                "estimated_cost_usd": 0.0
+              }
+            },
+            "decision": {
+              "action": "approve",
+              "risk_grade": "",
+              "prob_default_12m": 0.0,
+              "confidence": 0.0,
+              "conditions": [],
+              "covenants": [],
+              "terms": {
+                "amount": 400000,
+                "apr": 0.0875,
+                "tenor_months": 31,
+                "fees": {}
+              },
+              "rationale": {
+                "summary": "Acceptable risk profile. Revenue of $1,735,000 supports the requested loan amount. Cash flow appears adequate for debt service.",
+                "key_factors": [],
+                "what_would_change": []
+              }
+            }
+          }
+        },
+        {
+          "lender_id": "LND-002",
+          "borrower_id": "BRW-034",
+          "decision": "APPROVE",
+          "offer_valid_weeks": 1,
+          "bandwidth_limited": false,
+          "reasoning": "Acceptable risk profile. Revenue of $2,041,000 supports the requested loan amount. Cash flow appears adequate for debt service.",
+          "term_sheet": {
+            "amount": 225000,
+            "rate": 8.34,
+            "term_months": 27
+          },
+          "tokens_in": 0,
+          "tokens_out": 0,
+          "cost_usd": 0.0,
+          "tool_calls": 0,
+          "chain_of_thought": "",
+          "los_detail": {
+            "inputs": {
+              "financials": {
+                "revenue_ttm": 2041000,
+                "gross_margin": 0.2817246447819696,
+                "ebitda_ttm": 575000,
+                "net_income": 575000,
+                "annual_expenses": 1466000
+              },
+              "banking": {
+                "avg_daily_balance_90d": 639666.67,
+                "nsf_12m": 0,
+                "total_deposits_12m": 2041000.0,
+                "total_withdrawals_12m": 1466000.0
+              },
+              "business": {
+                "industry": "Construction Services",
+                "years_trading": 12,
+                "employee_count": 35,
+                "company_name": "Silverline HVAC Services"
+              },
+              "raw_documents": [
+                {
+                  "doc_id": "bank_statements_12m",
+                  "type": "bank_statement",
+                  "bytes_sha": "ca8017c42e671f29"
+                },
+                {
+                  "doc_id": "quarterly_income",
+                  "type": "pnl",
+                  "bytes_sha": "ee7ec1650df61e17"
+                }
+              ],
+              "missing_info": []
+            },
+            "trace": {
+              "latency_ms": 0,
+              "steps": [],
+              "cost": {
+                "tokens_in": 0,
+                "tokens_out": 0,
+                "estimated_cost_usd": 0.0
+              }
+            },
+            "decision": {
+              "action": "approve",
+              "risk_grade": "",
+              "prob_default_12m": 0.0,
+              "confidence": 0.0,
+              "conditions": [],
+              "covenants": [],
+              "terms": {
+                "amount": 225000,
+                "apr": 0.0834,
+                "tenor_months": 27,
+                "fees": {}
+              },
+              "rationale": {
+                "summary": "Acceptable risk profile. Revenue of $2,041,000 supports the requested loan amount. Cash flow appears adequate for debt service.",
+                "key_factors": [],
+                "what_would_change": []
+              }
+            }
+          }
+        },
+        {
+          "lender_id": "LND-002",
+          "borrower_id": "BRW-017",
+          "decision": "APPROVE",
+          "offer_valid_weeks": 1,
+          "bandwidth_limited": false,
+          "reasoning": "Acceptable risk profile. Revenue of $1,725,000 supports the requested loan amount. Cash flow appears adequate for debt service.",
+          "term_sheet": {
+            "amount": 300000,
+            "rate": 7.33,
+            "term_months": 17
+          },
+          "tokens_in": 0,
+          "tokens_out": 0,
+          "cost_usd": 0.0,
+          "tool_calls": 0,
+          "chain_of_thought": "",
+          "los_detail": {
+            "inputs": {
+              "financials": {
+                "revenue_ttm": 1725000,
+                "gross_margin": 0.3055072463768116,
+                "ebitda_ttm": 527000,
+                "net_income": 527000,
+                "annual_expenses": 1198000
+              },
+              "banking": {
+                "avg_daily_balance_90d": 597333.33,
+                "nsf_12m": 0,
+                "total_deposits_12m": 1725000.0,
+                "total_withdrawals_12m": 1198000.0
+              },
+              "business": {
+                "industry": "Legal Technology",
+                "years_trading": 7,
+                "employee_count": 30,
+                "company_name": "Keystone Legal Tech"
+              },
+              "raw_documents": [
+                {
+                  "doc_id": "bank_statements_12m",
+                  "type": "bank_statement",
+                  "bytes_sha": "186f8348e2ee36c7"
+                },
+                {
+                  "doc_id": "quarterly_income",
+                  "type": "pnl",
+                  "bytes_sha": "7f581e776b6cccfd"
+                }
+              ],
+              "missing_info": []
+            },
+            "trace": {
+              "latency_ms": 0,
+              "steps": [],
+              "cost": {
+                "tokens_in": 0,
+                "tokens_out": 0,
+                "estimated_cost_usd": 0.0
+              }
+            },
+            "decision": {
+              "action": "approve",
+              "risk_grade": "",
+              "prob_default_12m": 0.0,
+              "confidence": 0.0,
+              "conditions": [],
+              "covenants": [],
+              "terms": {
+                "amount": 300000,
+                "apr": 0.0733,
+                "tenor_months": 17,
+                "fees": {}
+              },
+              "rationale": {
+                "summary": "Acceptable risk profile. Revenue of $1,725,000 supports the requested loan amount. Cash flow appears adequate for debt service.",
+                "key_factors": [],
+                "what_would_change": []
+              }
+            }
+          }
+        },
+        {
+          "lender_id": "LND-003",
+          "borrower_id": "BRW-005",
+          "decision": "APPROVE",
+          "offer_valid_weeks": 1,
+          "bandwidth_limited": false,
+          "reasoning": "Acceptable risk profile. Revenue of $1,735,000 supports the requested loan amount. Cash flow appears adequate for debt service.",
+          "term_sheet": {
+            "amount": 400000,
+            "rate": 10.48,
+            "term_months": 19
+          },
+          "tokens_in": 0,
+          "tokens_out": 0,
+          "cost_usd": 0.0,
+          "tool_calls": 0,
+          "chain_of_thought": "",
+          "los_detail": {
+            "inputs": {
+              "financials": {
+                "revenue_ttm": 1735000,
+                "gross_margin": 0.31354466858789626,
+                "ebitda_ttm": 544000,
+                "net_income": 544000,
+                "annual_expenses": 1191000
+              },
+              "banking": {
+                "avg_daily_balance_90d": 618666.67,
+                "nsf_12m": 0,
+                "total_deposits_12m": 1735000.0,
+                "total_withdrawals_12m": 1191000.0
+              },
+              "business": {
+                "industry": "Digital Media",
+                "years_trading": 7,
+                "employee_count": 28,
+                "company_name": "PixelForge Studios"
+              },
+              "raw_documents": [
+                {
+                  "doc_id": "bank_statements_12m",
+                  "type": "bank_statement",
+                  "bytes_sha": "706ad5ada58fba9a"
+                },
+                {
+                  "doc_id": "quarterly_income",
+                  "type": "pnl",
+                  "bytes_sha": "600bad4ac904c89a"
+                }
+              ],
+              "missing_info": []
+            },
+            "trace": {
+              "latency_ms": 0,
+              "steps": [],
+              "cost": {
+                "tokens_in": 0,
+                "tokens_out": 0,
+                "estimated_cost_usd": 0.0
+              }
+            },
+            "decision": {
+              "action": "approve",
+              "risk_grade": "",
+              "prob_default_12m": 0.0,
+              "confidence": 0.0,
+              "conditions": [],
+              "covenants": [],
+              "terms": {
+                "amount": 400000,
+                "apr": 0.1048,
+                "tenor_months": 19,
+                "fees": {}
+              },
+              "rationale": {
+                "summary": "Acceptable risk profile. Revenue of $1,735,000 supports the requested loan amount. Cash flow appears adequate for debt service.",
+                "key_factors": [],
+                "what_would_change": []
+              }
+            }
+          }
+        },
+        {
+          "lender_id": "LND-003",
+          "borrower_id": "BRW-034",
+          "decision": "APPROVE",
+          "offer_valid_weeks": 1,
+          "bandwidth_limited": false,
+          "reasoning": "Acceptable risk profile. Revenue of $2,041,000 supports the requested loan amount. Cash flow appears adequate for debt service.",
+          "term_sheet": {
+            "amount": 225000,
+            "rate": 11.28,
+            "term_months": 26
+          },
+          "tokens_in": 0,
+          "tokens_out": 0,
+          "cost_usd": 0.0,
+          "tool_calls": 0,
+          "chain_of_thought": "",
+          "los_detail": {
+            "inputs": {
+              "financials": {
+                "revenue_ttm": 2041000,
+                "gross_margin": 0.2817246447819696,
+                "ebitda_ttm": 575000,
+                "net_income": 575000,
+                "annual_expenses": 1466000
+              },
+              "banking": {
+                "avg_daily_balance_90d": 639666.67,
+                "nsf_12m": 0,
+                "total_deposits_12m": 2041000.0,
+                "total_withdrawals_12m": 1466000.0
+              },
+              "business": {
+                "industry": "Construction Services",
+                "years_trading": 12,
+                "employee_count": 35,
+                "company_name": "Silverline HVAC Services"
+              },
+              "raw_documents": [
+                {
+                  "doc_id": "bank_statements_12m",
+                  "type": "bank_statement",
+                  "bytes_sha": "ca8017c42e671f29"
+                },
+                {
+                  "doc_id": "quarterly_income",
+                  "type": "pnl",
+                  "bytes_sha": "ee7ec1650df61e17"
+                }
+              ],
+              "missing_info": []
+            },
+            "trace": {
+              "latency_ms": 0,
+              "steps": [],
+              "cost": {
+                "tokens_in": 0,
+                "tokens_out": 0,
+                "estimated_cost_usd": 0.0
+              }
+            },
+            "decision": {
+              "action": "approve",
+              "risk_grade": "",
+              "prob_default_12m": 0.0,
+              "confidence": 0.0,
+              "conditions": [],
+              "covenants": [],
+              "terms": {
+                "amount": 225000,
+                "apr": 0.1128,
+                "tenor_months": 26,
+                "fees": {}
+              },
+              "rationale": {
+                "summary": "Acceptable risk profile. Revenue of $2,041,000 supports the requested loan amount. Cash flow appears adequate for debt service.",
+                "key_factors": [],
+                "what_would_change": []
+              }
+            }
+          }
+        },
+        {
+          "lender_id": "LND-003",
+          "borrower_id": "BRW-017",
+          "decision": "APPROVE",
+          "offer_valid_weeks": 1,
+          "bandwidth_limited": false,
+          "reasoning": "Acceptable risk profile. Revenue of $1,725,000 supports the requested loan amount. Cash flow appears adequate for debt service.",
+          "term_sheet": {
+            "amount": 300000,
+            "rate": 10.55,
+            "term_months": 19
+          },
+          "tokens_in": 0,
+          "tokens_out": 0,
+          "cost_usd": 0.0,
+          "tool_calls": 0,
+          "chain_of_thought": "",
+          "los_detail": {
+            "inputs": {
+              "financials": {
+                "revenue_ttm": 1725000,
+                "gross_margin": 0.3055072463768116,
+                "ebitda_ttm": 527000,
+                "net_income": 527000,
+                "annual_expenses": 1198000
+              },
+              "banking": {
+                "avg_daily_balance_90d": 597333.33,
+                "nsf_12m": 0,
+                "total_deposits_12m": 1725000.0,
+                "total_withdrawals_12m": 1198000.0
+              },
+              "business": {
+                "industry": "Legal Technology",
+                "years_trading": 7,
+                "employee_count": 30,
+                "company_name": "Keystone Legal Tech"
+              },
+              "raw_documents": [
+                {
+                  "doc_id": "bank_statements_12m",
+                  "type": "bank_statement",
+                  "bytes_sha": "186f8348e2ee36c7"
+                },
+                {
+                  "doc_id": "quarterly_income",
+                  "type": "pnl",
+                  "bytes_sha": "7f581e776b6cccfd"
+                }
+              ],
+              "missing_info": []
+            },
+            "trace": {
+              "latency_ms": 0,
+              "steps": [],
+              "cost": {
+                "tokens_in": 0,
+                "tokens_out": 0,
+                "estimated_cost_usd": 0.0
+              }
+            },
+            "decision": {
+              "action": "approve",
+              "risk_grade": "",
+              "prob_default_12m": 0.0,
+              "confidence": 0.0,
+              "conditions": [],
+              "covenants": [],
+              "terms": {
+                "amount": 300000,
+                "apr": 0.10550000000000001,
+                "tenor_months": 19,
+                "fees": {}
+              },
+              "rationale": {
+                "summary": "Acceptable risk profile. Revenue of $1,725,000 supports the requested loan amount. Cash flow appears adequate for debt service.",
+                "key_factors": [],
+                "what_would_change": []
+              }
+            }
+          }
+        },
+        {
+          "lender_id": "LND-004",
+          "borrower_id": "BRW-005",
+          "decision": "APPROVE",
+          "offer_valid_weeks": 1,
+          "bandwidth_limited": false,
+          "reasoning": "Acceptable risk profile. Revenue of $1,735,000 supports the requested loan amount. Cash flow appears adequate for debt service.",
+          "term_sheet": {
+            "amount": 400000,
+            "rate": 11.79,
+            "term_months": 21
+          },
+          "tokens_in": 0,
+          "tokens_out": 0,
+          "cost_usd": 0.0,
+          "tool_calls": 0,
+          "chain_of_thought": "",
+          "los_detail": {
+            "inputs": {
+              "financials": {
+                "revenue_ttm": 1735000,
+                "gross_margin": 0.31354466858789626,
+                "ebitda_ttm": 544000,
+                "net_income": 544000,
+                "annual_expenses": 1191000
+              },
+              "banking": {
+                "avg_daily_balance_90d": 618666.67,
+                "nsf_12m": 0,
+                "total_deposits_12m": 1735000.0,
+                "total_withdrawals_12m": 1191000.0
+              },
+              "business": {
+                "industry": "Digital Media",
+                "years_trading": 7,
+                "employee_count": 28,
+                "company_name": "PixelForge Studios"
+              },
+              "raw_documents": [
+                {
+                  "doc_id": "bank_statements_12m",
+                  "type": "bank_statement",
+                  "bytes_sha": "706ad5ada58fba9a"
+                },
+                {
+                  "doc_id": "quarterly_income",
+                  "type": "pnl",
+                  "bytes_sha": "600bad4ac904c89a"
+                }
+              ],
+              "missing_info": []
+            },
+            "trace": {
+              "latency_ms": 0,
+              "steps": [],
+              "cost": {
+                "tokens_in": 0,
+                "tokens_out": 0,
+                "estimated_cost_usd": 0.0
+              }
+            },
+            "decision": {
+              "action": "approve",
+              "risk_grade": "",
+              "prob_default_12m": 0.0,
+              "confidence": 0.0,
+              "conditions": [],
+              "covenants": [],
+              "terms": {
+                "amount": 400000,
+                "apr": 0.11789999999999999,
+                "tenor_months": 21,
+                "fees": {}
+              },
+              "rationale": {
+                "summary": "Acceptable risk profile. Revenue of $1,735,000 supports the requested loan amount. Cash flow appears adequate for debt service.",
+                "key_factors": [],
+                "what_would_change": []
+              }
+            }
+          }
+        },
+        {
+          "lender_id": "LND-004",
+          "borrower_id": "BRW-034",
+          "decision": "APPROVE",
+          "offer_valid_weeks": 1,
+          "bandwidth_limited": false,
+          "reasoning": "Acceptable risk profile. Revenue of $2,041,000 supports the requested loan amount. Cash flow appears adequate for debt service.",
+          "term_sheet": {
+            "amount": 225000,
+            "rate": 12.63,
+            "term_months": 30
+          },
+          "tokens_in": 0,
+          "tokens_out": 0,
+          "cost_usd": 0.0,
+          "tool_calls": 0,
+          "chain_of_thought": "",
+          "los_detail": {
+            "inputs": {
+              "financials": {
+                "revenue_ttm": 2041000,
+                "gross_margin": 0.2817246447819696,
+                "ebitda_ttm": 575000,
+                "net_income": 575000,
+                "annual_expenses": 1466000
+              },
+              "banking": {
+                "avg_daily_balance_90d": 639666.67,
+                "nsf_12m": 0,
+                "total_deposits_12m": 2041000.0,
+                "total_withdrawals_12m": 1466000.0
+              },
+              "business": {
+                "industry": "Construction Services",
+                "years_trading": 12,
+                "employee_count": 35,
+                "company_name": "Silverline HVAC Services"
+              },
+              "raw_documents": [
+                {
+                  "doc_id": "bank_statements_12m",
+                  "type": "bank_statement",
+                  "bytes_sha": "ca8017c42e671f29"
+                },
+                {
+                  "doc_id": "quarterly_income",
+                  "type": "pnl",
+                  "bytes_sha": "ee7ec1650df61e17"
+                }
+              ],
+              "missing_info": []
+            },
+            "trace": {
+              "latency_ms": 0,
+              "steps": [],
+              "cost": {
+                "tokens_in": 0,
+                "tokens_out": 0,
+                "estimated_cost_usd": 0.0
+              }
+            },
+            "decision": {
+              "action": "approve",
+              "risk_grade": "",
+              "prob_default_12m": 0.0,
+              "confidence": 0.0,
+              "conditions": [],
+              "covenants": [],
+              "terms": {
+                "amount": 225000,
+                "apr": 0.1263,
+                "tenor_months": 30,
+                "fees": {}
+              },
+              "rationale": {
+                "summary": "Acceptable risk profile. Revenue of $2,041,000 supports the requested loan amount. Cash flow appears adequate for debt service.",
+                "key_factors": [],
+                "what_would_change": []
+              }
+            }
+          }
+        },
+        {
+          "lender_id": "LND-004",
+          "borrower_id": "BRW-017",
+          "decision": "APPROVE",
+          "offer_valid_weeks": 1,
+          "bandwidth_limited": false,
+          "reasoning": "Acceptable risk profile. Revenue of $1,725,000 supports the requested loan amount. Cash flow appears adequate for debt service.",
+          "term_sheet": {
+            "amount": 300000,
+            "rate": 11.77,
+            "term_months": 21
+          },
+          "tokens_in": 0,
+          "tokens_out": 0,
+          "cost_usd": 0.0,
+          "tool_calls": 0,
+          "chain_of_thought": "",
+          "los_detail": {
+            "inputs": {
+              "financials": {
+                "revenue_ttm": 1725000,
+                "gross_margin": 0.3055072463768116,
+                "ebitda_ttm": 527000,
+                "net_income": 527000,
+                "annual_expenses": 1198000
+              },
+              "banking": {
+                "avg_daily_balance_90d": 597333.33,
+                "nsf_12m": 0,
+                "total_deposits_12m": 1725000.0,
+                "total_withdrawals_12m": 1198000.0
+              },
+              "business": {
+                "industry": "Legal Technology",
+                "years_trading": 7,
+                "employee_count": 30,
+                "company_name": "Keystone Legal Tech"
+              },
+              "raw_documents": [
+                {
+                  "doc_id": "bank_statements_12m",
+                  "type": "bank_statement",
+                  "bytes_sha": "186f8348e2ee36c7"
+                },
+                {
+                  "doc_id": "quarterly_income",
+                  "type": "pnl",
+                  "bytes_sha": "7f581e776b6cccfd"
+                }
+              ],
+              "missing_info": []
+            },
+            "trace": {
+              "latency_ms": 0,
+              "steps": [],
+              "cost": {
+                "tokens_in": 0,
+                "tokens_out": 0,
+                "estimated_cost_usd": 0.0
+              }
+            },
+            "decision": {
+              "action": "approve",
+              "risk_grade": "",
+              "prob_default_12m": 0.0,
+              "confidence": 0.0,
+              "conditions": [],
+              "covenants": [],
+              "terms": {
+                "amount": 300000,
+                "apr": 0.1177,
+                "tenor_months": 21,
+                "fees": {}
+              },
+              "rationale": {
+                "summary": "Acceptable risk profile. Revenue of $1,725,000 supports the requested loan amount. Cash flow appears adequate for debt service.",
+                "key_factors": [],
+                "what_would_change": []
+              }
+            }
+          }
+        },
+        {
+          "lender_id": "LND-005",
+          "borrower_id": "BRW-005",
+          "decision": "APPROVE",
+          "offer_valid_weeks": 1,
+          "bandwidth_limited": false,
+          "reasoning": "Strong application. Monthly free cash flow of $45,333 provides a DSCR of 2.6x on proposed payments. 7 years in business with consistent revenue trends. Sector exposure within limits.",
+          "term_sheet": {
+            "amount": 400000,
+            "rate": 9.46,
+            "term_months": 23
+          },
+          "tokens_in": 0,
+          "tokens_out": 0,
+          "cost_usd": 0.0,
+          "tool_calls": 0,
+          "chain_of_thought": "",
+          "los_detail": {
+            "inputs": {
+              "financials": {
+                "revenue_ttm": 1735000,
+                "gross_margin": 0.31354466858789626,
+                "ebitda_ttm": 544000,
+                "net_income": 544000,
+                "annual_expenses": 1191000
+              },
+              "banking": {
+                "avg_daily_balance_90d": 618666.67,
+                "nsf_12m": 0,
+                "total_deposits_12m": 1735000.0,
+                "total_withdrawals_12m": 1191000.0
+              },
+              "business": {
+                "industry": "Digital Media",
+                "years_trading": 7,
+                "employee_count": 28,
+                "company_name": "PixelForge Studios"
+              },
+              "raw_documents": [
+                {
+                  "doc_id": "bank_statements_12m",
+                  "type": "bank_statement",
+                  "bytes_sha": "706ad5ada58fba9a"
+                },
+                {
+                  "doc_id": "quarterly_income",
+                  "type": "pnl",
+                  "bytes_sha": "600bad4ac904c89a"
+                }
+              ],
+              "missing_info": []
+            },
+            "trace": {
+              "latency_ms": 0,
+              "steps": [],
+              "cost": {
+                "tokens_in": 0,
+                "tokens_out": 0,
+                "estimated_cost_usd": 0.0
+              }
+            },
+            "decision": {
+              "action": "approve",
+              "risk_grade": "",
+              "prob_default_12m": 0.0,
+              "confidence": 0.0,
+              "conditions": [],
+              "covenants": [],
+              "terms": {
+                "amount": 400000,
+                "apr": 0.0946,
+                "tenor_months": 23,
+                "fees": {}
+              },
+              "rationale": {
+                "summary": "Strong application. Monthly free cash flow of $45,333 provides a DSCR of 2.6x on proposed payments. 7 years in business with consistent revenue trends. Sector exposure within limits.",
+                "key_factors": [],
+                "what_would_change": []
+              }
+            }
+          }
+        },
+        {
+          "lender_id": "LND-005",
+          "borrower_id": "BRW-034",
+          "decision": "APPROVE",
+          "offer_valid_weeks": 1,
+          "bandwidth_limited": false,
+          "reasoning": "Strong application. Monthly free cash flow of $47,917 provides a DSCR of 4.5x on proposed payments. 12 years in business with consistent revenue trends. Sector exposure within limits.",
+          "term_sheet": {
+            "amount": 225000,
+            "rate": 9.31,
+            "term_months": 21
+          },
+          "tokens_in": 0,
+          "tokens_out": 0,
+          "cost_usd": 0.0,
+          "tool_calls": 0,
+          "chain_of_thought": "",
+          "los_detail": {
+            "inputs": {
+              "financials": {
+                "revenue_ttm": 2041000,
+                "gross_margin": 0.2817246447819696,
+                "ebitda_ttm": 575000,
+                "net_income": 575000,
+                "annual_expenses": 1466000
+              },
+              "banking": {
+                "avg_daily_balance_90d": 639666.67,
+                "nsf_12m": 0,
+                "total_deposits_12m": 2041000.0,
+                "total_withdrawals_12m": 1466000.0
+              },
+              "business": {
+                "industry": "Construction Services",
+                "years_trading": 12,
+                "employee_count": 35,
+                "company_name": "Silverline HVAC Services"
+              },
+              "raw_documents": [
+                {
+                  "doc_id": "bank_statements_12m",
+                  "type": "bank_statement",
+                  "bytes_sha": "ca8017c42e671f29"
+                },
+                {
+                  "doc_id": "quarterly_income",
+                  "type": "pnl",
+                  "bytes_sha": "ee7ec1650df61e17"
+                }
+              ],
+              "missing_info": []
+            },
+            "trace": {
+              "latency_ms": 0,
+              "steps": [],
+              "cost": {
+                "tokens_in": 0,
+                "tokens_out": 0,
+                "estimated_cost_usd": 0.0
+              }
+            },
+            "decision": {
+              "action": "approve",
+              "risk_grade": "",
+              "prob_default_12m": 0.0,
+              "confidence": 0.0,
+              "conditions": [],
+              "covenants": [],
+              "terms": {
+                "amount": 225000,
+                "apr": 0.0931,
+                "tenor_months": 21,
+                "fees": {}
+              },
+              "rationale": {
+                "summary": "Strong application. Monthly free cash flow of $47,917 provides a DSCR of 4.5x on proposed payments. 12 years in business with consistent revenue trends. Sector exposure within limits.",
+                "key_factors": [],
+                "what_would_change": []
+              }
+            }
+          }
+        },
+        {
+          "lender_id": "LND-005",
+          "borrower_id": "BRW-017",
+          "decision": "APPROVE",
+          "offer_valid_weeks": 1,
+          "bandwidth_limited": false,
+          "reasoning": "Strong application. Monthly free cash flow of $43,917 provides a DSCR of 4.2x on proposed payments. 7 years in business with consistent revenue trends. Sector exposure within limits.",
+          "term_sheet": {
+            "amount": 300000,
+            "rate": 9.93,
+            "term_months": 29
+          },
+          "tokens_in": 0,
+          "tokens_out": 0,
+          "cost_usd": 0.0,
+          "tool_calls": 0,
+          "chain_of_thought": "",
+          "los_detail": {
+            "inputs": {
+              "financials": {
+                "revenue_ttm": 1725000,
+                "gross_margin": 0.3055072463768116,
+                "ebitda_ttm": 527000,
+                "net_income": 527000,
+                "annual_expenses": 1198000
+              },
+              "banking": {
+                "avg_daily_balance_90d": 597333.33,
+                "nsf_12m": 0,
+                "total_deposits_12m": 1725000.0,
+                "total_withdrawals_12m": 1198000.0
+              },
+              "business": {
+                "industry": "Legal Technology",
+                "years_trading": 7,
+                "employee_count": 30,
+                "company_name": "Keystone Legal Tech"
+              },
+              "raw_documents": [
+                {
+                  "doc_id": "bank_statements_12m",
+                  "type": "bank_statement",
+                  "bytes_sha": "186f8348e2ee36c7"
+                },
+                {
+                  "doc_id": "quarterly_income",
+                  "type": "pnl",
+                  "bytes_sha": "7f581e776b6cccfd"
+                }
+              ],
+              "missing_info": []
+            },
+            "trace": {
+              "latency_ms": 0,
+              "steps": [],
+              "cost": {
+                "tokens_in": 0,
+                "tokens_out": 0,
+                "estimated_cost_usd": 0.0
+              }
+            },
+            "decision": {
+              "action": "approve",
+              "risk_grade": "",
+              "prob_default_12m": 0.0,
+              "confidence": 0.0,
+              "conditions": [],
+              "covenants": [],
+              "terms": {
+                "amount": 300000,
+                "apr": 0.0993,
+                "tenor_months": 29,
+                "fees": {}
+              },
+              "rationale": {
+                "summary": "Strong application. Monthly free cash flow of $43,917 provides a DSCR of 4.2x on proposed payments. 7 years in business with consistent revenue trends. Sector exposure within limits.",
+                "key_factors": [],
+                "what_would_change": []
+              }
+            }
+          }
+        }
+      ],
+      "booked_loans": [
+        {
+          "id": "LOAN-001",
+          "borrower_id": "BRW-005",
+          "borrower_name": "PixelForge Studios",
+          "lender_id": "LND-002",
+          "sector": "Digital Media",
+          "principal": 400000,
+          "interest_rate": 8.75,
+          "term_months": 31
+        },
+        {
+          "id": "LOAN-002",
+          "borrower_id": "BRW-034",
+          "borrower_name": "Silverline HVAC Services",
+          "lender_id": "LND-002",
+          "sector": "Construction Services",
+          "principal": 225000,
+          "interest_rate": 8.34,
+          "term_months": 27
+        },
+        {
+          "id": "LOAN-003",
+          "borrower_id": "BRW-017",
+          "borrower_name": "Keystone Legal Tech",
+          "lender_id": "LND-002",
+          "sector": "Legal Technology",
+          "principal": 300000,
+          "interest_rate": 7.33,
+          "term_months": 17
+        }
+      ],
+      "events": [
+        "PAYMENT: NovaBio Labs \u2014 $4,476 interest, $15,602 principal [Heritage Trust Bank]",
+        "PAYMENT: Metro Print & Design \u2014 $3,644 interest, $13,959 principal [Heritage Trust Bank]",
+        "PAYMENT: IronClad Manufacturing \u2014 $5,876 interest, $41,820 principal [Atlas Credit]",
+        "  [Velocity Capital] Capital decay: -$3,633 on $1,816,360 idle (cumulative: $7,273)",
+        "  [Heritage Trust Bank] Capital decay: -$3,976 on $1,988,181 idle (cumulative: $8,976)",
+        "  [Meridian Partners] Capital decay: -$4,591 on $2,295,400 idle (cumulative: $9,191)",
+        "  [Pinnacle Finance] Capital decay: -$4,631 on $2,315,360 idle (cumulative: $9,271)",
+        "  [Atlas Credit] Capital decay: -$4,752 on $2,376,236 idle (cumulative: $10,212)"
+      ],
+      "bandwidth": {
+        "arrival_phases": 1,
+        "deep_uw_slots_per_week": 0,
+        "slots_used": {}
+      },
+      "lender_snapshots": {
+        "LND-001": {
+          "name": "Velocity Capital",
+          "model": "openai/gpt-4.1-nano",
+          "net_pnl": 0.0,
+          "deployed": 1180000,
+          "available": 1812727.28,
+          "effective_capital": 2992727.28,
+          "deals_won": 0,
+          "deals_rejected": 0,
+          "deals_passed": 0,
+          "deals_lost": 6,
+          "active_loans": 0,
+          "active_loans_detail": [],
+          "cumulative_interest": 0.0,
+          "cumulative_losses": 0.0,
+          "cumulative_fees": 0.0,
+          "cumulative_workout_cost": 0.0,
+          "defaults": 0,
+          "frauds_funded": 0,
+          "deep_uw_deferred": 0,
+          "deep_uw_used_this_week": 0,
+          "tokens_in": 0,
+          "tokens_out": 0,
+          "cost_usd": 0.0
+        },
+        "LND-002": {
+          "name": "Heritage Trust Bank",
+          "model": "mistralai/mistral-small-3.2-24b-instruct",
+          "net_pnl": 13620.69,
+          "deployed": 2945439.78,
+          "available": 1059204.55,
+          "effective_capital": 4004644.33,
+          "deals_won": 5,
+          "deals_rejected": 0,
+          "deals_passed": 0,
+          "deals_lost": 1,
+          "active_loans": 5,
+          "active_loans_detail": [
+            {
+              "loan_id": "LOAN-001",
+              "borrower_id": "BRW-002",
+              "borrower_name": "NovaBio Labs",
+              "status": "performing",
+              "months_elapsed": 2,
+              "term_months": 34,
+              "remaining_balance": 284398.45,
+              "total_interest_collected": 4476.26,
+              "total_principal_repaid": 15601.55
+            },
+            {
+              "loan_id": "LOAN-002",
+              "borrower_id": "BRW-029",
+              "borrower_name": "Metro Print & Design",
+              "status": "performing",
+              "months_elapsed": 2,
+              "term_months": 32,
+              "remaining_balance": 236041.33,
+              "total_interest_collected": 3644.43,
+              "total_principal_repaid": 13958.67
+            },
+            {
+              "loan_id": "LOAN-001",
+              "borrower_id": "BRW-005",
+              "borrower_name": "PixelForge Studios",
+              "status": "performing",
+              "months_elapsed": 0,
+              "term_months": 31,
+              "remaining_balance": 400000,
+              "total_interest_collected": 0.0,
+              "total_principal_repaid": 0.0
+            },
+            {
+              "loan_id": "LOAN-002",
+              "borrower_id": "BRW-034",
+              "borrower_name": "Silverline HVAC Services",
+              "status": "performing",
+              "months_elapsed": 0,
+              "term_months": 27,
+              "remaining_balance": 225000,
+              "total_interest_collected": 0.0,
+              "total_principal_repaid": 0.0
+            },
+            {
+              "loan_id": "LOAN-003",
+              "borrower_id": "BRW-017",
+              "borrower_name": "Keystone Legal Tech",
+              "status": "performing",
+              "months_elapsed": 0,
+              "term_months": 17,
+              "remaining_balance": 300000,
+              "total_interest_collected": 0.0,
+              "total_principal_repaid": 0.0
+            }
+          ],
+          "cumulative_interest": 8120.69,
+          "cumulative_losses": 0.0,
+          "cumulative_fees": 5500.0,
+          "cumulative_workout_cost": 0.0,
+          "defaults": 0,
+          "frauds_funded": 0,
+          "deep_uw_deferred": 0,
+          "deep_uw_used_this_week": 0,
+          "tokens_in": 0,
+          "tokens_out": 0,
+          "cost_usd": 0.0
+        },
+        "LND-003": {
+          "name": "Meridian Partners",
+          "model": "deepseek/deepseek-v3.2",
+          "net_pnl": 0.0,
+          "deployed": 1200000,
+          "available": 2290809.2,
+          "effective_capital": 3490809.2,
+          "deals_won": 0,
+          "deals_rejected": 0,
+          "deals_passed": 0,
+          "deals_lost": 6,
+          "active_loans": 0,
+          "active_loans_detail": [],
+          "cumulative_interest": 0.0,
+          "cumulative_losses": 0.0,
+          "cumulative_fees": 0.0,
+          "cumulative_workout_cost": 0.0,
+          "defaults": 0,
+          "frauds_funded": 0,
+          "deep_uw_deferred": 0,
+          "deep_uw_used_this_week": 0,
+          "tokens_in": 0,
+          "tokens_out": 0,
+          "cost_usd": 0.0
+        },
+        "LND-004": {
+          "name": "Pinnacle Finance",
+          "model": "qwen/qwen3-30b-a3b",
+          "net_pnl": 0.0,
+          "deployed": 880000,
+          "available": 2310729.28,
+          "effective_capital": 3190729.28,
+          "deals_won": 0,
+          "deals_rejected": 0,
+          "deals_passed": 0,
+          "deals_lost": 6,
+          "active_loans": 0,
+          "active_loans_detail": [],
+          "cumulative_interest": 0.0,
+          "cumulative_losses": 0.0,
+          "cumulative_fees": 0.0,
+          "cumulative_workout_cost": 0.0,
+          "defaults": 0,
+          "frauds_funded": 0,
+          "deep_uw_deferred": 0,
+          "deep_uw_used_this_week": 0,
+          "tokens_in": 0,
+          "tokens_out": 0,
+          "cost_usd": 0.0
+        },
+        "LND-005": {
+          "name": "Atlas Credit",
+          "model": "meta-llama/llama-3.3-70b-instruct",
+          "net_pnl": 9876.23,
+          "deployed": 1428179.76,
+          "available": 2371484.0,
+          "effective_capital": 3799663.76,
+          "deals_won": 1,
+          "deals_rejected": 0,
+          "deals_passed": 0,
+          "deals_lost": 5,
+          "active_loans": 1,
+          "active_loans_detail": [
+            {
+              "loan_id": "LOAN-003",
+              "borrower_id": "BRW-013",
+              "borrower_name": "IronClad Manufacturing",
+              "status": "performing",
+              "months_elapsed": 2,
+              "term_months": 18,
+              "remaining_balance": 358179.76,
+              "total_interest_collected": 5876.23,
+              "total_principal_repaid": 41820.24
+            }
+          ],
+          "cumulative_interest": 5876.23,
+          "cumulative_losses": 0.0,
+          "cumulative_fees": 4000.0,
+          "cumulative_workout_cost": 0.0,
+          "defaults": 0,
+          "frauds_funded": 0,
+          "deep_uw_deferred": 0,
+          "deep_uw_used_this_week": 0,
+          "tokens_in": 0,
+          "tokens_out": 0,
+          "cost_usd": 0.0
+        }
+      }
+    },
+    {
+      "week": 3,
+      "borrowers": [
+        {
+          "id": "BRW-S03-002",
+          "name": "Catalyst Dynamics",
+          "sector": "Urban Agriculture",
+          "amount": 330000,
+          "true_outcome": "good",
+          "arrival_phase": 1
+        },
+        {
+          "id": "BRW-S03-001",
+          "name": "Meridian Labs",
+          "sector": "Furniture Manufacturing",
+          "amount": 400000,
+          "true_outcome": "good",
+          "arrival_phase": 1
+        },
+        {
+          "id": "BRW-S03-003",
+          "name": "Catalyst Corp",
+          "sector": "Property Services",
+          "amount": 380000,
+          "true_outcome": "good",
+          "arrival_phase": 1
+        }
+      ],
+      "decisions": [
+        {
+          "lender_id": "LND-001",
+          "borrower_id": "BRW-S03-002",
+          "decision": "APPROVE",
+          "offer_valid_weeks": 1,
+          "bandwidth_limited": false,
+          "reasoning": "Acceptable risk profile. Revenue of $1,605,883 supports the requested loan amount. Cash flow appears adequate for debt service.",
+          "term_sheet": {
+            "amount": 330000,
+            "rate": 12.94,
+            "term_months": 13
+          },
+          "tokens_in": 0,
+          "tokens_out": 0,
+          "cost_usd": 0.0,
+          "tool_calls": 0,
+          "chain_of_thought": "",
+          "los_detail": {
+            "inputs": {
+              "financials": {
+                "revenue_ttm": 1605883.49,
+                "gross_margin": 0.3375332353656616,
+                "ebitda_ttm": 542039.05,
+                "net_income": 542039.05,
+                "annual_expenses": 1063844.44
+              },
+              "banking": {
+                "avg_daily_balance_90d": 629941.8,
+                "nsf_12m": 0,
+                "total_deposits_12m": 1605883.49,
+                "total_withdrawals_12m": 1063844.44
+              },
+              "business": {
+                "industry": "Urban Agriculture",
+                "years_trading": 9,
+                "employee_count": 43,
+                "company_name": "Catalyst Dynamics"
+              },
+              "raw_documents": [
+                {
+                  "doc_id": "bank_statements_12m",
+                  "type": "bank_statement",
+                  "bytes_sha": "0fc099e55adc405a"
+                },
+                {
+                  "doc_id": "quarterly_income",
+                  "type": "pnl",
+                  "bytes_sha": "0fc099e55adc405a"
+                }
+              ],
+              "missing_info": []
+            },
+            "trace": {
+              "latency_ms": 0,
+              "steps": [],
+              "cost": {
+                "tokens_in": 0,
+                "tokens_out": 0,
+                "estimated_cost_usd": 0.0
+              }
+            },
+            "decision": {
+              "action": "approve",
+              "risk_grade": "",
+              "prob_default_12m": 0.0,
+              "confidence": 0.0,
+              "conditions": [],
+              "covenants": [],
+              "terms": {
+                "amount": 330000,
+                "apr": 0.1294,
+                "tenor_months": 13,
+                "fees": {}
+              },
+              "rationale": {
+                "summary": "Acceptable risk profile. Revenue of $1,605,883 supports the requested loan amount. Cash flow appears adequate for debt service.",
+                "key_factors": [],
+                "what_would_change": []
+              }
+            }
+          }
+        },
+        {
+          "lender_id": "LND-001",
+          "borrower_id": "BRW-S03-001",
+          "decision": "APPROVE",
+          "offer_valid_weeks": 1,
+          "bandwidth_limited": false,
+          "reasoning": "Acceptable risk profile. Revenue of $1,265,977 supports the requested loan amount. Cash flow appears adequate for debt service.",
+          "term_sheet": {
+            "amount": 400000,
+            "rate": 13.93,
+            "term_months": 23
+          },
+          "tokens_in": 0,
+          "tokens_out": 0,
+          "cost_usd": 0.0,
+          "tool_calls": 0,
+          "chain_of_thought": "",
+          "los_detail": {
+            "inputs": {
+              "financials": {
+                "revenue_ttm": 1265976.7,
+                "gross_margin": 0.3355657335557597,
+                "ebitda_ttm": 424818.4,
+                "net_income": 424818.4,
+                "annual_expenses": 841158.3
+              },
+              "banking": {
+                "avg_daily_balance_90d": 571551.24,
+                "nsf_12m": 0,
+                "total_deposits_12m": 1265976.7,
+                "total_withdrawals_12m": 841158.3
+              },
+              "business": {
+                "industry": "Furniture Manufacturing",
+                "years_trading": 9,
+                "employee_count": 68,
+                "company_name": "Meridian Labs"
+              },
+              "raw_documents": [
+                {
+                  "doc_id": "bank_statements_12m",
+                  "type": "bank_statement",
+                  "bytes_sha": "72abfb02f06099a4"
+                },
+                {
+                  "doc_id": "quarterly_income",
+                  "type": "pnl",
+                  "bytes_sha": "72abfb02f06099a4"
+                }
+              ],
+              "missing_info": []
+            },
+            "trace": {
+              "latency_ms": 0,
+              "steps": [],
+              "cost": {
+                "tokens_in": 0,
+                "tokens_out": 0,
+                "estimated_cost_usd": 0.0
+              }
+            },
+            "decision": {
+              "action": "approve",
+              "risk_grade": "",
+              "prob_default_12m": 0.0,
+              "confidence": 0.0,
+              "conditions": [],
+              "covenants": [],
+              "terms": {
+                "amount": 400000,
+                "apr": 0.1393,
+                "tenor_months": 23,
+                "fees": {}
+              },
+              "rationale": {
+                "summary": "Acceptable risk profile. Revenue of $1,265,977 supports the requested loan amount. Cash flow appears adequate for debt service.",
+                "key_factors": [],
+                "what_would_change": []
+              }
+            }
+          }
+        },
+        {
+          "lender_id": "LND-001",
+          "borrower_id": "BRW-S03-003",
+          "decision": "APPROVE",
+          "offer_valid_weeks": 1,
+          "bandwidth_limited": false,
+          "reasoning": "Acceptable risk profile. Revenue of $2,917,486 supports the requested loan amount. Cash flow appears adequate for debt service.",
+          "term_sheet": {
+            "amount": 380000,
+            "rate": 13.34,
+            "term_months": 17
+          },
+          "tokens_in": 0,
+          "tokens_out": 0,
+          "cost_usd": 0.0,
+          "tool_calls": 0,
+          "chain_of_thought": "",
+          "los_detail": {
+            "inputs": {
+              "financials": {
+                "revenue_ttm": 2917486.15,
+                "gross_margin": 0.2547026727102029,
+                "ebitda_ttm": 743091.52,
+                "net_income": 743091.52,
+                "annual_expenses": 2174394.63
+              },
+              "banking": {
+                "avg_daily_balance_90d": 794692.78,
+                "nsf_12m": 0,
+                "total_deposits_12m": 2917486.15,
+                "total_withdrawals_12m": 2174394.63
+              },
+              "business": {
+                "industry": "Property Services",
+                "years_trading": 10,
+                "employee_count": 66,
+                "company_name": "Catalyst Corp"
+              },
+              "raw_documents": [
+                {
+                  "doc_id": "bank_statements_12m",
+                  "type": "bank_statement",
+                  "bytes_sha": "289305e37581be31"
+                },
+                {
+                  "doc_id": "quarterly_income",
+                  "type": "pnl",
+                  "bytes_sha": "289305e37581be31"
+                }
+              ],
+              "missing_info": []
+            },
+            "trace": {
+              "latency_ms": 0,
+              "steps": [],
+              "cost": {
+                "tokens_in": 0,
+                "tokens_out": 0,
+                "estimated_cost_usd": 0.0
+              }
+            },
+            "decision": {
+              "action": "approve",
+              "risk_grade": "",
+              "prob_default_12m": 0.0,
+              "confidence": 0.0,
+              "conditions": [],
+              "covenants": [],
+              "terms": {
+                "amount": 380000,
+                "apr": 0.1334,
+                "tenor_months": 17,
+                "fees": {}
+              },
+              "rationale": {
+                "summary": "Acceptable risk profile. Revenue of $2,917,486 supports the requested loan amount. Cash flow appears adequate for debt service.",
+                "key_factors": [],
+                "what_would_change": []
+              }
+            }
+          }
+        },
+        {
+          "lender_id": "LND-002",
+          "borrower_id": "BRW-S03-002",
+          "decision": "APPROVE",
+          "offer_valid_weeks": 1,
+          "bandwidth_limited": false,
+          "reasoning": "Acceptable risk profile. Revenue of $1,605,883 supports the requested loan amount. Cash flow appears adequate for debt service.",
+          "term_sheet": {
+            "amount": 330000,
+            "rate": 6.96,
+            "term_months": 14
+          },
+          "tokens_in": 0,
+          "tokens_out": 0,
+          "cost_usd": 0.0,
+          "tool_calls": 0,
+          "chain_of_thought": "",
+          "los_detail": {
+            "inputs": {
+              "financials": {
+                "revenue_ttm": 1605883.49,
+                "gross_margin": 0.3375332353656616,
+                "ebitda_ttm": 542039.05,
+                "net_income": 542039.05,
+                "annual_expenses": 1063844.44
+              },
+              "banking": {
+                "avg_daily_balance_90d": 629941.8,
+                "nsf_12m": 0,
+                "total_deposits_12m": 1605883.49,
+                "total_withdrawals_12m": 1063844.44
+              },
+              "business": {
+                "industry": "Urban Agriculture",
+                "years_trading": 9,
+                "employee_count": 43,
+                "company_name": "Catalyst Dynamics"
+              },
+              "raw_documents": [
+                {
+                  "doc_id": "bank_statements_12m",
+                  "type": "bank_statement",
+                  "bytes_sha": "0fc099e55adc405a"
+                },
+                {
+                  "doc_id": "quarterly_income",
+                  "type": "pnl",
+                  "bytes_sha": "0fc099e55adc405a"
+                }
+              ],
+              "missing_info": []
+            },
+            "trace": {
+              "latency_ms": 0,
+              "steps": [],
+              "cost": {
+                "tokens_in": 0,
+                "tokens_out": 0,
+                "estimated_cost_usd": 0.0
+              }
+            },
+            "decision": {
+              "action": "approve",
+              "risk_grade": "",
+              "prob_default_12m": 0.0,
+              "confidence": 0.0,
+              "conditions": [],
+              "covenants": [],
+              "terms": {
+                "amount": 330000,
+                "apr": 0.0696,
+                "tenor_months": 14,
+                "fees": {}
+              },
+              "rationale": {
+                "summary": "Acceptable risk profile. Revenue of $1,605,883 supports the requested loan amount. Cash flow appears adequate for debt service.",
+                "key_factors": [],
+                "what_would_change": []
+              }
+            }
+          }
+        },
+        {
+          "lender_id": "LND-002",
+          "borrower_id": "BRW-S03-001",
+          "decision": "APPROVE",
+          "offer_valid_weeks": 1,
+          "bandwidth_limited": false,
+          "reasoning": "Acceptable risk profile. Revenue of $1,265,977 supports the requested loan amount. Cash flow appears adequate for debt service.",
+          "term_sheet": {
+            "amount": 400000,
+            "rate": 8.8,
+            "term_months": 31
+          },
+          "tokens_in": 0,
+          "tokens_out": 0,
+          "cost_usd": 0.0,
+          "tool_calls": 0,
+          "chain_of_thought": "",
+          "los_detail": {
+            "inputs": {
+              "financials": {
+                "revenue_ttm": 1265976.7,
+                "gross_margin": 0.3355657335557597,
+                "ebitda_ttm": 424818.4,
+                "net_income": 424818.4,
+                "annual_expenses": 841158.3
+              },
+              "banking": {
+                "avg_daily_balance_90d": 571551.24,
+                "nsf_12m": 0,
+                "total_deposits_12m": 1265976.7,
+                "total_withdrawals_12m": 841158.3
+              },
+              "business": {
+                "industry": "Furniture Manufacturing",
+                "years_trading": 9,
+                "employee_count": 68,
+                "company_name": "Meridian Labs"
+              },
+              "raw_documents": [
+                {
+                  "doc_id": "bank_statements_12m",
+                  "type": "bank_statement",
+                  "bytes_sha": "72abfb02f06099a4"
+                },
+                {
+                  "doc_id": "quarterly_income",
+                  "type": "pnl",
+                  "bytes_sha": "72abfb02f06099a4"
+                }
+              ],
+              "missing_info": []
+            },
+            "trace": {
+              "latency_ms": 0,
+              "steps": [],
+              "cost": {
+                "tokens_in": 0,
+                "tokens_out": 0,
+                "estimated_cost_usd": 0.0
+              }
+            },
+            "decision": {
+              "action": "approve",
+              "risk_grade": "",
+              "prob_default_12m": 0.0,
+              "confidence": 0.0,
+              "conditions": [],
+              "covenants": [],
+              "terms": {
+                "amount": 400000,
+                "apr": 0.08800000000000001,
+                "tenor_months": 31,
+                "fees": {}
+              },
+              "rationale": {
+                "summary": "Acceptable risk profile. Revenue of $1,265,977 supports the requested loan amount. Cash flow appears adequate for debt service.",
+                "key_factors": [],
+                "what_would_change": []
+              }
+            }
+          }
+        },
+        {
+          "lender_id": "LND-002",
+          "borrower_id": "BRW-S03-003",
+          "decision": "APPROVE",
+          "offer_valid_weeks": 1,
+          "bandwidth_limited": false,
+          "reasoning": "Acceptable risk profile. Revenue of $2,917,486 supports the requested loan amount. Cash flow appears adequate for debt service.",
+          "term_sheet": {
+            "amount": 380000,
+            "rate": 7.24,
+            "term_months": 16
+          },
+          "tokens_in": 0,
+          "tokens_out": 0,
+          "cost_usd": 0.0,
+          "tool_calls": 0,
+          "chain_of_thought": "",
+          "los_detail": {
+            "inputs": {
+              "financials": {
+                "revenue_ttm": 2917486.15,
+                "gross_margin": 0.2547026727102029,
+                "ebitda_ttm": 743091.52,
+                "net_income": 743091.52,
+                "annual_expenses": 2174394.63
+              },
+              "banking": {
+                "avg_daily_balance_90d": 794692.78,
+                "nsf_12m": 0,
+                "total_deposits_12m": 2917486.15,
+                "total_withdrawals_12m": 2174394.63
+              },
+              "business": {
+                "industry": "Property Services",
+                "years_trading": 10,
+                "employee_count": 66,
+                "company_name": "Catalyst Corp"
+              },
+              "raw_documents": [
+                {
+                  "doc_id": "bank_statements_12m",
+                  "type": "bank_statement",
+                  "bytes_sha": "289305e37581be31"
+                },
+                {
+                  "doc_id": "quarterly_income",
+                  "type": "pnl",
+                  "bytes_sha": "289305e37581be31"
+                }
+              ],
+              "missing_info": []
+            },
+            "trace": {
+              "latency_ms": 0,
+              "steps": [],
+              "cost": {
+                "tokens_in": 0,
+                "tokens_out": 0,
+                "estimated_cost_usd": 0.0
+              }
+            },
+            "decision": {
+              "action": "approve",
+              "risk_grade": "",
+              "prob_default_12m": 0.0,
+              "confidence": 0.0,
+              "conditions": [],
+              "covenants": [],
+              "terms": {
+                "amount": 380000,
+                "apr": 0.0724,
+                "tenor_months": 16,
+                "fees": {}
+              },
+              "rationale": {
+                "summary": "Acceptable risk profile. Revenue of $2,917,486 supports the requested loan amount. Cash flow appears adequate for debt service.",
+                "key_factors": [],
+                "what_would_change": []
+              }
+            }
+          }
+        },
+        {
+          "lender_id": "LND-003",
+          "borrower_id": "BRW-S03-002",
+          "decision": "APPROVE",
+          "offer_valid_weeks": 1,
+          "bandwidth_limited": false,
+          "reasoning": "Acceptable risk profile. Revenue of $1,605,883 supports the requested loan amount. Cash flow appears adequate for debt service.",
+          "term_sheet": {
+            "amount": 330000,
+            "rate": 10.82,
+            "term_months": 22
+          },
+          "tokens_in": 0,
+          "tokens_out": 0,
+          "cost_usd": 0.0,
+          "tool_calls": 0,
+          "chain_of_thought": "",
+          "los_detail": {
+            "inputs": {
+              "financials": {
+                "revenue_ttm": 1605883.49,
+                "gross_margin": 0.3375332353656616,
+                "ebitda_ttm": 542039.05,
+                "net_income": 542039.05,
+                "annual_expenses": 1063844.44
+              },
+              "banking": {
+                "avg_daily_balance_90d": 629941.8,
+                "nsf_12m": 0,
+                "total_deposits_12m": 1605883.49,
+                "total_withdrawals_12m": 1063844.44
+              },
+              "business": {
+                "industry": "Urban Agriculture",
+                "years_trading": 9,
+                "employee_count": 43,
+                "company_name": "Catalyst Dynamics"
+              },
+              "raw_documents": [
+                {
+                  "doc_id": "bank_statements_12m",
+                  "type": "bank_statement",
+                  "bytes_sha": "0fc099e55adc405a"
+                },
+                {
+                  "doc_id": "quarterly_income",
+                  "type": "pnl",
+                  "bytes_sha": "0fc099e55adc405a"
+                }
+              ],
+              "missing_info": []
+            },
+            "trace": {
+              "latency_ms": 0,
+              "steps": [],
+              "cost": {
+                "tokens_in": 0,
+                "tokens_out": 0,
+                "estimated_cost_usd": 0.0
+              }
+            },
+            "decision": {
+              "action": "approve",
+              "risk_grade": "",
+              "prob_default_12m": 0.0,
+              "confidence": 0.0,
+              "conditions": [],
+              "covenants": [],
+              "terms": {
+                "amount": 330000,
+                "apr": 0.1082,
+                "tenor_months": 22,
+                "fees": {}
+              },
+              "rationale": {
+                "summary": "Acceptable risk profile. Revenue of $1,605,883 supports the requested loan amount. Cash flow appears adequate for debt service.",
+                "key_factors": [],
+                "what_would_change": []
+              }
+            }
+          }
+        },
+        {
+          "lender_id": "LND-003",
+          "borrower_id": "BRW-S03-001",
+          "decision": "APPROVE",
+          "offer_valid_weeks": 1,
+          "bandwidth_limited": false,
+          "reasoning": "Acceptable risk profile. Revenue of $1,265,977 supports the requested loan amount. Cash flow appears adequate for debt service.",
+          "term_sheet": {
+            "amount": 400000,
+            "rate": 12.01,
+            "term_months": 33
+          },
+          "tokens_in": 0,
+          "tokens_out": 0,
+          "cost_usd": 0.0,
+          "tool_calls": 0,
+          "chain_of_thought": "",
+          "los_detail": {
+            "inputs": {
+              "financials": {
+                "revenue_ttm": 1265976.7,
+                "gross_margin": 0.3355657335557597,
+                "ebitda_ttm": 424818.4,
+                "net_income": 424818.4,
+                "annual_expenses": 841158.3
+              },
+              "banking": {
+                "avg_daily_balance_90d": 571551.24,
+                "nsf_12m": 0,
+                "total_deposits_12m": 1265976.7,
+                "total_withdrawals_12m": 841158.3
+              },
+              "business": {
+                "industry": "Furniture Manufacturing",
+                "years_trading": 9,
+                "employee_count": 68,
+                "company_name": "Meridian Labs"
+              },
+              "raw_documents": [
+                {
+                  "doc_id": "bank_statements_12m",
+                  "type": "bank_statement",
+                  "bytes_sha": "72abfb02f06099a4"
+                },
+                {
+                  "doc_id": "quarterly_income",
+                  "type": "pnl",
+                  "bytes_sha": "72abfb02f06099a4"
+                }
+              ],
+              "missing_info": []
+            },
+            "trace": {
+              "latency_ms": 0,
+              "steps": [],
+              "cost": {
+                "tokens_in": 0,
+                "tokens_out": 0,
+                "estimated_cost_usd": 0.0
+              }
+            },
+            "decision": {
+              "action": "approve",
+              "risk_grade": "",
+              "prob_default_12m": 0.0,
+              "confidence": 0.0,
+              "conditions": [],
+              "covenants": [],
+              "terms": {
+                "amount": 400000,
+                "apr": 0.1201,
+                "tenor_months": 33,
+                "fees": {}
+              },
+              "rationale": {
+                "summary": "Acceptable risk profile. Revenue of $1,265,977 supports the requested loan amount. Cash flow appears adequate for debt service.",
+                "key_factors": [],
+                "what_would_change": []
+              }
+            }
+          }
+        },
+        {
+          "lender_id": "LND-003",
+          "borrower_id": "BRW-S03-003",
+          "decision": "APPROVE",
+          "offer_valid_weeks": 1,
+          "bandwidth_limited": false,
+          "reasoning": "Acceptable risk profile. Revenue of $2,917,486 supports the requested loan amount. Cash flow appears adequate for debt service.",
+          "term_sheet": {
+            "amount": 380000,
+            "rate": 11.92,
+            "term_months": 32
+          },
+          "tokens_in": 0,
+          "tokens_out": 0,
+          "cost_usd": 0.0,
+          "tool_calls": 0,
+          "chain_of_thought": "",
+          "los_detail": {
+            "inputs": {
+              "financials": {
+                "revenue_ttm": 2917486.15,
+                "gross_margin": 0.2547026727102029,
+                "ebitda_ttm": 743091.52,
+                "net_income": 743091.52,
+                "annual_expenses": 2174394.63
+              },
+              "banking": {
+                "avg_daily_balance_90d": 794692.78,
+                "nsf_12m": 0,
+                "total_deposits_12m": 2917486.15,
+                "total_withdrawals_12m": 2174394.63
+              },
+              "business": {
+                "industry": "Property Services",
+                "years_trading": 10,
+                "employee_count": 66,
+                "company_name": "Catalyst Corp"
+              },
+              "raw_documents": [
+                {
+                  "doc_id": "bank_statements_12m",
+                  "type": "bank_statement",
+                  "bytes_sha": "289305e37581be31"
+                },
+                {
+                  "doc_id": "quarterly_income",
+                  "type": "pnl",
+                  "bytes_sha": "289305e37581be31"
+                }
+              ],
+              "missing_info": []
+            },
+            "trace": {
+              "latency_ms": 0,
+              "steps": [],
+              "cost": {
+                "tokens_in": 0,
+                "tokens_out": 0,
+                "estimated_cost_usd": 0.0
+              }
+            },
+            "decision": {
+              "action": "approve",
+              "risk_grade": "",
+              "prob_default_12m": 0.0,
+              "confidence": 0.0,
+              "conditions": [],
+              "covenants": [],
+              "terms": {
+                "amount": 380000,
+                "apr": 0.1192,
+                "tenor_months": 32,
+                "fees": {}
+              },
+              "rationale": {
+                "summary": "Acceptable risk profile. Revenue of $2,917,486 supports the requested loan amount. Cash flow appears adequate for debt service.",
+                "key_factors": [],
+                "what_would_change": []
+              }
+            }
+          }
+        },
+        {
+          "lender_id": "LND-004",
+          "borrower_id": "BRW-S03-002",
+          "decision": "APPROVE",
+          "offer_valid_weeks": 1,
+          "bandwidth_limited": false,
+          "reasoning": "Acceptable risk profile. Revenue of $1,605,883 supports the requested loan amount. Cash flow appears adequate for debt service.",
+          "term_sheet": {
+            "amount": 330000,
+            "rate": 11.54,
+            "term_months": 19
+          },
+          "tokens_in": 0,
+          "tokens_out": 0,
+          "cost_usd": 0.0,
+          "tool_calls": 0,
+          "chain_of_thought": "",
+          "los_detail": {
+            "inputs": {
+              "financials": {
+                "revenue_ttm": 1605883.49,
+                "gross_margin": 0.3375332353656616,
+                "ebitda_ttm": 542039.05,
+                "net_income": 542039.05,
+                "annual_expenses": 1063844.44
+              },
+              "banking": {
+                "avg_daily_balance_90d": 629941.8,
+                "nsf_12m": 0,
+                "total_deposits_12m": 1605883.49,
+                "total_withdrawals_12m": 1063844.44
+              },
+              "business": {
+                "industry": "Urban Agriculture",
+                "years_trading": 9,
+                "employee_count": 43,
+                "company_name": "Catalyst Dynamics"
+              },
+              "raw_documents": [
+                {
+                  "doc_id": "bank_statements_12m",
+                  "type": "bank_statement",
+                  "bytes_sha": "0fc099e55adc405a"
+                },
+                {
+                  "doc_id": "quarterly_income",
+                  "type": "pnl",
+                  "bytes_sha": "0fc099e55adc405a"
+                }
+              ],
+              "missing_info": []
+            },
+            "trace": {
+              "latency_ms": 0,
+              "steps": [],
+              "cost": {
+                "tokens_in": 0,
+                "tokens_out": 0,
+                "estimated_cost_usd": 0.0
+              }
+            },
+            "decision": {
+              "action": "approve",
+              "risk_grade": "",
+              "prob_default_12m": 0.0,
+              "confidence": 0.0,
+              "conditions": [],
+              "covenants": [],
+              "terms": {
+                "amount": 330000,
+                "apr": 0.11539999999999999,
+                "tenor_months": 19,
+                "fees": {}
+              },
+              "rationale": {
+                "summary": "Acceptable risk profile. Revenue of $1,605,883 supports the requested loan amount. Cash flow appears adequate for debt service.",
+                "key_factors": [],
+                "what_would_change": []
+              }
+            }
+          }
+        },
+        {
+          "lender_id": "LND-004",
+          "borrower_id": "BRW-S03-001",
+          "decision": "APPROVE",
+          "offer_valid_weeks": 1,
+          "bandwidth_limited": false,
+          "reasoning": "Acceptable risk profile. Revenue of $1,265,977 supports the requested loan amount. Cash flow appears adequate for debt service.",
+          "term_sheet": {
+            "amount": 400000,
+            "rate": 11.02,
+            "term_months": 14
+          },
+          "tokens_in": 0,
+          "tokens_out": 0,
+          "cost_usd": 0.0,
+          "tool_calls": 0,
+          "chain_of_thought": "",
+          "los_detail": {
+            "inputs": {
+              "financials": {
+                "revenue_ttm": 1265976.7,
+                "gross_margin": 0.3355657335557597,
+                "ebitda_ttm": 424818.4,
+                "net_income": 424818.4,
+                "annual_expenses": 841158.3
+              },
+              "banking": {
+                "avg_daily_balance_90d": 571551.24,
+                "nsf_12m": 0,
+                "total_deposits_12m": 1265976.7,
+                "total_withdrawals_12m": 841158.3
+              },
+              "business": {
+                "industry": "Furniture Manufacturing",
+                "years_trading": 9,
+                "employee_count": 68,
+                "company_name": "Meridian Labs"
+              },
+              "raw_documents": [
+                {
+                  "doc_id": "bank_statements_12m",
+                  "type": "bank_statement",
+                  "bytes_sha": "72abfb02f06099a4"
+                },
+                {
+                  "doc_id": "quarterly_income",
+                  "type": "pnl",
+                  "bytes_sha": "72abfb02f06099a4"
+                }
+              ],
+              "missing_info": []
+            },
+            "trace": {
+              "latency_ms": 0,
+              "steps": [],
+              "cost": {
+                "tokens_in": 0,
+                "tokens_out": 0,
+                "estimated_cost_usd": 0.0
+              }
+            },
+            "decision": {
+              "action": "approve",
+              "risk_grade": "",
+              "prob_default_12m": 0.0,
+              "confidence": 0.0,
+              "conditions": [],
+              "covenants": [],
+              "terms": {
+                "amount": 400000,
+                "apr": 0.11019999999999999,
+                "tenor_months": 14,
+                "fees": {}
+              },
+              "rationale": {
+                "summary": "Acceptable risk profile. Revenue of $1,265,977 supports the requested loan amount. Cash flow appears adequate for debt service.",
+                "key_factors": [],
+                "what_would_change": []
+              }
+            }
+          }
+        },
+        {
+          "lender_id": "LND-004",
+          "borrower_id": "BRW-S03-003",
+          "decision": "APPROVE",
+          "offer_valid_weeks": 1,
+          "bandwidth_limited": false,
+          "reasoning": "Acceptable risk profile. Revenue of $2,917,486 supports the requested loan amount. Cash flow appears adequate for debt service.",
+          "term_sheet": {
+            "amount": 380000,
+            "rate": 11.94,
+            "term_months": 23
+          },
+          "tokens_in": 0,
+          "tokens_out": 0,
+          "cost_usd": 0.0,
+          "tool_calls": 0,
+          "chain_of_thought": "",
+          "los_detail": {
+            "inputs": {
+              "financials": {
+                "revenue_ttm": 2917486.15,
+                "gross_margin": 0.2547026727102029,
+                "ebitda_ttm": 743091.52,
+                "net_income": 743091.52,
+                "annual_expenses": 2174394.63
+              },
+              "banking": {
+                "avg_daily_balance_90d": 794692.78,
+                "nsf_12m": 0,
+                "total_deposits_12m": 2917486.15,
+                "total_withdrawals_12m": 2174394.63
+              },
+              "business": {
+                "industry": "Property Services",
+                "years_trading": 10,
+                "employee_count": 66,
+                "company_name": "Catalyst Corp"
+              },
+              "raw_documents": [
+                {
+                  "doc_id": "bank_statements_12m",
+                  "type": "bank_statement",
+                  "bytes_sha": "289305e37581be31"
+                },
+                {
+                  "doc_id": "quarterly_income",
+                  "type": "pnl",
+                  "bytes_sha": "289305e37581be31"
+                }
+              ],
+              "missing_info": []
+            },
+            "trace": {
+              "latency_ms": 0,
+              "steps": [],
+              "cost": {
+                "tokens_in": 0,
+                "tokens_out": 0,
+                "estimated_cost_usd": 0.0
+              }
+            },
+            "decision": {
+              "action": "approve",
+              "risk_grade": "",
+              "prob_default_12m": 0.0,
+              "confidence": 0.0,
+              "conditions": [],
+              "covenants": [],
+              "terms": {
+                "amount": 380000,
+                "apr": 0.11939999999999999,
+                "tenor_months": 23,
+                "fees": {}
+              },
+              "rationale": {
+                "summary": "Acceptable risk profile. Revenue of $2,917,486 supports the requested loan amount. Cash flow appears adequate for debt service.",
+                "key_factors": [],
+                "what_would_change": []
+              }
+            }
+          }
+        },
+        {
+          "lender_id": "LND-005",
+          "borrower_id": "BRW-S03-002",
+          "decision": "APPROVE",
+          "offer_valid_weeks": 1,
+          "bandwidth_limited": false,
+          "reasoning": "Strong application. Monthly free cash flow of $45,170 provides a DSCR of 3.7x on proposed payments. 9 years in business with consistent revenue trends. Sector exposure within limits.",
+          "term_sheet": {
+            "amount": 330000,
+            "rate": 9.81,
+            "term_months": 27
+          },
+          "tokens_in": 0,
+          "tokens_out": 0,
+          "cost_usd": 0.0,
+          "tool_calls": 0,
+          "chain_of_thought": "",
+          "los_detail": {
+            "inputs": {
+              "financials": {
+                "revenue_ttm": 1605883.49,
+                "gross_margin": 0.3375332353656616,
+                "ebitda_ttm": 542039.05,
+                "net_income": 542039.05,
+                "annual_expenses": 1063844.44
+              },
+              "banking": {
+                "avg_daily_balance_90d": 629941.8,
+                "nsf_12m": 0,
+                "total_deposits_12m": 1605883.49,
+                "total_withdrawals_12m": 1063844.44
+              },
+              "business": {
+                "industry": "Urban Agriculture",
+                "years_trading": 9,
+                "employee_count": 43,
+                "company_name": "Catalyst Dynamics"
+              },
+              "raw_documents": [
+                {
+                  "doc_id": "bank_statements_12m",
+                  "type": "bank_statement",
+                  "bytes_sha": "0fc099e55adc405a"
+                },
+                {
+                  "doc_id": "quarterly_income",
+                  "type": "pnl",
+                  "bytes_sha": "0fc099e55adc405a"
+                }
+              ],
+              "missing_info": []
+            },
+            "trace": {
+              "latency_ms": 0,
+              "steps": [],
+              "cost": {
+                "tokens_in": 0,
+                "tokens_out": 0,
+                "estimated_cost_usd": 0.0
+              }
+            },
+            "decision": {
+              "action": "approve",
+              "risk_grade": "",
+              "prob_default_12m": 0.0,
+              "confidence": 0.0,
+              "conditions": [],
+              "covenants": [],
+              "terms": {
+                "amount": 330000,
+                "apr": 0.0981,
+                "tenor_months": 27,
+                "fees": {}
+              },
+              "rationale": {
+                "summary": "Strong application. Monthly free cash flow of $45,170 provides a DSCR of 3.7x on proposed payments. 9 years in business with consistent revenue trends. Sector exposure within limits.",
+                "key_factors": [],
+                "what_would_change": []
+              }
+            }
+          }
+        },
+        {
+          "lender_id": "LND-005",
+          "borrower_id": "BRW-S03-001",
+          "decision": "APPROVE",
+          "offer_valid_weeks": 1,
+          "bandwidth_limited": false,
+          "reasoning": "Strong application. Monthly free cash flow of $35,402 provides a DSCR of 1.7x on proposed payments. 9 years in business with consistent revenue trends. Sector exposure within limits.",
+          "term_sheet": {
+            "amount": 400000,
+            "rate": 9.15,
+            "term_months": 19
+          },
+          "tokens_in": 0,
+          "tokens_out": 0,
+          "cost_usd": 0.0,
+          "tool_calls": 0,
+          "chain_of_thought": "",
+          "los_detail": {
+            "inputs": {
+              "financials": {
+                "revenue_ttm": 1265976.7,
+                "gross_margin": 0.3355657335557597,
+                "ebitda_ttm": 424818.4,
+                "net_income": 424818.4,
+                "annual_expenses": 841158.3
+              },
+              "banking": {
+                "avg_daily_balance_90d": 571551.24,
+                "nsf_12m": 0,
+                "total_deposits_12m": 1265976.7,
+                "total_withdrawals_12m": 841158.3
+              },
+              "business": {
+                "industry": "Furniture Manufacturing",
+                "years_trading": 9,
+                "employee_count": 68,
+                "company_name": "Meridian Labs"
+              },
+              "raw_documents": [
+                {
+                  "doc_id": "bank_statements_12m",
+                  "type": "bank_statement",
+                  "bytes_sha": "72abfb02f06099a4"
+                },
+                {
+                  "doc_id": "quarterly_income",
+                  "type": "pnl",
+                  "bytes_sha": "72abfb02f06099a4"
+                }
+              ],
+              "missing_info": []
+            },
+            "trace": {
+              "latency_ms": 0,
+              "steps": [],
+              "cost": {
+                "tokens_in": 0,
+                "tokens_out": 0,
+                "estimated_cost_usd": 0.0
+              }
+            },
+            "decision": {
+              "action": "approve",
+              "risk_grade": "",
+              "prob_default_12m": 0.0,
+              "confidence": 0.0,
+              "conditions": [],
+              "covenants": [],
+              "terms": {
+                "amount": 400000,
+                "apr": 0.0915,
+                "tenor_months": 19,
+                "fees": {}
+              },
+              "rationale": {
+                "summary": "Strong application. Monthly free cash flow of $35,402 provides a DSCR of 1.7x on proposed payments. 9 years in business with consistent revenue trends. Sector exposure within limits.",
+                "key_factors": [],
+                "what_would_change": []
+              }
+            }
+          }
+        },
+        {
+          "lender_id": "LND-005",
+          "borrower_id": "BRW-S03-003",
+          "decision": "APPROVE",
+          "offer_valid_weeks": 1,
+          "bandwidth_limited": false,
+          "reasoning": "Strong application. Monthly free cash flow of $61,924 provides a DSCR of 2.9x on proposed payments. 10 years in business with consistent revenue trends. Sector exposure within limits.",
+          "term_sheet": {
+            "amount": 380000,
+            "rate": 9.08,
+            "term_months": 18
+          },
+          "tokens_in": 0,
+          "tokens_out": 0,
+          "cost_usd": 0.0,
+          "tool_calls": 0,
+          "chain_of_thought": "",
+          "los_detail": {
+            "inputs": {
+              "financials": {
+                "revenue_ttm": 2917486.15,
+                "gross_margin": 0.2547026727102029,
+                "ebitda_ttm": 743091.52,
+                "net_income": 743091.52,
+                "annual_expenses": 2174394.63
+              },
+              "banking": {
+                "avg_daily_balance_90d": 794692.78,
+                "nsf_12m": 0,
+                "total_deposits_12m": 2917486.15,
+                "total_withdrawals_12m": 2174394.63
+              },
+              "business": {
+                "industry": "Property Services",
+                "years_trading": 10,
+                "employee_count": 66,
+                "company_name": "Catalyst Corp"
+              },
+              "raw_documents": [
+                {
+                  "doc_id": "bank_statements_12m",
+                  "type": "bank_statement",
+                  "bytes_sha": "289305e37581be31"
+                },
+                {
+                  "doc_id": "quarterly_income",
+                  "type": "pnl",
+                  "bytes_sha": "289305e37581be31"
+                }
+              ],
+              "missing_info": []
+            },
+            "trace": {
+              "latency_ms": 0,
+              "steps": [],
+              "cost": {
+                "tokens_in": 0,
+                "tokens_out": 0,
+                "estimated_cost_usd": 0.0
+              }
+            },
+            "decision": {
+              "action": "approve",
+              "risk_grade": "",
+              "prob_default_12m": 0.0,
+              "confidence": 0.0,
+              "conditions": [],
+              "covenants": [],
+              "terms": {
+                "amount": 380000,
+                "apr": 0.0908,
+                "tenor_months": 18,
+                "fees": {}
+              },
+              "rationale": {
+                "summary": "Strong application. Monthly free cash flow of $61,924 provides a DSCR of 2.9x on proposed payments. 10 years in business with consistent revenue trends. Sector exposure within limits.",
+                "key_factors": [],
+                "what_would_change": []
+              }
+            }
+          }
+        }
+      ],
+      "booked_loans": [
+        {
+          "id": "LOAN-001",
+          "borrower_id": "BRW-S03-002",
+          "borrower_name": "Catalyst Dynamics",
+          "lender_id": "LND-002",
+          "sector": "Urban Agriculture",
+          "principal": 330000,
+          "interest_rate": 6.96,
+          "term_months": 14
+        },
+        {
+          "id": "LOAN-002",
+          "borrower_id": "BRW-S03-001",
+          "borrower_name": "Meridian Labs",
+          "lender_id": "LND-002",
+          "sector": "Furniture Manufacturing",
+          "principal": 400000,
+          "interest_rate": 8.8,
+          "term_months": 31
+        },
+        {
+          "id": "LOAN-003",
+          "borrower_id": "BRW-S03-003",
+          "borrower_name": "Catalyst Corp",
+          "lender_id": "LND-002",
+          "sector": "Property Services",
+          "principal": 380000,
+          "interest_rate": 7.24,
+          "term_months": 16
+        }
+      ],
+      "events": [
+        "PAYMENT: NovaBio Labs \u2014 $4,240 interest, $15,838 principal [Heritage Trust Bank]",
+        "PAYMENT: Metro Print & Design \u2014 $3,437 interest, $14,166 principal [Heritage Trust Bank]",
+        "PAYMENT: PixelForge Studios \u2014 $5,749 interest, $23,177 principal [Heritage Trust Bank]",
+        "PAYMENT: Silverline HVAC Services \u2014 $3,075 interest, $15,262 principal [Heritage Trust Bank]",
+        "PAYMENT: Keystone Legal Tech \u2014 $3,562 interest, $33,704 principal [Heritage Trust Bank]",
+        "PAYMENT: IronClad Manufacturing \u2014 $5,243 interest, $42,453 principal [Atlas Credit]",
+        "  [Velocity Capital] Capital decay: -$3,625 on $1,812,727 idle (cumulative: $10,898)",
+        "  [Heritage Trust Bank] Capital decay: -$2,381 on $1,190,665 idle (cumulative: $11,358)",
+        "  [Meridian Partners] Capital decay: -$4,582 on $2,290,809 idle (cumulative: $13,772)",
+        "  [Pinnacle Finance] Capital decay: -$4,621 on $2,310,729 idle (cumulative: $13,892)",
+        "  [Atlas Credit] Capital decay: -$4,838 on $2,419,180 idle (cumulative: $15,051)"
+      ],
+      "bandwidth": {
+        "arrival_phases": 1,
+        "deep_uw_slots_per_week": 0,
+        "slots_used": {}
+      },
+      "lender_snapshots": {
+        "LND-001": {
+          "name": "Velocity Capital",
+          "model": "openai/gpt-4.1-nano",
+          "net_pnl": 0.0,
+          "deployed": 1180000,
+          "available": 1809101.83,
+          "effective_capital": 2989101.83,
+          "deals_won": 0,
+          "deals_rejected": 0,
+          "deals_passed": 0,
+          "deals_lost": 9,
+          "active_loans": 0,
+          "active_loans_detail": [],
+          "cumulative_interest": 0.0,
+          "cumulative_losses": 0.0,
+          "cumulative_fees": 0.0,
+          "cumulative_workout_cost": 0.0,
+          "defaults": 0,
+          "frauds_funded": 0,
+          "deep_uw_deferred": 0,
+          "deep_uw_used_this_week": 0,
+          "tokens_in": 0,
+          "tokens_out": 0,
+          "cost_usd": 0.0
+        },
+        "LND-002": {
+          "name": "Heritage Trust Bank",
+          "model": "mistralai/mistral-small-3.2-24b-instruct",
+          "net_pnl": 42933.71,
+          "deployed": 3953292.49,
+          "available": 78283.53,
+          "effective_capital": 4031576.02,
+          "deals_won": 8,
+          "deals_rejected": 0,
+          "deals_passed": 0,
+          "deals_lost": 1,
+          "active_loans": 8,
+          "active_loans_detail": [
+            {
+              "loan_id": "LOAN-001",
+              "borrower_id": "BRW-002",
+              "borrower_name": "NovaBio Labs",
+              "status": "performing",
+              "months_elapsed": 4,
+              "term_months": 34,
+              "remaining_balance": 268560.16,
+              "total_interest_collected": 8715.79,
+              "total_principal_repaid": 31439.84
+            },
+            {
+              "loan_id": "LOAN-002",
+              "borrower_id": "BRW-029",
+              "borrower_name": "Metro Print & Design",
+              "status": "performing",
+              "months_elapsed": 4,
+              "term_months": 32,
+              "remaining_balance": 221875.54,
+              "total_interest_collected": 7081.75,
+              "total_principal_repaid": 28124.46
+            },
+            {
+              "loan_id": "LOAN-001",
+              "borrower_id": "BRW-005",
+              "borrower_name": "PixelForge Studios",
+              "status": "performing",
+              "months_elapsed": 2,
+              "term_months": 31,
+              "remaining_balance": 376822.66,
+              "total_interest_collected": 5749.14,
+              "total_principal_repaid": 23177.34
+            },
+            {
+              "loan_id": "LOAN-002",
+              "borrower_id": "BRW-034",
+              "borrower_name": "Silverline HVAC Services",
+              "status": "performing",
+              "months_elapsed": 2,
+              "term_months": 27,
+              "remaining_balance": 209737.67,
+              "total_interest_collected": 3074.65,
+              "total_principal_repaid": 15262.33
+            },
+            {
+              "loan_id": "LOAN-003",
+              "borrower_id": "BRW-017",
+              "borrower_name": "Keystone Legal Tech",
+              "status": "performing",
+              "months_elapsed": 2,
+              "term_months": 17,
+              "remaining_balance": 266296.46,
+              "total_interest_collected": 3562.38,
+              "total_principal_repaid": 33703.54
+            },
+            {
+              "loan_id": "LOAN-001",
+              "borrower_id": "BRW-S03-002",
+              "borrower_name": "Catalyst Dynamics",
+              "status": "performing",
+              "months_elapsed": 0,
+              "term_months": 14,
+              "remaining_balance": 330000,
+              "total_interest_collected": 0.0,
+              "total_principal_repaid": 0.0
+            },
+            {
+              "loan_id": "LOAN-002",
+              "borrower_id": "BRW-S03-001",
+              "borrower_name": "Meridian Labs",
+              "status": "performing",
+              "months_elapsed": 0,
+              "term_months": 31,
+              "remaining_balance": 400000,
+              "total_interest_collected": 0.0,
+              "total_principal_repaid": 0.0
+            },
+            {
+              "loan_id": "LOAN-003",
+              "borrower_id": "BRW-S03-003",
+              "borrower_name": "Catalyst Corp",
+              "status": "performing",
+              "months_elapsed": 0,
+              "term_months": 16,
+              "remaining_balance": 380000,
+              "total_interest_collected": 0.0,
+              "total_principal_repaid": 0.0
+            }
+          ],
+          "cumulative_interest": 28183.71,
+          "cumulative_losses": 0.0,
+          "cumulative_fees": 14750.0,
+          "cumulative_workout_cost": 0.0,
+          "defaults": 0,
+          "frauds_funded": 0,
+          "deep_uw_deferred": 0,
+          "deep_uw_used_this_week": 0,
+          "tokens_in": 0,
+          "tokens_out": 0,
+          "cost_usd": 0.0
+        },
+        "LND-003": {
+          "name": "Meridian Partners",
+          "model": "deepseek/deepseek-v3.2",
+          "net_pnl": 0.0,
+          "deployed": 1200000,
+          "available": 2286227.58,
+          "effective_capital": 3486227.58,
+          "deals_won": 0,
+          "deals_rejected": 0,
+          "deals_passed": 0,
+          "deals_lost": 9,
+          "active_loans": 0,
+          "active_loans_detail": [],
+          "cumulative_interest": 0.0,
+          "cumulative_losses": 0.0,
+          "cumulative_fees": 0.0,
+          "cumulative_workout_cost": 0.0,
+          "defaults": 0,
+          "frauds_funded": 0,
+          "deep_uw_deferred": 0,
+          "deep_uw_used_this_week": 0,
+          "tokens_in": 0,
+          "tokens_out": 0,
+          "cost_usd": 0.0
+        },
+        "LND-004": {
+          "name": "Pinnacle Finance",
+          "model": "qwen/qwen3-30b-a3b",
+          "net_pnl": 0.0,
+          "deployed": 880000,
+          "available": 2306107.82,
+          "effective_capital": 3186107.82,
+          "deals_won": 0,
+          "deals_rejected": 0,
+          "deals_passed": 0,
+          "deals_lost": 9,
+          "active_loans": 0,
+          "active_loans_detail": [],
+          "cumulative_interest": 0.0,
+          "cumulative_losses": 0.0,
+          "cumulative_fees": 0.0,
+          "cumulative_workout_cost": 0.0,
+          "defaults": 0,
+          "frauds_funded": 0,
+          "deep_uw_deferred": 0,
+          "deep_uw_used_this_week": 0,
+          "tokens_in": 0,
+          "tokens_out": 0,
+          "cost_usd": 0.0
+        },
+        "LND-005": {
+          "name": "Atlas Credit",
+          "model": "meta-llama/llama-3.3-70b-instruct",
+          "net_pnl": 15119.29,
+          "deployed": 1385726.35,
+          "available": 2414342.11,
+          "effective_capital": 3800068.46,
+          "deals_won": 1,
+          "deals_rejected": 0,
+          "deals_passed": 0,
+          "deals_lost": 8,
+          "active_loans": 1,
+          "active_loans_detail": [
+            {
+              "loan_id": "LOAN-003",
+              "borrower_id": "BRW-013",
+              "borrower_name": "IronClad Manufacturing",
+              "status": "performing",
+              "months_elapsed": 4,
+              "term_months": 18,
+              "remaining_balance": 315726.35,
+              "total_interest_collected": 11119.29,
+              "total_principal_repaid": 84273.65
+            }
+          ],
+          "cumulative_interest": 11119.29,
+          "cumulative_losses": 0.0,
+          "cumulative_fees": 4000.0,
+          "cumulative_workout_cost": 0.0,
+          "defaults": 0,
+          "frauds_funded": 0,
+          "deep_uw_deferred": 0,
+          "deep_uw_used_this_week": 0,
+          "tokens_in": 0,
+          "tokens_out": 0,
+          "cost_usd": 0.0
+        }
+      }
+    },
+    {
+      "week": 4,
+      "final_resolution": true,
+      "borrowers": [],
+      "decisions": [],
+      "booked_loans": [],
+      "events": [
+        "REPAID: NovaBio Labs (Bio-Synthetics) \u2014 $41,323 total interest [Heritage Trust Bank]",
+        "REPAID: Metro Print & Design (Print Services) \u2014 $31,650 total interest [Heritage Trust Bank]",
+        "REPAID: PixelForge Studios (Digital Media) \u2014 $48,360 total interest [Heritage Trust Bank]",
+        "REPAID: Silverline HVAC Services (Construction Services) \u2014 $22,549 total interest [Heritage Trust Bank]",
+        "REPAID: Keystone Legal Tech (Legal Technology) \u2014 $16,760 total interest [Heritage Trust Bank]",
+        "REPAID: Catalyst Dynamics (Urban Agriculture) \u2014 $14,535 total interest [Heritage Trust Bank]",
+        "REPAID: Meridian Labs (Furniture Manufacturing) \u2014 $48,646 total interest [Heritage Trust Bank]",
+        "REPAID: Catalyst Corp (Property Services) \u2014 $19,781 total interest [Heritage Trust Bank]",
+        "REPAID: IronClad Manufacturing (Advanced Manufacturing) \u2014 $29,268 total interest [Atlas Credit]"
+      ],
+      "lender_snapshots": {
+        "LND-001": {
+          "name": "Velocity Capital",
+          "model": "openai/gpt-4.1-nano",
+          "net_pnl": 0.0,
+          "deployed": 1180000,
+          "available": 1809101.83,
+          "effective_capital": 2989101.83,
+          "deals_won": 0,
+          "deals_rejected": 0,
+          "deals_passed": 0,
+          "deals_lost": 9,
+          "active_loans": 0,
+          "active_loans_detail": [],
+          "cumulative_interest": 0.0,
+          "cumulative_losses": 0.0,
+          "cumulative_fees": 0.0,
+          "cumulative_workout_cost": 0.0,
+          "defaults": 0,
+          "frauds_funded": 0,
+          "deep_uw_deferred": 0,
+          "tokens_in": 0,
+          "tokens_out": 0,
+          "cost_usd": 0.0
+        },
+        "LND-002": {
+          "name": "Heritage Trust Bank",
+          "model": "mistralai/mistral-small-3.2-24b-instruct",
+          "net_pnl": 269454.46,
+          "deployed": 1500000.0,
+          "available": 2758096.77,
+          "effective_capital": 4258096.77,
+          "deals_won": 8,
+          "deals_rejected": 0,
+          "deals_passed": 0,
+          "deals_lost": 1,
+          "active_loans": 0,
+          "active_loans_detail": [],
+          "cumulative_interest": 243604.46,
+          "cumulative_losses": 0.0,
+          "cumulative_fees": 25850.0,
+          "cumulative_workout_cost": 0.0,
+          "defaults": 0,
+          "frauds_funded": 0,
+          "deep_uw_deferred": 0,
+          "tokens_in": 0,
+          "tokens_out": 0,
+          "cost_usd": 0.0
+        },
+        "LND-003": {
+          "name": "Meridian Partners",
+          "model": "deepseek/deepseek-v3.2",
+          "net_pnl": 0.0,
+          "deployed": 1200000,
+          "available": 2286227.58,
+          "effective_capital": 3486227.58,
+          "deals_won": 0,
+          "deals_rejected": 0,
+          "deals_passed": 0,
+          "deals_lost": 9,
+          "active_loans": 0,
+          "active_loans_detail": [],
+          "cumulative_interest": 0.0,
+          "cumulative_losses": 0.0,
+          "cumulative_fees": 0.0,
+          "cumulative_workout_cost": 0.0,
+          "defaults": 0,
+          "frauds_funded": 0,
+          "deep_uw_deferred": 0,
+          "tokens_in": 0,
+          "tokens_out": 0,
+          "cost_usd": 0.0
+        },
+        "LND-004": {
+          "name": "Pinnacle Finance",
+          "model": "qwen/qwen3-30b-a3b",
+          "net_pnl": 0.0,
+          "deployed": 880000,
+          "available": 2306107.82,
+          "effective_capital": 3186107.82,
+          "deals_won": 0,
+          "deals_rejected": 0,
+          "deals_passed": 0,
+          "deals_lost": 9,
+          "active_loans": 0,
+          "active_loans_detail": [],
+          "cumulative_interest": 0.0,
+          "cumulative_losses": 0.0,
+          "cumulative_fees": 0.0,
+          "cumulative_workout_cost": 0.0,
+          "defaults": 0,
+          "frauds_funded": 0,
+          "deep_uw_deferred": 0,
+          "tokens_in": 0,
+          "tokens_out": 0,
+          "cost_usd": 0.0
+        },
+        "LND-005": {
+          "name": "Atlas Credit",
+          "model": "meta-llama/llama-3.3-70b-instruct",
+          "net_pnl": 33268.22,
+          "deployed": 1070000.0,
+          "available": 2748217.39,
+          "effective_capital": 3818217.39,
+          "deals_won": 1,
+          "deals_rejected": 0,
+          "deals_passed": 0,
+          "deals_lost": 8,
+          "active_loans": 0,
+          "active_loans_detail": [],
+          "cumulative_interest": 29268.22,
+          "cumulative_losses": 0.0,
+          "cumulative_fees": 4000.0,
+          "cumulative_workout_cost": 0.0,
+          "defaults": 0,
+          "frauds_funded": 0,
+          "deep_uw_deferred": 0,
+          "tokens_in": 0,
+          "tokens_out": 0,
+          "cost_usd": 0.0
+        }
+      }
+    }
+  ]
+}

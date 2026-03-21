@@ -17,9 +17,8 @@ from pathlib import Path
 
 import httpx
 
-from .agent_budget import BudgetTracker, preflight_budget, provision_key
+from agent_preflight import BudgetTracker, EventLogger, preflight, provision_key
 from .agent_eject import default_eject_policies
-from .agent_events import EventLogger
 from .agent_loop import AgentLoopConfig, AgentLoopResult, run_agent_loop
 from .agent_tasks import get_task
 from .custom_tools import LenderToolkit
@@ -285,7 +284,13 @@ async def run_agent_sim(
         model_ids = list(dict.fromkeys(
             config.los_model or lender.model for lender in lenders
         ))
-        preflight_budget(admin_key, or_key, model_ids, config.budget_usd)
+        preflight(
+            admin_key=admin_key,
+            or_key=or_key,
+            models=model_ids,
+            budget_per_model=config.budget_usd,
+            site_name="loanville",
+        )
         for lender in lenders:
             model = config.los_model or lender.model
             if model not in provisioned_keys:

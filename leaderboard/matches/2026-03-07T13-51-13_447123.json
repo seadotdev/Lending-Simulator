@@ -1,0 +1,289 @@
+{
+  "match_id": "2026-03-07T13-51-13_447123",
+  "timestamp_utc": "2026-03-07T13:51:13Z",
+  "mock": true,
+  "mix": "season-realistic-week-01",
+  "n_borrowers": 3,
+  "models": [
+    {
+      "model_id": "openai/gpt-4.1-nano",
+      "display_name": "Velocity Capital"
+    },
+    {
+      "model_id": "mistralai/mistral-small-3.2-24b-instruct",
+      "display_name": "Heritage Trust Bank"
+    },
+    {
+      "model_id": "deepseek/deepseek-v3.2",
+      "display_name": "Meridian Partners"
+    },
+    {
+      "model_id": "qwen/qwen3-30b-a3b",
+      "display_name": "Pinnacle Finance"
+    },
+    {
+      "model_id": "meta-llama/llama-3.3-70b-instruct",
+      "display_name": "Atlas Credit"
+    }
+  ],
+  "results": [
+    {
+      "model_id": "openai/gpt-4.1-nano",
+      "lender_id": "LND-001",
+      "lender_persona": "Velocity Capital",
+      "raroc_score": 0.0,
+      "deals_won": 0,
+      "deals_rejected": 3,
+      "deals_errored": 0,
+      "frauds_funded": 0,
+      "defaults": 0,
+      "deployed": 0,
+      "net_pnl": 0.0,
+      "confusion_matrix": {
+        "good": {
+          "approved": 3,
+          "rejected": 0
+        },
+        "bad": {
+          "approved": 0,
+          "rejected": 0
+        },
+        "fraud": {
+          "approved": 0,
+          "rejected": 0
+        }
+      },
+      "per_borrower": {
+        "BRW-002": {
+          "decision_state": "lost",
+          "ground_truth": "good",
+          "utility": 30000.0,
+          "rate_offered": 14.17
+        },
+        "BRW-029": {
+          "decision_state": "lost",
+          "ground_truth": "good",
+          "utility": 25000.0,
+          "rate_offered": 13.33
+        },
+        "BRW-013": {
+          "decision_state": "lost",
+          "ground_truth": "good",
+          "utility": 40000.0,
+          "rate_offered": 14.14
+        }
+      },
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "cost_usd": 0.0
+    },
+    {
+      "model_id": "mistralai/mistral-small-3.2-24b-instruct",
+      "lender_id": "LND-002",
+      "lender_persona": "Heritage Trust Bank",
+      "raroc_score": 7.9161157457514495,
+      "deals_won": 2,
+      "deals_rejected": 1,
+      "deals_errored": 0,
+      "frauds_funded": 0,
+      "defaults": 0,
+      "deployed": 550000,
+      "net_pnl": 43538.63660163297,
+      "confusion_matrix": {
+        "good": {
+          "approved": 3,
+          "rejected": 0
+        },
+        "bad": {
+          "approved": 0,
+          "rejected": 0
+        },
+        "fraud": {
+          "approved": 0,
+          "rejected": 0
+        }
+      },
+      "per_borrower": {
+        "BRW-002": {
+          "decision_state": "won",
+          "ground_truth": "good",
+          "utility": 24732.075727381012,
+          "rate_offered": 9.07
+        },
+        "BRW-029": {
+          "decision_state": "won",
+          "ground_truth": "good",
+          "utility": 18806.560874251958,
+          "rate_offered": 8.87
+        },
+        "BRW-013": {
+          "decision_state": "lost",
+          "ground_truth": "good",
+          "utility": 40000.0,
+          "rate_offered": 9.19
+        }
+      },
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "cost_usd": 0.0
+    },
+    {
+      "model_id": "deepseek/deepseek-v3.2",
+      "lender_id": "LND-003",
+      "lender_persona": "Meridian Partners",
+      "raroc_score": 0.0,
+      "deals_won": 0,
+      "deals_rejected": 3,
+      "deals_errored": 0,
+      "frauds_funded": 0,
+      "defaults": 0,
+      "deployed": 0,
+      "net_pnl": 0.0,
+      "confusion_matrix": {
+        "good": {
+          "approved": 3,
+          "rejected": 0
+        },
+        "bad": {
+          "approved": 0,
+          "rejected": 0
+        },
+        "fraud": {
+          "approved": 0,
+          "rejected": 0
+        }
+      },
+      "per_borrower": {
+        "BRW-002": {
+          "decision_state": "lost",
+          "ground_truth": "good",
+          "utility": 30000.0,
+          "rate_offered": 12.03
+        },
+        "BRW-029": {
+          "decision_state": "lost",
+          "ground_truth": "good",
+          "utility": 25000.0,
+          "rate_offered": 10.55
+        },
+        "BRW-013": {
+          "decision_state": "lost",
+          "ground_truth": "good",
+          "utility": 40000.0,
+          "rate_offered": 11.22
+        }
+      },
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "cost_usd": 0.0
+    },
+    {
+      "model_id": "qwen/qwen3-30b-a3b",
+      "lender_id": "LND-004",
+      "lender_persona": "Pinnacle Finance",
+      "raroc_score": 0.0,
+      "deals_won": 0,
+      "deals_rejected": 3,
+      "deals_errored": 0,
+      "frauds_funded": 0,
+      "defaults": 0,
+      "deployed": 0,
+      "net_pnl": 0.0,
+      "confusion_matrix": {
+        "good": {
+          "approved": 3,
+          "rejected": 0
+        },
+        "bad": {
+          "approved": 0,
+          "rejected": 0
+        },
+        "fraud": {
+          "approved": 0,
+          "rejected": 0
+        }
+      },
+      "per_borrower": {
+        "BRW-002": {
+          "decision_state": "lost",
+          "ground_truth": "good",
+          "utility": 30000.0,
+          "rate_offered": 11.81
+        },
+        "BRW-029": {
+          "decision_state": "lost",
+          "ground_truth": "good",
+          "utility": 25000.0,
+          "rate_offered": 13.02
+        },
+        "BRW-013": {
+          "decision_state": "lost",
+          "ground_truth": "good",
+          "utility": 40000.0,
+          "rate_offered": 12.94
+        }
+      },
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "cost_usd": 0.0
+    },
+    {
+      "model_id": "meta-llama/llama-3.3-70b-instruct",
+      "lender_id": "LND-005",
+      "lender_persona": "Atlas Credit",
+      "raroc_score": 4.840443509742401,
+      "deals_won": 1,
+      "deals_rejected": 2,
+      "deals_errored": 0,
+      "frauds_funded": 0,
+      "defaults": 0,
+      "deployed": 400000,
+      "net_pnl": 19361.774038969605,
+      "confusion_matrix": {
+        "good": {
+          "approved": 3,
+          "rejected": 0
+        },
+        "bad": {
+          "approved": 0,
+          "rejected": 0
+        },
+        "fraud": {
+          "approved": 0,
+          "rejected": 0
+        }
+      },
+      "per_borrower": {
+        "BRW-002": {
+          "decision_state": "lost",
+          "ground_truth": "good",
+          "utility": 30000.0,
+          "rate_offered": 9.81
+        },
+        "BRW-029": {
+          "decision_state": "lost",
+          "ground_truth": "good",
+          "utility": 25000.0,
+          "rate_offered": 9.11
+        },
+        "BRW-013": {
+          "decision_state": "won",
+          "ground_truth": "good",
+          "utility": 19361.774038969605,
+          "rate_offered": 9.05
+        }
+      },
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "cost_usd": 0.0
+    }
+  ],
+  "validation": {
+    "valid": false,
+    "errors": [
+      "Only 3 borrowers (minimum 5)"
+    ]
+  },
+  "season_week": 1,
+  "season_match_type": "weekly"
+}
