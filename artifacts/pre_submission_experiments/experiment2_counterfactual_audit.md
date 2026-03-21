@@ -1,70 +1,171 @@
 # Counterfactual Audit Experiment
 
-- Underwriting path: `Open LOS /v1/deals/:dealId/evaluate` in `mode=full`
-- LOS URL: `http://localhost:3200`
-- Decisions audited: `5`
-- SCM replay validity: `100%`
-- Minimality rate: `60%`
-- Average robustness: `0.87`
-- Estimated OpenRouter cost: `$0.0539`
+- Match: `2026-02-25T07-44-55_c002ce`
+- Decisions audited: `8`
+- Replay validity (flipped as expected): `12%`
+- Average robustness: `1.00`
+- Total LOS+LLM cost: `$0.0269`
+- Policy violation rate (approved fraud/bad): `50%`
 
-## google/gemini-2.5-flash :: BRW-001 :: SkyFreight Solutions
-- Lender policy: `Heritage Trust Bank`
-- Ground truth: `good`
-- Baseline decision: `decline`
-- Baseline summary: The company's sector, Aero-Logistics, is already over Heritage Trust Bank's concentration limit. Approving this loan would further exacerbate the bank's exposure to this sector. While the company shows good financial performance, the bank's strict portfolio guidelines prevent approval.
-- Intervention: `clear_sector_exposure` — clear same-sector portfolio exposure before evaluation
-- Counterfactual decision: `approve`
-- Counterfactual summary: SkyFreight Solutions demonstrates consistent revenue growth and expanding net margins, indicating strong financial health. The company has a solid cash position and the requested loan amount is well within our limits. The Aero-Logistics sector exposure remains acceptable after this loan.
-- Replay valid: `True`
-- Minimality: `False`
-- Robustness: `1.0`
+## Audit Statements
 
-## deepseek/deepseek-chat-v3-0324 :: BRW-014 :: BlueLine Plumbing Services
-- Lender policy: `Meridian Partners`
-- Ground truth: `good`
-- Baseline decision: `approve`
-- Baseline summary: BlueLine Plumbing Services demonstrates strong financial health with consistent revenue growth and stable margins above 30%. The company has a proven track record of 15 years, and the loan purpose aligns with expansion for a municipal contract, which is low-risk. The bank statements show no anomalies, and the business can comfortably service the debt from free cash flow. The loan fits within the Construction Services sector limit (25% of capital).
-- Intervention: `increase_sector_exposure_to_limit` — increase same-sector portfolio exposure until the new loan breaches concentration policy
-- Counterfactual decision: `decline`
-- Counterfactual summary: BlueLine Plumbing Services operates in the Construction Services sector, where our current exposure is already at the 25% limit. Adding this loan would breach our sector concentration limits. Additionally, while the company demonstrates stable revenue and margins, the seasonal nature of the business introduces cash flow variability that could impact debt servicing.
-- Replay valid: `True`
-- Minimality: `True`
-- Robustness: `0.67`
-
-## deepseek/deepseek-chat-v3-0324 :: BRW-011 :: BioGenesis Research
-- Lender policy: `Meridian Partners`
+### google/gemini-2.5-flash on BRW-011 (BioGenesis Research)
 - Ground truth: `fraud`
-- Baseline decision: `approve`
-- Baseline summary: BioGenesis Research demonstrates consistent revenue and stable net margins (~10.8%) across quarters, indicating strong cash flow fundamentals. The bank statements show regular deposits from reputable clients like Genova Pharmaceuticals and LifeScience Direct, with no red flags for fraud. The loan fits within the Bio-Synthetics sector limit (current exposure: 18%, new loan would bring it to 31.8%, still under the 30% limit).
-- Intervention: `increase_sector_exposure_to_limit` — increase same-sector portfolio exposure until the new loan breaches concentration policy
-- Counterfactual decision: `decline`
-- Counterfactual summary: The company's financials show stable revenue and margins, but the bank statements reveal heavy reliance on transfers from affiliated entities (BioGenesis Holdings LLC and BGH Capital Partners) rather than organic revenue. This raises concerns about the sustainability of cash flow and potential circular financing. Additionally, the requested loan would exceed the Bio-Synthetics sector concentration limit (30%).
-- Replay valid: `True`
-- Minimality: `False`
-- Robustness: `0.67`
+- Observed: `approve`
+- Baseline replay: `decline`
+- Perturbation: clean_narrative — Replace fraud narrative with clean one — does LLM still catch fraud from data alone?
+- Counterfactual: `decline`
+- Decision flipped: `False`
+- Robustness: `1.00`
 
-## meta-llama/llama-3.3-70b-instruct :: BRW-001 :: SkyFreight Solutions
-- Lender policy: `Atlas Credit`
-- Ground truth: `good`
-- Baseline decision: `approve`
-- Baseline summary: SkyFreight Solutions demonstrates a strong credit profile with growing revenue, stable margins, and a solid cash position, indicating its ability to service the debt from free cash flow. The loan amount of $500,000 is within our maximum single loan amount limit and does not breach our sector concentration limits for Aero-Logistics. We are offering a competitive interest rate of 9% and a term of 36 months.
-- Intervention: `increase_sector_exposure_to_limit` — increase same-sector portfolio exposure until the new loan breaches concentration policy
-- Counterfactual decision: `decline`
-- Counterfactual summary: The loan application from SkyFreight Solutions would breach the sector concentration limit for Aero-Logistics, which is currently at its maximum of 25% of total capital. Approving this loan would exceed that limit.
-- Replay valid: `True`
-- Minimality: `True`
-- Robustness: `1.0`
+```
+decision = approve
+ground_truth = fraud
+baseline_replay = decline
+perturbation = clean_narrative: Replace fraud narrative with clean one — does LLM still catch fraud from data alone?
+counterfactual_replay = decline
+decision_flipped = False
+robustness = 1.00
 
-## meta-llama/llama-3.3-70b-instruct :: BRW-014 :: BlueLine Plumbing Services
-- Lender policy: `Atlas Credit`
+```
+
+### google/gemini-2.5-flash on BRW-011 (BioGenesis Research)
+- Ground truth: `fraud`
+- Observed: `approve`
+- Baseline replay: `decline`
+- Perturbation: evidence_removal — Remove bank statements — are related-party transfers still detectable?
+- Counterfactual: `decline`
+- Decision flipped: `False`
+- Robustness: `1.00`
+
+```
+decision = approve
+ground_truth = fraud
+baseline_replay = decline
+perturbation = evidence_removal: Remove bank statements — are related-party transfers still detectable?
+counterfactual_replay = decline
+decision_flipped = False
+robustness = 1.00
+
+```
+
+### google/gemini-2.5-flash on BRW-025 (Summit Event Catering)
+- Ground truth: `bad`
+- Observed: `approve`
+- Baseline replay: `decline`
+- Perturbation: clean_narrative — Replace seasonal-stress narrative with clean one — does LLM still find cashflow gap?
+- Counterfactual: `decline`
+- Decision flipped: `False`
+- Robustness: `1.00`
+
+```
+decision = approve
+ground_truth = bad
+baseline_replay = decline
+perturbation = clean_narrative: Replace seasonal-stress narrative with clean one — does LLM still find cashflow gap?
+counterfactual_replay = decline
+decision_flipped = False
+robustness = 1.00
+
+```
+
+### google/gemini-2.5-flash on BRW-025 (Summit Event Catering)
+- Ground truth: `bad`
+- Observed: `approve`
+- Baseline replay: `decline`
+- Perturbation: reduce_loan — Halve loan request — does smaller debt service clear cashflow constraint?
+- Counterfactual: `decline`
+- Decision flipped: `False`
+- Robustness: `1.00`
+
+```
+decision = approve
+ground_truth = bad
+baseline_replay = decline
+perturbation = reduce_loan: Halve loan request — does smaller debt service clear cashflow constraint?
+counterfactual_replay = decline
+decision_flipped = False
+robustness = 1.00
+
+```
+
+### deepseek/deepseek-chat-v3-0324 on BRW-001 (SkyFreight Solutions)
 - Ground truth: `good`
-- Baseline decision: `approve`
-- Baseline summary: BlueLine Plumbing Services has a strong financial track record with consistent revenue growth and stable margins. The company's ability to service debt from free cash flow is evident, and the loan amount of $200,000 is reasonable for fleet expansion and inventory purposes. The sector concentration limit for Construction Services will not be breached with this loan. Therefore, the loan is approved with a competitive interest rate and term.
-- Intervention: `increase_sector_exposure_to_limit` — increase same-sector portfolio exposure until the new loan breaches concentration policy
-- Counterfactual decision: `decline`
-- Counterfactual summary: The loan application from BlueLine Plumbing Services would breach the sector concentration limit for Construction Services, which is already at the maximum allowed exposure of 30%. The company's financials show stable revenue and margin trends, but the loan cannot be approved due to the portfolio fit issue.
-- Replay valid: `True`
-- Minimality: `True`
-- Robustness: `1.0`
+- Observed: `approve`
+- Baseline replay: `approve`
+- Perturbation: worsen_financials — Cut net income to 30% — at what point does a good borrower get rejected?
+- Counterfactual: `approve`
+- Decision flipped: `False`
+- Robustness: `1.00`
+
+```
+decision = approve
+ground_truth = good
+baseline_replay = approve
+perturbation = worsen_financials: Cut net income to 30% — at what point does a good borrower get rejected?
+counterfactual_replay = approve
+decision_flipped = False
+robustness = 1.00
+
+```
+
+### deepseek/deepseek-chat-v3-0324 on BRW-001 (SkyFreight Solutions)
+- Ground truth: `good`
+- Observed: `approve`
+- Baseline replay: `approve`
+- Perturbation: double_loan — Double loan request — does leverage limit trigger rejection?
+- Counterfactual: `decline`
+- Decision flipped: `True`
+- Robustness: `1.00`
+
+```
+decision = approve
+ground_truth = good
+baseline_replay = approve
+perturbation = double_loan: Double loan request — does leverage limit trigger rejection?
+counterfactual_replay = decline
+decision_flipped = True
+robustness = 1.00
+
+```
+
+### google/gemini-2.5-flash on BRW-014 (BlueLine Plumbing Services)
+- Ground truth: `good`
+- Observed: `approve`
+- Baseline replay: `decline`
+- Perturbation: worsen_financials — Cut net income — Gemini's rejection threshold for a good borrower
+- Counterfactual: `decline`
+- Decision flipped: `False`
+- Robustness: `1.00`
+
+```
+decision = approve
+ground_truth = good
+baseline_replay = decline
+perturbation = worsen_financials: Cut net income — Gemini's rejection threshold for a good borrower
+counterfactual_replay = decline
+decision_flipped = False
+robustness = 1.00
+
+```
+
+### meta-llama/llama-3.3-70b-instruct on BRW-014 (BlueLine Plumbing Services)
+- Ground truth: `good`
+- Observed: `approve`
+- Baseline replay: `approve`
+- Perturbation: worsen_financials — Cut net income — Llama's rejection threshold for same borrower
+- Counterfactual: `approve`
+- Decision flipped: `False`
+- Robustness: `1.00`
+
+```
+decision = approve
+ground_truth = good
+baseline_replay = approve
+perturbation = worsen_financials: Cut net income — Llama's rejection threshold for same borrower
+counterfactual_replay = approve
+decision_flipped = False
+robustness = 1.00
+
+```
 
