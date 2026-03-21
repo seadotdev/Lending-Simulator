@@ -152,14 +152,14 @@ def run_model_container(
     run_dir: Path,
     admin_key: str,
     budget_usd: float,
-    budget_urgency: bool = True,
+    budget_urgency: bool = False,
 ) -> dict:
     """Spawn a Docker container for one model, stream events, monitor budget.
 
     Args:
-        budget_urgency: If True (default), inject urgency-aware budget messages
+        budget_urgency: If True, inject urgency-aware budget messages
             (CRITICAL/WARNING) as the agent approaches its budget limit.
-            If False, use a plain balance-remaining format.
+            If False (default), use a plain balance-remaining format.
     """
     model_dir = run_dir / alias
     workspace = model_dir / "workspace"
@@ -472,12 +472,12 @@ def run_agent_docker(
     admin_key: str,
     or_key: str,
     parallel: bool = True,
-    budget_urgency: bool = True,
+    budget_urgency: bool = False,
 ) -> list[dict]:
     """Run all models in Docker containers, optionally in parallel.
 
     Args:
-        budget_urgency: If True (default), inject urgency-aware budget messages.
+        budget_urgency: If True, inject urgency-aware budget messages.
     """
     run_id = f"docker-{datetime.now().strftime('%Y%m%d-%H%M%S')}"
     run_dir = RUNS_DIR / run_id
