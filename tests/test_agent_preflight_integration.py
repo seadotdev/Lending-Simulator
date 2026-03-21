@@ -208,6 +208,14 @@ class TestBudgetReExports:
         assert provision_key_full is not None
         assert delete_key is not None
 
+    def test_v02_exports_available(self):
+        """v0.2.0 exports: CacheMetrics, CacheStats, PreflightError, RunResult."""
+        from loanville.agent_budget import CacheMetrics, CacheStats, PreflightError, RunResult
+        assert CacheMetrics is not None
+        assert CacheStats is not None
+        assert PreflightError is not None
+        assert RunResult is not None
+
 
 class TestEjectReExports:
     """Library eject classes available through Loanville's agent_eject."""
@@ -223,6 +231,61 @@ class TestEjectReExports:
         assert BudgetFractionEject is not None
         assert CompositeEject is not None
         assert IdleTimeoutEject is not None
+
+    def test_library_default_eject_policies_re_exported(self):
+        from loanville.agent_eject import library_default_eject_policies
+        from agent_preflight import CompositeEject
+
+        policies = library_default_eject_policies()
+        assert isinstance(policies, CompositeEject)
+
+
+class TestLibraryDefaultEjectPolicies:
+    """The library's default_eject_policies (budget+idle) work for Docker runs."""
+
+    def test_budget_exceeded_ejects(self):
+        from agent_preflight import default_eject_policies
+
+        composite = default_eject_policies()
+        result = composite.check(
+            elapsed_s=10.0,
+            budget_status=BudgetStatus(used=0.25, limit=0.25),
+            events=[],
+            context={},
+        )
+        assert result.should_eject
+        assert "budget" in result.reason.lower()
+
+    def test_idle_timeout_ejects(self):
+        import time
+        from agent_preflight import default_eject_policies
+
+        composite = default_eject_policies(idle_timeout_s=0.01)
+        # Simulate idle
+        for p in composite.policies:
+            if hasattr(p, "_last_event_ts"):
+                p._last_event_ts = time.time() - 1
+
+        result = composite.check(
+            elapsed_s=100.0,
+            budget_status=BudgetStatus(used=0.01, limit=0.25),
+            events=[],
+            context={},
+        )
+        assert result.should_eject
+        assert "no events" in result.reason
+
+    def test_no_eject_when_healthy(self):
+        from agent_preflight import default_eject_policies
+
+        composite = default_eject_policies()
+        result = composite.check(
+            elapsed_s=10.0,
+            budget_status=BudgetStatus(used=0.01, limit=0.25),
+            events=[{"type": "tool"}],
+            context={},
+        )
+        assert not result.should_eject
 
 
 class TestEventLoggerReExport:
@@ -430,3 +493,75 @@ class TestPreflightCallable:
             raise_on_failure=False,
         )
         assert failures == []
+
+    @patch("agent_preflight.preflight.get_account_balance", return_value=(0.01, 0.01, 0.00))
+    def test_preflight_raises_preflight_error(self, mock_balance):
+        from loanville.agent_budget import preflight_budget, PreflightError
+
+        with pytest.raises(PreflightError) as exc_info:
+            preflight_budget(
+                admin_key="sk-admin-test",
+                or_key="sk-test",
+                models=["openai/gpt-4.1-nano"],
+                budget_per_model=5.00,
+                checks=["balance", "math"],
+            )
+        assert len(exc_info.value.failures) > 0
+
+
+# ---------------------------------------------------------------------------
+# CacheMetrics tests
+# ---------------------------------------------------------------------------
+
+
+class TestCacheMetrics:
+    """CacheMetrics tracks prompt cache performance."""
+
+    def test_empty_metrics(self):
+        from loanville.agent_budget import CacheMetrics
+
+        m = CacheMetrics()
+        assert m.hit_rate == 0.0
+        assert m.request_count == 0
+        assert "no requests" in m.summary()
+
+    def test_record_openrouter_format(self):
+        from loanville.agent_budget import CacheMetrics
+
+        m = CacheMetrics()
+        m.record({
+            "prompt_tokens": 2000,
+            "completion_tokens": 100,
+            "prompt_tokens_details": {
+                "cached_tokens": 1800,
+                "cache_write_tokens": 200,
+            },
+        })
+        assert m.request_count == 1
+        assert m.cached_tokens == 1800
+        assert m.cache_creation_tokens == 200
+        assert m.hit_rate == pytest.approx(0.90)
+        assert m.cache_hit_requests == 1
+
+    def test_record_anthropic_native_format(self):
+        from loanville.agent_budget import CacheMetrics
+
+        m = CacheMetrics()
+        m.record({
+            "prompt_tokens": 1000,
+            "completion_tokens": 50,
+            "cache_read_input_tokens": 800,
+            "cache_creation_input_tokens": 200,
+        })
+        assert m.cached_tokens == 800
+        assert m.cache_creation_tokens == 200
+
+    def test_to_dict(self):
+        from loanville.agent_budget import CacheMetrics
+
+        m = CacheMetrics()
+        m.record({"prompt_tokens": 100, "completion_tokens": 10})
+        d = m.to_dict()
+        assert "hit_rate" in d
+        assert "request_count" in d
+        assert d["request_count"] == 1

@@ -24,7 +24,7 @@ import httpx
 
 load_dotenv()
 
-from agent_preflight import BudgetTracker, EjectDecision, EjectPolicy, EventLogger
+from agent_preflight import BudgetStatus, BudgetTracker, EjectDecision, EjectPolicy, EventLogger
 from .agent_prompts import build_system_prompt, build_task_prompt
 from .custom_tools import LenderToolkit
 from .executors import CLIExecutor, REPLExecutor, ToolCallExecutor, extract_los_commands
@@ -272,7 +272,6 @@ async def run_agent_loop(
                     "max_turns": config.max_turns,
                     "los_state": los_dict,
                 }
-                from agent_preflight import BudgetStatus
                 eject_budget = (
                     budget.poll() if budget
                     else BudgetStatus(used=0, limit=1)

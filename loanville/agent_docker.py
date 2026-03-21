@@ -12,10 +12,8 @@ from __future__ import annotations
 
 import json
 import logging
-import os
 import select
 import subprocess
-import sys
 import threading
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -25,10 +23,13 @@ from pathlib import Path
 from agent_preflight import (
     BudgetTracker,
     EventLogger,
-    get_account_balance,
+    build_image as ap_build_image,
+    default_eject_policies,
     get_usage,
+    image_exists,
     preflight,
     provision_key,
+    remove_container,
 )
 from .data import get_borrowers, get_lenders
 from .agent_tasks import get_task
@@ -78,27 +79,7 @@ def _make_logger(log_path: Path, alias: str):
 # ---------------------------------------------------------------------------
 
 def build_image() -> None:
-    print(f"Building Docker image {IMAGE_NAME}...")
-    result = subprocess.run(
-        ["docker", "build", "-t", IMAGE_NAME, "-f", "docker/agent/Dockerfile", "."],
-        cwd=REPO_ROOT,
-    )
-    if result.returncode != 0:
-        print("Docker build failed.", file=sys.stderr)
-        sys.exit(1)
-    print("Image built.\n")
-
-
-def _image_exists() -> bool:
-    r = subprocess.run(
-        ["docker", "image", "inspect", IMAGE_NAME],
-        capture_output=True, text=True,
-    )
-    return r.returncode == 0
-
-
-def _remove_container(name: str) -> None:
-    subprocess.run(["docker", "rm", "-f", name], capture_output=True)
+    ap_build_image(IMAGE_NAME, dockerfile="docker/agent/Dockerfile", context=str(REPO_ROOT))
 
 
 # ---------------------------------------------------------------------------
@@ -177,7 +158,7 @@ def run_model_container(
     tlog(f"{'='*60}\n")
 
     container_name = f"lv-agent-{alias}-{borrower.id[:8]}"
-    _remove_container(container_name)
+    remove_container(container_name)
 
     # Render per-run task document
     task_doc = _render_task_doc(borrower, task_prompt, los_url, tenant_id)
@@ -236,55 +217,45 @@ def run_model_container(
         proc.stdin.flush()
 
         tlog("  Prompt sent. Streaming events...")
-        last_event_ts = time.time()
-        last_budget_poll_ts = time.time()
-        last_injected_usage: float | None = None
         tool_call_count = 0
         has_deal = False
 
+        tracker = BudgetTracker(
+            api_key=model_key,
+            limit_usd=budget_usd,
+            poll_interval_s=BUDGET_POLL_INTERVAL_S,
+        )
+        eject_policy = default_eject_policies(idle_timeout_s=MAX_IDLE_SECS)
+        eject_events: list[dict] = []
+
         ev_logger = EventLogger(model_dir / "events.jsonl")
+        last_budget_poll_ts = time.time()
 
         while True:
-            # Idle timeout
-            if time.time() - last_event_ts > MAX_IDLE_SECS:
-                tlog(f"\n  TIMEOUT: no events for {MAX_IDLE_SECS}s, killing.")
-                proc.kill()
-                summary["error"] = "idle_timeout"
-                break
-
             # Non-blocking read
             ready, _, _ = select.select([proc.stdout], [], [], 1.0)
             if not ready:
                 if proc.poll() is not None:
                     break
 
-                # Budget polling
+                # Periodic budget poll + injection + eject check
                 if time.time() - last_budget_poll_ts >= BUDGET_POLL_INTERVAL_S:
                     last_budget_poll_ts = time.time()
-                    usage = get_usage(model_key)
-                    if usage is not None and usage != last_injected_usage:
-                        remaining = max(0.0, budget_usd - usage)
-                        pct = int(remaining / budget_usd * 100) if budget_usd > 0 else 0
-                        budget_line = f"Budget: ${remaining:.3f} remaining of ${budget_usd:.2f} ({pct}% left)"
-                        # Write budget.txt into workspace
-                        try:
-                            subprocess.run(
-                                ["docker", "exec", container_name, "sh", "-c",
-                                 f"echo '{budget_line}' > /workspace/output/budget.txt"],
-                                capture_output=True, timeout=5,
-                            )
-                        except Exception:
-                            pass
-                        last_injected_usage = usage
-                        ev_logger.log("budget_poll", usage=usage, remaining=remaining)
-                        tlog(f"  [budget] {budget_line}")
+                    status = tracker.inject_to_docker(container_name)
+                    ev_logger.log("budget_poll", used=status.used, remaining=status.remaining)
+                    tlog(f"  [budget] {status}")
 
-                        # Budget exhausted — kill
-                        if remaining <= 0:
-                            tlog(f"\n  BUDGET EXHAUSTED: ${usage:.3f} spent.")
-                            proc.kill()
-                            summary["error"] = "budget_exhausted"
-                            break
+                    decision = eject_policy.check(
+                        elapsed_s=time.time() - datetime.fromisoformat(summary["started_at"]).timestamp(),
+                        budget_status=status,
+                        events=eject_events,
+                        context={"tool_calls": tool_call_count},
+                    )
+                    if decision.should_eject:
+                        tlog(f"\n  EJECTING: {decision.reason}")
+                        proc.kill()
+                        summary["error"] = f"ejected: {decision.reason}"
+                        break
                 continue
 
             line = proc.stdout.readline()
@@ -296,7 +267,6 @@ def run_model_container(
             line = line.strip()
             if not line:
                 continue
-            last_event_ts = time.time()
 
             try:
                 event = json.loads(line)
@@ -304,6 +274,7 @@ def run_model_container(
                 event = {"type": "raw", "data": line}
 
             events.append(event)
+            eject_events.append(event)
             ev_logger.log(event.get("type", "raw"), **{
                 k: v for k, v in event.items() if k != "type"
             })
@@ -311,8 +282,12 @@ def run_model_container(
             # Print relevant events
             _print_event(event)
 
-            # Track tool calls
-            if event.get("type") == "tool_execution_end":
+            # Track tool calls and notify budget tracker
+            etype = event.get("type", "")
+            if etype == "tool_execution_start":
+                tracker.on_tool_start(event.get("toolName", ""))
+            elif etype == "tool_execution_end":
+                tracker.on_tool_end(event.get("toolName", ""))
                 tool_call_count += 1
                 result_text = str(event.get("result", ""))
 
@@ -407,13 +382,13 @@ def run_agent_docker(
     )
 
     # Build image if needed
-    if not _image_exists():
+    if not image_exists(IMAGE_NAME):
         build_image()
 
     # Clean stale containers
     for _, alias in models:
         for b in borrowers:
-            _remove_container(f"lv-agent-{alias}-{b.id[:8]}")
+            remove_container(f"lv-agent-{alias}-{b.id[:8]}")
 
     print(f"\nStarting {len(models)} model(s) x {len(borrowers)} borrower(s).")
     print(f"Run dir: {run_dir}")

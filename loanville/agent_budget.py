@@ -9,13 +9,17 @@ without import changes.
 from agent_preflight import (  # noqa: F401
     BudgetTracker,
     BudgetStatus,
+    CacheMetrics,
+    CacheStats,
+    PreflightError,
+    RunResult,
+    delete_key,
     get_account_balance,
     get_available_models,
     get_usage,
     preflight,
     provision_key,
     provision_key_full,
-    delete_key,
 )
 
 # Backwards-compat alias — old call sites use preflight_budget()

@@ -13,6 +13,7 @@ from agent_preflight import (  # noqa: F401
     EjectDecision,
     EjectPolicy,
     IdleTimeoutEject,
+    default_eject_policies as library_default_eject_policies,
 )
 from typing import Any
 
