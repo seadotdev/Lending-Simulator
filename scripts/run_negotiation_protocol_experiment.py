@@ -200,7 +200,21 @@ def try_parse_json(text: str) -> dict:
     match = re.search(r"\{.*\}", text, re.DOTALL)
     if match:
         text = match.group(0)
-    return json.loads(text)
+
+    candidates = [
+        text,
+        text.replace("\u201c", '"').replace("\u201d", '"').replace("\u2019", "'"),
+    ]
+    candidates.append(re.sub(r",\s*([}\]])", r"\1", candidates[-1]))
+    candidates.append(re.sub(r'([}\]"0-9])\s*\n\s*(")', r"\1,\n\2", candidates[-1]))
+
+    last_error: Exception | None = None
+    for candidate in candidates:
+        try:
+            return json.loads(candidate)
+        except json.JSONDecodeError as exc:
+            last_error = exc
+    raise last_error or ValueError("Could not parse JSON")
 
 
 def leak_detected(message: str) -> bool:
@@ -284,22 +298,69 @@ def estimated_tokens_cost(model: str, usage: dict) -> dict[str, float | int]:
     }
 
 
-def call_lender(model: str, api_key: str, messages: list[dict]) -> tuple[dict, dict]:
+def call_openrouter(
+    *,
+    model: str,
+    api_key: str,
+    messages: list[dict],
+    temperature: float,
+    max_tokens: int,
+) -> tuple[str, dict]:
     body = {
         "model": model,
         "messages": messages,
-        "temperature": 0.2,
-        "max_tokens": 700,
+        "temperature": temperature,
+        "max_tokens": max_tokens,
     }
     with httpx.Client(timeout=90.0) as client:
         resp = client.post(OPENROUTER_URL, headers=make_headers(api_key), json=body)
         resp.raise_for_status()
         data = resp.json()
     content = data["choices"][0]["message"]["content"]
-    parsed = try_parse_json(content)
     usage = estimated_tokens_cost(model, data.get("usage", {}))
-    usage["raw_content"] = content
-    return parsed, usage
+    return content, usage
+
+
+def call_lender(model: str, api_key: str, messages: list[dict]) -> tuple[dict, dict]:
+    content, usage = call_openrouter(
+        model=model,
+        api_key=api_key,
+        messages=messages,
+        temperature=0.2,
+        max_tokens=700,
+    )
+    try:
+        parsed = try_parse_json(content)
+        usage["raw_content"] = content
+        return parsed, usage
+    except json.JSONDecodeError:
+        repair_messages = [
+            {
+                "role": "system",
+                "content": (
+                    "Rewrite the user's content as valid JSON only. Preserve the same fields and intent. "
+                    "Do not add markdown fences or commentary."
+                ),
+            },
+            {"role": "user", "content": content},
+        ]
+        repaired_content, repair_usage = call_openrouter(
+            model=model,
+            api_key=api_key,
+            messages=repair_messages,
+            temperature=0.0,
+            max_tokens=700,
+        )
+        parsed = try_parse_json(repaired_content)
+        usage["prompt_tokens"] += repair_usage["prompt_tokens"]
+        usage["completion_tokens"] += repair_usage["completion_tokens"]
+        usage["estimated_cost_usd"] = round(
+            float(usage["estimated_cost_usd"]) + float(repair_usage["estimated_cost_usd"]),
+            6,
+        )
+        usage["raw_content"] = content
+        usage["repair_content"] = repaired_content
+        return parsed, usage
 
 
 def run_episode(
@@ -550,6 +611,10 @@ def main() -> None:
             for spec in EPISODES:
                 borrower = borrowers[spec.borrower_id]
                 for condition in ("unconstrained", "structured"):
+                    print(
+                        f"[run] model={model} episode={spec.episode_id} condition={condition}",
+                        flush=True,
+                    )
                     rows.append(
                         run_episode(
                             model=model,
@@ -558,6 +623,14 @@ def main() -> None:
                             spec=spec,
                             condition=condition,
                         )
+                    )
+                    latest = rows[-1]
+                    print(
+                        "[done] "
+                        f"model={model} episode={spec.episode_id} condition={condition} "
+                        f"action={latest['final_action']} violations={len(latest['actual_policy_violations'])} "
+                        f"cost=${latest['usage']['estimated_cost_usd']:.6f}",
+                        flush=True,
                     )
 
         summary = aggregate(rows)
