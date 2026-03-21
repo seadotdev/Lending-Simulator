@@ -493,23 +493,33 @@ def aggregate(results: list[dict]) -> dict:
     overall_policy_violations = 0
     overall_episodes = len(results)
     total_cost = 0.0
-    total_blocked = 0
+    total_blocked_lender = 0
+    total_blocked_borrower = 0
+    total_prompt_injections = 0
 
     for (model, condition), rows in grouped.items():
         violations = sum(1 for r in rows if r["actual_policy_violations"])
         utility = sum(r["utility_net_profit"] for r in rows)
         rounds = sum(r["rounds"] for r in rows) / len(rows)
-        blocked = sum(len(r["blocked_lender_attempts"]) for r in rows)
+        blocked_lender = sum(len(r["blocked_lender_attempts"]) for r in rows)
+        blocked_borrower = sum(len(r["blocked_borrower_attempts"]) for r in rows)
+        prompt_injections = sum(int(r["prompt_injection_attempts"]) for r in rows)
+        offers = sum(1 for r in rows if r["final_action"] == "conditional_offer")
         cost = sum(r["usage"]["estimated_cost_usd"] for r in rows)
         total_cost += cost
-        total_blocked += blocked
+        total_blocked_lender += blocked_lender
+        total_blocked_borrower += blocked_borrower
+        total_prompt_injections += prompt_injections
         overall_policy_violations += violations
         summary["by_model_condition"][f"{model}::{condition}"] = {
             "episodes": len(rows),
             "policy_violation_rate": round(violations / len(rows), 2),
             "completed_deal_utility_net_profit": round(utility, 2),
             "avg_rounds": round(rounds, 2),
-            "blocked_lender_violation_attempts": blocked,
+            "conditional_offers": offers,
+            "blocked_lender_violation_attempts": blocked_lender,
+            "blocked_borrower_protocol_violations": blocked_borrower,
+            "prompt_injection_attempts": prompt_injections,
             "estimated_cost_usd": round(cost, 4),
         }
 
@@ -521,20 +531,28 @@ def aggregate(results: list[dict]) -> dict:
         violations = sum(1 for r in rows if r["actual_policy_violations"])
         utility = sum(r["utility_net_profit"] for r in rows)
         rounds = sum(r["rounds"] for r in rows) / len(rows)
-        blocked = sum(len(r["blocked_lender_attempts"]) for r in rows)
+        blocked_lender = sum(len(r["blocked_lender_attempts"]) for r in rows)
+        blocked_borrower = sum(len(r["blocked_borrower_attempts"]) for r in rows)
+        prompt_injections = sum(int(r["prompt_injection_attempts"]) for r in rows)
+        offers = sum(1 for r in rows if r["final_action"] == "conditional_offer")
         condition_summary[condition] = {
             "episodes": len(rows),
             "policy_violation_rate": round(violations / len(rows), 2),
             "completed_deal_utility_net_profit": round(utility, 2),
             "avg_rounds": round(rounds, 2),
-            "blocked_lender_violation_attempts": blocked,
+            "conditional_offers": offers,
+            "blocked_lender_violation_attempts": blocked_lender,
+            "blocked_borrower_protocol_violations": blocked_borrower,
+            "prompt_injection_attempts": prompt_injections,
         }
 
     summary["overall"] = {
         "episodes": overall_episodes,
         "policy_violations": overall_policy_violations,
         "estimated_cost_usd": round(total_cost, 4),
-        "blocked_lender_violation_attempts": total_blocked,
+        "blocked_lender_violation_attempts": total_blocked_lender,
+        "blocked_borrower_protocol_violations": total_blocked_borrower,
+        "prompt_injection_attempts": total_prompt_injections,
         "by_condition": condition_summary,
     }
     return summary
@@ -562,6 +580,10 @@ def write_markdown(payload: dict, path: Path) -> None:
         f"- Structured completed-deal utility: `{sc['completed_deal_utility_net_profit']}`",
         f"- Unconstrained avg rounds: `{uc['avg_rounds']}`",
         f"- Structured avg rounds: `{sc['avg_rounds']}`",
+        f"- Unconstrained conditional offers: `{uc['conditional_offers']}`",
+        f"- Structured conditional offers: `{sc['conditional_offers']}`",
+        f"- Structured blocked borrower protocol violations: `{sc['blocked_borrower_protocol_violations']}`",
+        f"- Total prompt-injection attempts seen: `{overall['prompt_injection_attempts']}`",
         f"- Structured blocked lender attempts: `{sc['blocked_lender_violation_attempts']}`",
     ]
     if reduction is not None:
@@ -573,6 +595,9 @@ def write_markdown(payload: dict, path: Path) -> None:
         lines.append(f"- Policy violation rate: `{value['policy_violation_rate']:.0%}`")
         lines.append(f"- Completed-deal utility: `{value['completed_deal_utility_net_profit']}`")
         lines.append(f"- Avg rounds: `{value['avg_rounds']}`")
+        lines.append(f"- Conditional offers: `{value['conditional_offers']}`")
+        lines.append(f"- Blocked borrower protocol violations: `{value['blocked_borrower_protocol_violations']}`")
+        lines.append(f"- Prompt-injection attempts: `{value['prompt_injection_attempts']}`")
         lines.append(f"- Blocked lender attempts: `{value['blocked_lender_violation_attempts']}`")
         lines.append(f"- Estimated cost: `${value['estimated_cost_usd']:.4f}`")
         lines.append("")
@@ -597,6 +622,7 @@ def main() -> None:
 
     key_info: dict[str, tuple[str, str]] = {}
     try:
+        deleted_key_hashes: set[str] = set()
         for model in MODELS:
             key_info[model] = provision_key_full(
                 admin_key,
@@ -642,6 +668,7 @@ def main() -> None:
                 key_usage[model] = None
             try:
                 delete_key(admin_key, key_hash)
+                deleted_key_hashes.add(key_hash)
             except Exception:
                 pass
 
@@ -663,6 +690,8 @@ def main() -> None:
         print(f"Wrote {md_path}")
     finally:
         for model, (_api_key, key_hash) in key_info.items():
+            if key_hash in deleted_key_hashes:
+                continue
             try:
                 delete_key(admin_key, key_hash)
             except Exception:
