@@ -1,0 +1,918 @@
+{
+  "summary": {
+    "match_id": "2026-02-25T07-44-55_c002ce",
+    "n_decisions": 5,
+    "policy_violation_rate": 0.4,
+    "replay_validity": 1.0,
+    "minimality_rate": 1.0,
+    "average_robustness": 0.81
+  },
+  "cases": [
+    {
+      "model_id": "google/gemini-2.5-flash",
+      "lender_name": "Heritage Trust Bank",
+      "borrower_id": "BRW-011",
+      "borrower_name": "BioGenesis Research",
+      "ground_truth": "fraud",
+      "observed_decision": "conditional_offer",
+      "observed_rate_pct": 8.38,
+      "baseline_protocol_state": {
+        "fraud_screened": false,
+        "dscr_checked": false,
+        "leverage_checked": false,
+        "cashflow_reviewed": true,
+        "concentration_checked": true
+      },
+      "baseline_evaluation": {
+        "action": "conditional_offer",
+        "rate_pct": 8.38,
+        "metrics": {
+          "margin_pct": 10.81,
+          "dscr": 1.22,
+          "leverage": 1.505,
+          "cashflow_deficit_months": 0,
+          "fraud_related_party_flag": true,
+          "sector_exposure": 0
+        },
+        "clauses": [
+          {
+            "name": "max_single_loan",
+            "status": "pass",
+            "detail": "request=450,000, max=600,000"
+          },
+          {
+            "name": "margin_threshold",
+            "status": "pass",
+            "detail": "margin=10.81%, min=8.00%"
+          },
+          {
+            "name": "dscr_threshold",
+            "status": "pass",
+            "detail": "dscr=1.22, min=1.25"
+          },
+          {
+            "name": "leverage_threshold",
+            "status": "pass",
+            "detail": "leverage=1.51x, max=1.50x"
+          },
+          {
+            "name": "cashflow_stress",
+            "status": "pass",
+            "detail": "deficit_months=0, max=0"
+          },
+          {
+            "name": "sector_concentration",
+            "status": "pass",
+            "detail": "projected=450,000, max=1,000,000"
+          }
+        ],
+        "failed_clauses": []
+      },
+      "full_protocol_evaluation": {
+        "action": "refuse",
+        "rate_pct": 8.38,
+        "metrics": {
+          "margin_pct": 10.81,
+          "dscr": 1.22,
+          "leverage": 1.505,
+          "cashflow_deficit_months": 0,
+          "fraud_related_party_flag": true,
+          "sector_exposure": 0
+        },
+        "clauses": [
+          {
+            "name": "max_single_loan",
+            "status": "pass",
+            "detail": "request=450,000, max=600,000"
+          },
+          {
+            "name": "margin_threshold",
+            "status": "pass",
+            "detail": "margin=10.81%, min=8.00%"
+          },
+          {
+            "name": "dscr_threshold",
+            "status": "fail",
+            "detail": "dscr=1.22, min=1.25"
+          },
+          {
+            "name": "leverage_threshold",
+            "status": "fail",
+            "detail": "leverage=1.51x, max=1.50x"
+          },
+          {
+            "name": "fraud_related_party_flag",
+            "status": "fail",
+            "detail": "related_party_transfers=yes"
+          },
+          {
+            "name": "cashflow_stress",
+            "status": "pass",
+            "detail": "deficit_months=0, max=0"
+          },
+          {
+            "name": "sector_concentration",
+            "status": "pass",
+            "detail": "projected=450,000, max=1,000,000"
+          }
+        ],
+        "failed_clauses": [
+          "dscr_threshold",
+          "leverage_threshold",
+          "fraud_related_party_flag"
+        ]
+      },
+      "violated_clause": "fraud_related_party_flag",
+      "critical_missing_fact": "fraud_screened",
+      "intervention": {
+        "kind": "protocol_state",
+        "field": "fraud_screened",
+        "from": false,
+        "to": true,
+        "summary": "enable related-party transfer screening"
+      },
+      "counterfactual": "with protocol state `fraud_screened=true`, outcome changes to refuse",
+      "counterfactual_evaluation": {
+        "action": "refuse",
+        "rate_pct": 8.38,
+        "metrics": {
+          "margin_pct": 10.81,
+          "dscr": 1.22,
+          "leverage": 1.505,
+          "cashflow_deficit_months": 0,
+          "fraud_related_party_flag": true,
+          "sector_exposure": 0
+        },
+        "clauses": [
+          {
+            "name": "max_single_loan",
+            "status": "pass",
+            "detail": "request=450,000, max=600,000"
+          },
+          {
+            "name": "margin_threshold",
+            "status": "pass",
+            "detail": "margin=10.81%, min=8.00%"
+          },
+          {
+            "name": "dscr_threshold",
+            "status": "pass",
+            "detail": "dscr=1.22, min=1.25"
+          },
+          {
+            "name": "leverage_threshold",
+            "status": "pass",
+            "detail": "leverage=1.51x, max=1.50x"
+          },
+          {
+            "name": "fraud_related_party_flag",
+            "status": "fail",
+            "detail": "related_party_transfers=yes"
+          },
+          {
+            "name": "cashflow_stress",
+            "status": "pass",
+            "detail": "deficit_months=0, max=0"
+          },
+          {
+            "name": "sector_concentration",
+            "status": "pass",
+            "detail": "projected=450,000, max=1,000,000"
+          }
+        ],
+        "failed_clauses": [
+          "fraud_related_party_flag"
+        ]
+      },
+      "replay_valid": true,
+      "minimal": true,
+      "robustness": 1.0
+    },
+    {
+      "model_id": "google/gemini-2.5-flash",
+      "lender_name": "Heritage Trust Bank",
+      "borrower_id": "BRW-025",
+      "borrower_name": "Summit Event Catering",
+      "ground_truth": "bad",
+      "observed_decision": "conditional_offer",
+      "observed_rate_pct": 9.26,
+      "baseline_protocol_state": {
+        "fraud_screened": true,
+        "cashflow_reviewed": false,
+        "concentration_checked": true
+      },
+      "baseline_evaluation": {
+        "action": "conditional_offer",
+        "rate_pct": 9.26,
+        "metrics": {
+          "margin_pct": 21.65,
+          "dscr": 2.124,
+          "leverage": 0.857,
+          "cashflow_deficit_months": 6,
+          "fraud_related_party_flag": false,
+          "sector_exposure": 0
+        },
+        "clauses": [
+          {
+            "name": "max_single_loan",
+            "status": "pass",
+            "detail": "request=400,000, max=600,000"
+          },
+          {
+            "name": "margin_threshold",
+            "status": "pass",
+            "detail": "margin=21.65%, min=8.00%"
+          },
+          {
+            "name": "dscr_threshold",
+            "status": "pass",
+            "detail": "dscr=2.12, min=1.25"
+          },
+          {
+            "name": "leverage_threshold",
+            "status": "pass",
+            "detail": "leverage=0.86x, max=1.50x"
+          },
+          {
+            "name": "fraud_related_party_flag",
+            "status": "pass",
+            "detail": "related_party_transfers=no"
+          },
+          {
+            "name": "sector_concentration",
+            "status": "pass",
+            "detail": "projected=400,000, max=1,000,000"
+          }
+        ],
+        "failed_clauses": []
+      },
+      "full_protocol_evaluation": {
+        "action": "refuse",
+        "rate_pct": 9.26,
+        "metrics": {
+          "margin_pct": 21.65,
+          "dscr": 2.124,
+          "leverage": 0.857,
+          "cashflow_deficit_months": 6,
+          "fraud_related_party_flag": false,
+          "sector_exposure": 0
+        },
+        "clauses": [
+          {
+            "name": "max_single_loan",
+            "status": "pass",
+            "detail": "request=400,000, max=600,000"
+          },
+          {
+            "name": "margin_threshold",
+            "status": "pass",
+            "detail": "margin=21.65%, min=8.00%"
+          },
+          {
+            "name": "dscr_threshold",
+            "status": "pass",
+            "detail": "dscr=2.12, min=1.25"
+          },
+          {
+            "name": "leverage_threshold",
+            "status": "pass",
+            "detail": "leverage=0.86x, max=1.50x"
+          },
+          {
+            "name": "fraud_related_party_flag",
+            "status": "pass",
+            "detail": "related_party_transfers=no"
+          },
+          {
+            "name": "cashflow_stress",
+            "status": "fail",
+            "detail": "deficit_months=6, max=0"
+          },
+          {
+            "name": "sector_concentration",
+            "status": "pass",
+            "detail": "projected=400,000, max=1,000,000"
+          }
+        ],
+        "failed_clauses": [
+          "cashflow_stress"
+        ]
+      },
+      "violated_clause": "cashflow_stress",
+      "critical_missing_fact": "cashflow_reviewed",
+      "intervention": {
+        "kind": "protocol_state",
+        "field": "cashflow_reviewed",
+        "from": false,
+        "to": true,
+        "summary": "require seasonal cashflow review before approval"
+      },
+      "counterfactual": "with protocol state `cashflow_reviewed=true`, outcome changes to refuse",
+      "counterfactual_evaluation": {
+        "action": "refuse",
+        "rate_pct": 9.26,
+        "metrics": {
+          "margin_pct": 21.65,
+          "dscr": 2.124,
+          "leverage": 0.857,
+          "cashflow_deficit_months": 6,
+          "fraud_related_party_flag": false,
+          "sector_exposure": 0
+        },
+        "clauses": [
+          {
+            "name": "max_single_loan",
+            "status": "pass",
+            "detail": "request=400,000, max=600,000"
+          },
+          {
+            "name": "margin_threshold",
+            "status": "pass",
+            "detail": "margin=21.65%, min=8.00%"
+          },
+          {
+            "name": "dscr_threshold",
+            "status": "pass",
+            "detail": "dscr=2.12, min=1.25"
+          },
+          {
+            "name": "leverage_threshold",
+            "status": "pass",
+            "detail": "leverage=0.86x, max=1.50x"
+          },
+          {
+            "name": "fraud_related_party_flag",
+            "status": "pass",
+            "detail": "related_party_transfers=no"
+          },
+          {
+            "name": "cashflow_stress",
+            "status": "fail",
+            "detail": "deficit_months=6, max=0"
+          },
+          {
+            "name": "sector_concentration",
+            "status": "pass",
+            "detail": "projected=400,000, max=1,000,000"
+          }
+        ],
+        "failed_clauses": [
+          "cashflow_stress"
+        ]
+      },
+      "replay_valid": true,
+      "minimal": true,
+      "robustness": 1.0
+    },
+    {
+      "model_id": "google/gemini-2.5-flash",
+      "lender_name": "Heritage Trust Bank",
+      "borrower_id": "BRW-001",
+      "borrower_name": "SkyFreight Solutions",
+      "ground_truth": "good",
+      "observed_decision": "refuse",
+      "observed_rate_pct": null,
+      "baseline_protocol_state": {
+        "fraud_screened": true,
+        "cashflow_reviewed": true,
+        "concentration_checked": true
+      },
+      "baseline_evaluation": {
+        "action": "refuse",
+        "rate_pct": 8.0,
+        "metrics": {
+          "margin_pct": 26.99,
+          "dscr": 2.428,
+          "leverage": 0.759,
+          "cashflow_deficit_months": 0,
+          "fraud_related_party_flag": false,
+          "sector_exposure": 1100000
+        },
+        "clauses": [
+          {
+            "name": "max_single_loan",
+            "status": "pass",
+            "detail": "request=500,000, max=600,000"
+          },
+          {
+            "name": "margin_threshold",
+            "status": "pass",
+            "detail": "margin=26.99%, min=8.00%"
+          },
+          {
+            "name": "dscr_threshold",
+            "status": "pass",
+            "detail": "dscr=2.43, min=1.25"
+          },
+          {
+            "name": "leverage_threshold",
+            "status": "pass",
+            "detail": "leverage=0.76x, max=1.50x"
+          },
+          {
+            "name": "fraud_related_party_flag",
+            "status": "pass",
+            "detail": "related_party_transfers=no"
+          },
+          {
+            "name": "cashflow_stress",
+            "status": "pass",
+            "detail": "deficit_months=0, max=0"
+          },
+          {
+            "name": "sector_concentration",
+            "status": "fail",
+            "detail": "projected=1,600,000, max=1,000,000"
+          }
+        ],
+        "failed_clauses": [
+          "sector_concentration"
+        ]
+      },
+      "full_protocol_evaluation": {
+        "action": "refuse",
+        "rate_pct": 8.0,
+        "metrics": {
+          "margin_pct": 26.99,
+          "dscr": 2.428,
+          "leverage": 0.759,
+          "cashflow_deficit_months": 0,
+          "fraud_related_party_flag": false,
+          "sector_exposure": 1100000
+        },
+        "clauses": [
+          {
+            "name": "max_single_loan",
+            "status": "pass",
+            "detail": "request=500,000, max=600,000"
+          },
+          {
+            "name": "margin_threshold",
+            "status": "pass",
+            "detail": "margin=26.99%, min=8.00%"
+          },
+          {
+            "name": "dscr_threshold",
+            "status": "pass",
+            "detail": "dscr=2.43, min=1.25"
+          },
+          {
+            "name": "leverage_threshold",
+            "status": "pass",
+            "detail": "leverage=0.76x, max=1.50x"
+          },
+          {
+            "name": "fraud_related_party_flag",
+            "status": "pass",
+            "detail": "related_party_transfers=no"
+          },
+          {
+            "name": "cashflow_stress",
+            "status": "pass",
+            "detail": "deficit_months=0, max=0"
+          },
+          {
+            "name": "sector_concentration",
+            "status": "fail",
+            "detail": "projected=1,600,000, max=1,000,000"
+          }
+        ],
+        "failed_clauses": [
+          "sector_concentration"
+        ]
+      },
+      "violated_clause": "sector_concentration",
+      "critical_missing_fact": "sector_exposure",
+      "intervention": {
+        "kind": "lender_state",
+        "field": "sector_exposure",
+        "sector": "Aero-Logistics",
+        "from": 1100000,
+        "to": 500000.0,
+        "summary": "reduce existing sector exposure so the deal fits the policy cap"
+      },
+      "counterfactual": "with existing Aero-Logistics exposure reduced from 1,100,000 to 500,000, outcome changes to conditional_offer",
+      "counterfactual_evaluation": {
+        "action": "conditional_offer",
+        "rate_pct": 8.0,
+        "metrics": {
+          "margin_pct": 26.99,
+          "dscr": 2.428,
+          "leverage": 0.759,
+          "cashflow_deficit_months": 0,
+          "fraud_related_party_flag": false,
+          "sector_exposure": 500000.0
+        },
+        "clauses": [
+          {
+            "name": "max_single_loan",
+            "status": "pass",
+            "detail": "request=500,000, max=600,000"
+          },
+          {
+            "name": "margin_threshold",
+            "status": "pass",
+            "detail": "margin=26.99%, min=8.00%"
+          },
+          {
+            "name": "dscr_threshold",
+            "status": "pass",
+            "detail": "dscr=2.43, min=1.25"
+          },
+          {
+            "name": "leverage_threshold",
+            "status": "pass",
+            "detail": "leverage=0.76x, max=1.50x"
+          },
+          {
+            "name": "fraud_related_party_flag",
+            "status": "pass",
+            "detail": "related_party_transfers=no"
+          },
+          {
+            "name": "cashflow_stress",
+            "status": "pass",
+            "detail": "deficit_months=0, max=0"
+          },
+          {
+            "name": "sector_concentration",
+            "status": "pass",
+            "detail": "projected=1,000,000, max=1,000,000"
+          }
+        ],
+        "failed_clauses": []
+      },
+      "replay_valid": true,
+      "minimal": true,
+      "robustness": 0.54
+    },
+    {
+      "model_id": "deepseek/deepseek-chat-v3-0324",
+      "lender_name": "Velocity Capital",
+      "borrower_id": "BRW-025",
+      "borrower_name": "Summit Event Catering",
+      "ground_truth": "bad",
+      "observed_decision": "refuse",
+      "observed_rate_pct": null,
+      "baseline_protocol_state": {
+        "fraud_screened": true,
+        "cashflow_reviewed": true,
+        "concentration_checked": true
+      },
+      "baseline_evaluation": {
+        "action": "refuse",
+        "rate_pct": 14.0,
+        "metrics": {
+          "margin_pct": 21.65,
+          "dscr": 2.026,
+          "leverage": 0.857,
+          "cashflow_deficit_months": 6,
+          "fraud_related_party_flag": false,
+          "sector_exposure": 0
+        },
+        "clauses": [
+          {
+            "name": "max_single_loan",
+            "status": "pass",
+            "detail": "request=400,000, max=800,000"
+          },
+          {
+            "name": "margin_threshold",
+            "status": "pass",
+            "detail": "margin=21.65%, min=5.00%"
+          },
+          {
+            "name": "dscr_threshold",
+            "status": "pass",
+            "detail": "dscr=2.03, min=1.00"
+          },
+          {
+            "name": "leverage_threshold",
+            "status": "pass",
+            "detail": "leverage=0.86x, max=2.00x"
+          },
+          {
+            "name": "fraud_related_party_flag",
+            "status": "pass",
+            "detail": "related_party_transfers=no"
+          },
+          {
+            "name": "cashflow_stress",
+            "status": "fail",
+            "detail": "deficit_months=6, max=1"
+          },
+          {
+            "name": "sector_concentration",
+            "status": "pass",
+            "detail": "projected=400,000, max=750,000"
+          }
+        ],
+        "failed_clauses": [
+          "cashflow_stress"
+        ]
+      },
+      "full_protocol_evaluation": {
+        "action": "refuse",
+        "rate_pct": 14.0,
+        "metrics": {
+          "margin_pct": 21.65,
+          "dscr": 2.026,
+          "leverage": 0.857,
+          "cashflow_deficit_months": 6,
+          "fraud_related_party_flag": false,
+          "sector_exposure": 0
+        },
+        "clauses": [
+          {
+            "name": "max_single_loan",
+            "status": "pass",
+            "detail": "request=400,000, max=800,000"
+          },
+          {
+            "name": "margin_threshold",
+            "status": "pass",
+            "detail": "margin=21.65%, min=5.00%"
+          },
+          {
+            "name": "dscr_threshold",
+            "status": "pass",
+            "detail": "dscr=2.03, min=1.00"
+          },
+          {
+            "name": "leverage_threshold",
+            "status": "pass",
+            "detail": "leverage=0.86x, max=2.00x"
+          },
+          {
+            "name": "fraud_related_party_flag",
+            "status": "pass",
+            "detail": "related_party_transfers=no"
+          },
+          {
+            "name": "cashflow_stress",
+            "status": "fail",
+            "detail": "deficit_months=6, max=1"
+          },
+          {
+            "name": "sector_concentration",
+            "status": "pass",
+            "detail": "projected=400,000, max=750,000"
+          }
+        ],
+        "failed_clauses": [
+          "cashflow_stress"
+        ]
+      },
+      "violated_clause": "cashflow_stress",
+      "critical_missing_fact": "deficit_month_revenue_buffer",
+      "intervention": {
+        "kind": "banking_fact",
+        "field": "deficit_month_revenue_buffer",
+        "months": [
+          0,
+          1,
+          2,
+          9,
+          10,
+          11
+        ],
+        "from": 0.0,
+        "to": 56486.18,
+        "summary": "increase verified deposits in deficit months until seasonal cashflow passes policy"
+      },
+      "counterfactual": "with an additional verified 56,486 per deficit month across months [0, 1, 2, 9, 10, 11], outcome changes to conditional_offer",
+      "counterfactual_evaluation": {
+        "action": "conditional_offer",
+        "rate_pct": 14.0,
+        "metrics": {
+          "margin_pct": 21.65,
+          "dscr": 2.026,
+          "leverage": 0.857,
+          "cashflow_deficit_months": 1,
+          "fraud_related_party_flag": false,
+          "sector_exposure": 0
+        },
+        "clauses": [
+          {
+            "name": "max_single_loan",
+            "status": "pass",
+            "detail": "request=400,000, max=800,000"
+          },
+          {
+            "name": "margin_threshold",
+            "status": "pass",
+            "detail": "margin=21.65%, min=5.00%"
+          },
+          {
+            "name": "dscr_threshold",
+            "status": "pass",
+            "detail": "dscr=2.03, min=1.00"
+          },
+          {
+            "name": "leverage_threshold",
+            "status": "pass",
+            "detail": "leverage=0.86x, max=2.00x"
+          },
+          {
+            "name": "fraud_related_party_flag",
+            "status": "pass",
+            "detail": "related_party_transfers=no"
+          },
+          {
+            "name": "cashflow_stress",
+            "status": "pass",
+            "detail": "deficit_months=1, max=1"
+          },
+          {
+            "name": "sector_concentration",
+            "status": "pass",
+            "detail": "projected=400,000, max=750,000"
+          }
+        ],
+        "failed_clauses": []
+      },
+      "replay_valid": true,
+      "minimal": true,
+      "robustness": 0.92
+    },
+    {
+      "model_id": "meta-llama/llama-3.3-70b-instruct",
+      "lender_name": "Meridian Partners",
+      "borrower_id": "BRW-001",
+      "borrower_name": "SkyFreight Solutions",
+      "ground_truth": "good",
+      "observed_decision": "conditional_offer",
+      "observed_rate_pct": 10.76,
+      "baseline_protocol_state": {
+        "fraud_screened": true,
+        "cashflow_reviewed": true,
+        "concentration_checked": true
+      },
+      "baseline_evaluation": {
+        "action": "conditional_offer",
+        "rate_pct": 10.76,
+        "metrics": {
+          "margin_pct": 26.99,
+          "dscr": 2.362,
+          "leverage": 0.759,
+          "cashflow_deficit_months": 0,
+          "fraud_related_party_flag": false,
+          "sector_exposure": 0
+        },
+        "clauses": [
+          {
+            "name": "max_single_loan",
+            "status": "pass",
+            "detail": "request=500,000, max=700,000"
+          },
+          {
+            "name": "margin_threshold",
+            "status": "pass",
+            "detail": "margin=26.99%, min=6.00%"
+          },
+          {
+            "name": "dscr_threshold",
+            "status": "pass",
+            "detail": "dscr=2.36, min=1.15"
+          },
+          {
+            "name": "leverage_threshold",
+            "status": "pass",
+            "detail": "leverage=0.76x, max=1.80x"
+          },
+          {
+            "name": "fraud_related_party_flag",
+            "status": "pass",
+            "detail": "related_party_transfers=no"
+          },
+          {
+            "name": "cashflow_stress",
+            "status": "pass",
+            "detail": "deficit_months=0, max=1"
+          },
+          {
+            "name": "sector_concentration",
+            "status": "pass",
+            "detail": "projected=500,000, max=875,000"
+          }
+        ],
+        "failed_clauses": []
+      },
+      "full_protocol_evaluation": {
+        "action": "conditional_offer",
+        "rate_pct": 10.76,
+        "metrics": {
+          "margin_pct": 26.99,
+          "dscr": 2.362,
+          "leverage": 0.759,
+          "cashflow_deficit_months": 0,
+          "fraud_related_party_flag": false,
+          "sector_exposure": 0
+        },
+        "clauses": [
+          {
+            "name": "max_single_loan",
+            "status": "pass",
+            "detail": "request=500,000, max=700,000"
+          },
+          {
+            "name": "margin_threshold",
+            "status": "pass",
+            "detail": "margin=26.99%, min=6.00%"
+          },
+          {
+            "name": "dscr_threshold",
+            "status": "pass",
+            "detail": "dscr=2.36, min=1.15"
+          },
+          {
+            "name": "leverage_threshold",
+            "status": "pass",
+            "detail": "leverage=0.76x, max=1.80x"
+          },
+          {
+            "name": "fraud_related_party_flag",
+            "status": "pass",
+            "detail": "related_party_transfers=no"
+          },
+          {
+            "name": "cashflow_stress",
+            "status": "pass",
+            "detail": "deficit_months=0, max=1"
+          },
+          {
+            "name": "sector_concentration",
+            "status": "pass",
+            "detail": "projected=500,000, max=875,000"
+          }
+        ],
+        "failed_clauses": []
+      },
+      "violated_clause": null,
+      "critical_missing_fact": "net_income",
+      "intervention": {
+        "kind": "fact",
+        "field": "net_income",
+        "from": 659000,
+        "to": 319221.66,
+        "summary": "reduce verified net income until the approval fails policy"
+      },
+      "counterfactual": "with verified net income changed from 659,000 to 319,222, outcome changes to refuse",
+      "counterfactual_evaluation": {
+        "action": "refuse",
+        "rate_pct": 10.76,
+        "metrics": {
+          "margin_pct": 13.07,
+          "dscr": 1.144,
+          "leverage": 1.566,
+          "cashflow_deficit_months": 0,
+          "fraud_related_party_flag": false,
+          "sector_exposure": 0
+        },
+        "clauses": [
+          {
+            "name": "max_single_loan",
+            "status": "pass",
+            "detail": "request=500,000, max=700,000"
+          },
+          {
+            "name": "margin_threshold",
+            "status": "pass",
+            "detail": "margin=13.07%, min=6.00%"
+          },
+          {
+            "name": "dscr_threshold",
+            "status": "fail",
+            "detail": "dscr=1.14, min=1.15"
+          },
+          {
+            "name": "leverage_threshold",
+            "status": "pass",
+            "detail": "leverage=1.57x, max=1.80x"
+          },
+          {
+            "name": "fraud_related_party_flag",
+            "status": "pass",
+            "detail": "related_party_transfers=no"
+          },
+          {
+            "name": "cashflow_stress",
+            "status": "pass",
+            "detail": "deficit_months=0, max=1"
+          },
+          {
+            "name": "sector_concentration",
+            "status": "pass",
+            "detail": "projected=500,000, max=875,000"
+          }
+        ],
+        "failed_clauses": [
+          "dscr_threshold"
+        ]
+      },
+      "replay_valid": true,
+      "minimal": true,
+      "robustness": 0.6
+    }
+  ]
+}
