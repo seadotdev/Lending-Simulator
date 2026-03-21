@@ -58,13 +58,18 @@ from .run_schema import (
 DEFAULT_LOS_URL = "http://localhost:3000"
 
 
-async def check_los_health(los_url: str = DEFAULT_LOS_URL, timeout: float = 5.0) -> None:
-    """Verify the LOS is reachable before starting a run. Raises on failure."""
+async def check_los_health(los_url: str = DEFAULT_LOS_URL, timeout: float = 5.0) -> dict:
+    """Verify the LOS is reachable before starting a run.
+
+    Returns the parsed health JSON (includes ``llm`` capabilities when
+    available).  Raises RuntimeError on failure.
+    """
     base = los_url.rstrip("/")
     try:
         async with httpx.AsyncClient(timeout=timeout) as client:
             resp = await client.get(f"{base}/health")
             resp.raise_for_status()
+            return resp.json()
     except (httpx.ConnectError, httpx.ConnectTimeout):
         raise RuntimeError(
             f"Cannot connect to Open LOS at {los_url}. "
@@ -94,7 +99,7 @@ async def preflight_season(
 
     # --- Check 1: LOS health ---
     try:
-        await check_los_health(los_url, timeout=5.0)
+        health = await check_los_health(los_url, timeout=5.0)
         print(f"    LOS health .................. OK")
     except RuntimeError as exc:
         msg = str(exc)
@@ -104,6 +109,26 @@ async def preflight_season(
         raise RuntimeError(
             f"PREFLIGHT FAILED: LOS not reachable.\n  {msg}"
         )
+
+    # --- Check 1b: LOS LLM capabilities ---
+    llm_info = health.get("llm") if isinstance(health, dict) else None
+    if llm_info:
+        los_providers = llm_info.get("providers", [])
+        los_default = llm_info.get("defaultProvider")
+        if provider in los_providers:
+            print(f"    LOS LLM ({provider}) ........... OK (default: {los_default})")
+        else:
+            msg = (
+                f"LOS has no API key for provider '{provider}'. "
+                f"Configured providers: {los_providers or 'none'}. "
+                f"Export {provider.upper().replace('-','_')}_API_KEY before starting the LOS."
+            )
+            print(f"    LOS LLM ({provider}) ........... FAIL: {msg}")
+            failures.append(f"LOS LLM config: {msg}")
+            raise RuntimeError(f"PREFLIGHT FAILED: {msg}")
+    else:
+        # Older LOS without llm field — warn but don't block
+        print(f"    LOS LLM capabilities ........ SKIP (upgrade LOS for preflight support)")
 
     # --- Check 2: Credit / API key check ---
     if provider == "openrouter":
