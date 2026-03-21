@@ -147,13 +147,70 @@ class TestQualityEject:
             assert result.should_eject, f"Expected eject for stage={stage!r}"
 
 
+class TestAnalysisEject:
+    """AnalysisEject detects rubber-stamping via context dict."""
+
+    def _make_kwargs(self, turn, los_state):
+        return dict(
+            elapsed_s=turn * 5.0,
+            budget_status=BudgetStatus(used=0.01, limit=0.25),
+            events=[],
+            context={
+                "turn": turn,
+                "max_turns": 20,
+                "los_state": los_state,
+            },
+        )
+
+    def test_no_eject_without_deals(self):
+        from loanville.agent_eject import AnalysisEject
+
+        policy = AnalysisEject()
+        result = policy.check(**self._make_kwargs(5, {"deals": []}))
+        assert not result.should_eject
+
+    def test_no_eject_early_stage(self):
+        from loanville.agent_eject import AnalysisEject
+
+        policy = AnalysisEject()
+        result = policy.check(**self._make_kwargs(5, {
+            "deals": [{"stage": "origination"}],
+            "spread_count": 0,
+            "doc_count": 0,
+        }))
+        assert not result.should_eject
+
+    def test_eject_rubber_stamp_no_analysis(self):
+        from loanville.agent_eject import AnalysisEject
+
+        policy = AnalysisEject()
+        result = policy.check(**self._make_kwargs(2, {
+            "deals": [{"stage": "underwriting"}],
+            "spread_count": 0,
+            "doc_count": 0,
+        }))
+        assert result.should_eject
+        assert "rubber-stamp" in result.reason
+
+    def test_no_eject_with_spread(self):
+        from loanville.agent_eject import AnalysisEject
+
+        policy = AnalysisEject()
+        result = policy.check(**self._make_kwargs(5, {
+            "deals": [{"stage": "underwriting"}],
+            "spread_count": 2,
+            "doc_count": 3,
+        }))
+        assert not result.should_eject
+
+
 class TestDefaultEjectPolicies:
     def test_returns_list(self):
         from loanville.agent_eject import default_eject_policies
 
         policies = default_eject_policies()
         assert isinstance(policies, list)
-        assert len(policies) == 2
+        assert len(policies) == 3
 
     def test_policies_are_eject_policy_subclasses(self):
         from agent_preflight import EjectPolicy

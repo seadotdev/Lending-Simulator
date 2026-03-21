@@ -150,6 +150,11 @@ async def run_agent_loop(
                     if msg:
                         messages.append({"role": "system", "content": msg})
 
+            # Progressive disclosure: summarize old tool results after turn 3
+            # to reduce token waste. Keep system, user, and last 4 messages intact.
+            if config.mode == "tool_call" and turn >= 3 and len(messages) > 8:
+                messages = _compress_messages(messages)
+
             # Call the model
             if ev:
                 ev.log("model_call", turn=turn + 1, model=config.model)
@@ -320,11 +325,54 @@ async def run_agent_loop(
     return result
 
 
+def _compress_messages(messages: list[dict]) -> list[dict]:
+    """Compress older tool results to reduce token usage.
+
+    Keeps: system prompt, initial user prompt, last 4 messages.
+    Middle messages: tool results get truncated to first 200 chars,
+    assistant messages with tool_calls keep only the call names.
+    """
+    if len(messages) <= 8:
+        return messages
+
+    # System + user prompt (first 2) + last 4 = 6 preserved
+    head = messages[:2]
+    tail = messages[-4:]
+    middle = messages[2:-4]
+
+    compressed = []
+    for msg in middle:
+        role = msg.get("role", "")
+        if role == "tool":
+            # Truncate tool results
+            content = msg.get("content", "")
+            if len(content) > 200:
+                content = content[:200] + "... [truncated]"
+            compressed.append({**msg, "content": content})
+        elif role == "assistant" and msg.get("tool_calls"):
+            # Keep tool call structure but clear large arguments
+            tc_summary = []
+            for tc in msg["tool_calls"]:
+                func = tc.get("function", {})
+                args = func.get("arguments", "")
+                if len(args) > 100:
+                    args = args[:100] + "..."
+                tc_summary.append({
+                    **tc,
+                    "function": {**func, "arguments": args},
+                })
+            compressed.append({**msg, "tool_calls": tc_summary})
+        else:
+            compressed.append(msg)
+
+    return head + compressed + tail
+
+
 async def _quick_los_state(los_url: str, tenant_id: str) -> dict:
     """Lightweight LOS state check for eject policies."""
     base = los_url.rstrip("/")
     headers = {"X-Tenant-Id": tenant_id}
-    state: dict = {"deals": [], "entities": []}
+    state: dict = {"deals": [], "entities": [], "spread_count": 0, "doc_count": 0}
     try:
         async with httpx.AsyncClient(timeout=5.0, headers=headers) as client:
             resp = await client.get(f"{base}/v1/deals")
@@ -333,6 +381,19 @@ async def _quick_los_state(los_url: str, tenant_id: str) -> dict:
                 state["deals"] = data.get("deals", data) if isinstance(data, dict) else data
                 for deal in state["deals"][:1]:
                     state["stage"] = deal.get("stage", "")
+                    deal_id = deal.get("id")
+                    if deal_id:
+                        # Check docs and spreads for AnalysisEject
+                        doc_resp = await client.get(f"{base}/v1/deals/{deal_id}/documents")
+                        if doc_resp.status_code == 200:
+                            docs = doc_resp.json()
+                            doc_list = docs.get("documents", docs) if isinstance(docs, dict) else docs
+                            state["doc_count"] = len(doc_list) if isinstance(doc_list, list) else 0
+                        ratio_resp = await client.get(f"{base}/v1/deals/{deal_id}/ratios")
+                        if ratio_resp.status_code == 200:
+                            ratios = ratio_resp.json()
+                            r_list = ratios.get("ratios", []) if isinstance(ratios, dict) else []
+                            state["spread_count"] = len(r_list)
     except Exception:
         pass
     return state

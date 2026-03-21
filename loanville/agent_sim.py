@@ -230,19 +230,26 @@ def _write_case_summary(
     """Write summary.json for a completed case."""
     lr = case.loop_result
     cost_est = (lr.tokens_in * 0.25 + lr.tokens_out * 1.0) / 1_000_000
+    ls = case.los_state
     summary = {
         "lender": case.lender_name,
         "borrower": case.borrower_name,
         "termination": lr.termination,
         "turns": lr.turns,
         "tool_call_count": lr.tool_call_count,
-        "has_deal": bool(case.los_state.deals),
+        "has_deal": bool(ls.deals),
         "decision": (lr.final_decision or {}).get("decision", ""),
         "tokens_in": lr.tokens_in,
         "tokens_out": lr.tokens_out,
         "cost_estimate": f"${cost_est:.4f}",
         "duration_s": round(duration_s, 1),
         "custom_tools_used": lr.custom_tools_used,
+        # Behavioral telemetry
+        "spread_created": ls.has_spread,
+        "ratios_reviewed": ls.has_evaluation,  # evaluate fetches ratios
+        "stage_reached": ls.deal_stage or (ls.deals[0].get("stage", "") if ls.deals else ""),
+        "doc_count": len(ls.documents),
+        "independent_decision": ls.has_spread,
     }
     case_dir.mkdir(parents=True, exist_ok=True)
     (case_dir / "summary.json").write_text(json.dumps(summary, indent=2))
@@ -256,7 +263,8 @@ async def run_agent_sim(
     import uuid
     run_id = uuid.uuid4().hex[:8]
     ts = time.strftime("%Y%m%dT%H%M%S")
-    run_dir = Path("runs") / f"{ts}_{run_id}"
+    repo_root = Path(__file__).resolve().parent.parent
+    run_dir = repo_root / "runs" / f"{ts}_{run_id}"
     run_dir.mkdir(parents=True, exist_ok=True)
 
     await check_los_health(config.los_url)

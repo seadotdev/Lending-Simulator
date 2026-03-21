@@ -100,6 +100,66 @@ class QualityEject(EjectPolicy):
         return EjectDecision(should_eject=False)
 
 
+class AnalysisEject(EjectPolicy):
+    """Detect rubber-stamping: model decides without doing real analysis.
+
+    Triggers if ALL of:
+    - Decision made (deal exists and has been advanced)
+    - No spread was created (never looked at financials)
+    - Decided in very few turns (≤ min_turns)
+
+    Also flags if model delegated entirely to los_deal_evaluate
+    without creating its own spread or reviewing ratios.
+
+    Expects ``context`` to contain:
+    - ``turn``: current turn number (1-based)
+    - ``los_state``: dict with ``deals``, ``spread_count``, ``doc_count``
+    """
+
+    def __init__(
+        self,
+        min_turns: int = 3,
+        eject_fraction: float = 0.50,
+    ) -> None:
+        self.min_turns = min_turns
+        self.eject_fraction = eject_fraction
+
+    def check(self, *, context: dict, **_kwargs: Any) -> EjectDecision:
+        turn = context.get("turn", 0)
+        los_state = context.get("los_state", {})
+
+        deals = los_state.get("deals", [])
+        if not deals:
+            return EjectDecision(should_eject=False)
+
+        spread_count = los_state.get("spread_count", 0)
+        doc_count = los_state.get("doc_count", 0)
+        stage = deals[0].get("stage", "broker") if deals else "broker"
+
+        # Check if model has advanced past origination (suggesting it made a decision)
+        advanced_stages = {"underwriting", "closing", "monitoring"}
+        has_advanced = stage in advanced_stages
+
+        if not has_advanced:
+            return EjectDecision(should_eject=False)
+
+        # Rubber-stamp detection: advanced without doing financial analysis
+        if spread_count == 0 and doc_count == 0:
+            return EjectDecision(
+                should_eject=True,
+                reason=f"rubber-stamp: advanced to {stage} with no docs or spreads in {turn} turns",
+            )
+
+        # Suspiciously fast: decided in ≤ min_turns
+        if turn <= self.min_turns and spread_count == 0:
+            return EjectDecision(
+                should_eject=True,
+                reason=f"rubber-stamp: decided in {turn} turns without creating spread",
+            )
+
+        return EjectDecision(should_eject=False)
+
+
 def default_eject_policies() -> list[EjectPolicy]:
     """Return the standard set of Loanville eject policies."""
-    return [NoProgressEject(), QualityEject()]
+    return [NoProgressEject(), QualityEject(), AnalysisEject()]

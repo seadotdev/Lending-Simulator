@@ -22,6 +22,7 @@ from pathlib import Path
 
 from agent_preflight import (
     BudgetTracker,
+    BudgetStatus,
     EventLogger,
     build_image as ap_build_image,
     default_eject_policies,
@@ -44,10 +45,11 @@ logger = logging.getLogger(__name__)
 IMAGE_NAME = "loanville-agent"
 REPO_ROOT = Path(__file__).resolve().parent.parent
 DOCKER_DIR = REPO_ROOT / "docker" / "agent"
-RUNS_DIR = Path("runs")
+RUNS_DIR = REPO_ROOT / "runs"
 
 MAX_IDLE_SECS = 300  # kill container if no events for 5 min
 BUDGET_POLL_INTERVAL_S = 30
+BUDGET_GRACE_SECS = 10  # grace period after budget exhaustion for decision collection
 
 # ---------------------------------------------------------------------------
 # Thread-local logger (prefixed stdout + per-model log file)
@@ -80,6 +82,20 @@ def _make_logger(log_path: Path, alias: str):
 
 def build_image() -> None:
     ap_build_image(IMAGE_NAME, dockerfile="docker/agent/Dockerfile", context=str(REPO_ROOT))
+
+
+# ---------------------------------------------------------------------------
+# Budget formatting
+# ---------------------------------------------------------------------------
+
+def _format_budget_line(status: BudgetStatus, urgency: bool = True) -> str:
+    """Format a budget line, optionally with urgency-aware messaging."""
+    pct = int((1.0 - status.pct_spent) * 100)
+    if urgency and status.pct_spent >= 0.95:
+        return f"CRITICAL: ${status.remaining:.3f} remaining ({pct}%). Write decision NOW."
+    if urgency and status.pct_spent >= 0.80:
+        return f"WARNING: ${status.remaining:.3f} remaining ({pct}%). Wrap up soon."
+    return f"Budget: ${status.remaining:.3f} remaining of ${status.limit:.2f} ({pct}% left)"
 
 
 # ---------------------------------------------------------------------------
@@ -136,8 +152,15 @@ def run_model_container(
     run_dir: Path,
     admin_key: str,
     budget_usd: float,
+    budget_urgency: bool = True,
 ) -> dict:
-    """Spawn a Docker container for one model, stream events, monitor budget."""
+    """Spawn a Docker container for one model, stream events, monitor budget.
+
+    Args:
+        budget_urgency: If True (default), inject urgency-aware budget messages
+            (CRITICAL/WARNING) as the agent approaches its budget limit.
+            If False, use a plain balance-remaining format.
+    """
     model_dir = run_dir / alias
     workspace = model_dir / "workspace"
     workspace.mkdir(parents=True, exist_ok=True)
@@ -241,10 +264,34 @@ def run_model_container(
                 # Periodic budget poll + injection + eject check
                 if time.time() - last_budget_poll_ts >= BUDGET_POLL_INTERVAL_S:
                     last_budget_poll_ts = time.time()
-                    status = tracker.inject_to_docker(container_name)
-                    ev_logger.log("budget_poll", used=status.used, remaining=status.remaining)
-                    tlog(f"  [budget] {status}")
+                    status = tracker.poll(force=True)
 
+                    # Write budget.txt with optional urgency
+                    budget_line = _format_budget_line(status, urgency=budget_urgency)
+                    try:
+                        subprocess.run(
+                            ["docker", "exec", container_name, "sh", "-c",
+                             f"cat > /workspace/output/budget.txt << 'BUDGET_EOF'\n{budget_line}\nBUDGET_EOF"],
+                            capture_output=True, timeout=5,
+                        )
+                    except Exception:
+                        pass
+
+                    ev_logger.log("budget_poll", used=status.used,
+                                  remaining=status.remaining,
+                                  fraction=round(status.pct_spent, 3))
+                    tlog(f"  [budget] {budget_line}")
+
+                    # Budget exhausted — grace period then kill
+                    if status.exceeded:
+                        tlog(f"\n  BUDGET EXHAUSTED: ${status.used:.3f} spent. "
+                             f"Waiting {BUDGET_GRACE_SECS}s for decision...")
+                        time.sleep(BUDGET_GRACE_SECS)
+                        proc.kill()
+                        summary["error"] = "budget_exhausted"
+                        break
+
+                    # Eject check (idle timeout via library policy)
                     decision = eject_policy.check(
                         elapsed_s=time.time() - datetime.fromisoformat(summary["started_at"]).timestamp(),
                         budget_status=status,
@@ -275,9 +322,17 @@ def run_model_container(
 
             events.append(event)
             eject_events.append(event)
-            ev_logger.log(event.get("type", "raw"), **{
-                k: v for k, v in event.items() if k != "type"
-            })
+
+            # Enrich events with truncated args/results for analysis
+            log_extras = {k: v for k, v in event.items() if k != "type"}
+            if event.get("type") == "tool_execution_start":
+                args_str = str(event.get("args", ""))
+                log_extras["args_truncated"] = args_str[:500]
+            elif event.get("type") == "tool_execution_end":
+                result_str = str(event.get("result", ""))
+                log_extras["result_truncated"] = result_str[:1000]
+
+            ev_logger.log(event.get("type", "raw"), **log_extras)
 
             # Print relevant events
             _print_event(event)
@@ -309,14 +364,60 @@ def run_model_container(
         summary["error"] = str(e)
         tlog(f"\n  ERROR: {e}")
 
-    # Read decision from output
+    # Read and validate decision from output
     decision_path = workspace / "decision.json"
     if decision_path.exists():
         try:
-            summary["decision"] = json.loads(decision_path.read_text())
-            tlog(f"  Decision: {summary['decision'].get('decision', '?')}")
-        except Exception:
-            pass
+            dec = json.loads(decision_path.read_text())
+            # Validate required fields
+            valid_decisions = {"approve", "decline", "counter", "refer"}
+            if not isinstance(dec, dict):
+                tlog(f"  Decision: INVALID (not an object)")
+                summary["decision_error"] = "not_an_object"
+            elif dec.get("decision") not in valid_decisions:
+                tlog(f"  Decision: INVALID ('{dec.get('decision')}' not in {valid_decisions})")
+                summary["decision_error"] = f"invalid_decision_value:{dec.get('decision')}"
+                summary["decision"] = dec  # keep raw for debugging
+            elif not dec.get("reasoning"):
+                tlog(f"  Decision: {dec['decision']} (WARNING: no reasoning)")
+                summary["decision"] = dec
+                summary["decision_error"] = "missing_reasoning"
+            else:
+                summary["decision"] = dec
+                tlog(f"  Decision: {dec['decision']}")
+        except json.JSONDecodeError as e:
+            tlog(f"  Decision: INVALID JSON ({e})")
+            summary["decision_error"] = f"invalid_json:{e}"
+
+    # Behavioral telemetry — scan events for analysis quality signals
+    spread_created = False
+    ratios_reviewed = False
+    stage_reached = "unknown"
+    doc_count = 0
+    evaluate_called = False
+    check_guards_called = False
+    for ev in events:
+        tool = ev.get("toolName", "")
+        result_text = str(ev.get("result", ""))
+        if "spread" in tool.lower() and ev.get("type") == "tool_execution_end":
+            spread_created = True
+        if "ratio" in tool.lower() and ev.get("type") == "tool_execution_end":
+            ratios_reviewed = True
+        if "doc" in tool.lower() and "upload" in tool.lower() and ev.get("type") == "tool_execution_end":
+            doc_count += 1
+        if "evaluate" in tool.lower():
+            evaluate_called = True
+        if "check-guards" in tool.lower() or "check_guards" in tool.lower():
+            check_guards_called = True
+        # Try to detect stage from results
+        if "stage" in result_text:
+            for s in ("monitoring", "closing", "underwriting", "origination", "broker"):
+                if s in result_text:
+                    stage_reached = s
+                    break
+
+    # Independent decision = model created spread AND didn't just delegate to evaluate
+    independent_decision = spread_created and not (evaluate_called and not spread_created)
 
     # Cost
     finished_at = datetime.now(timezone.utc)
@@ -325,6 +426,13 @@ def run_model_container(
     summary["duration_s"] = round((finished_at - started_at).total_seconds())
     summary["tool_calls"] = tool_call_count
     summary["has_deal"] = has_deal
+    summary["spread_created"] = spread_created
+    summary["ratios_reviewed"] = ratios_reviewed
+    summary["stage_reached"] = stage_reached
+    summary["doc_count"] = doc_count
+    summary["evaluate_called"] = evaluate_called
+    summary["check_guards_called"] = check_guards_called
+    summary["independent_decision"] = independent_decision
 
     # Final usage poll
     time.sleep(3)
@@ -364,8 +472,13 @@ def run_agent_docker(
     admin_key: str,
     or_key: str,
     parallel: bool = True,
+    budget_urgency: bool = True,
 ) -> list[dict]:
-    """Run all models in Docker containers, optionally in parallel."""
+    """Run all models in Docker containers, optionally in parallel.
+
+    Args:
+        budget_urgency: If True (default), inject urgency-aware budget messages.
+    """
     run_id = f"docker-{datetime.now().strftime('%Y%m%d-%H%M%S')}"
     run_dir = RUNS_DIR / run_id
     run_dir.mkdir(parents=True, exist_ok=True)
@@ -411,6 +524,7 @@ def run_agent_docker(
             run_dir=run_dir,
             admin_key=admin_key,
             budget_usd=budget_usd,
+            budget_urgency=budget_urgency,
         )
 
     # Build work items: each (model, lender) x borrower

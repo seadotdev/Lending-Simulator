@@ -49,12 +49,19 @@ def _print_season_header(config: SeasonConfig) -> None:
         flags.append(f"capital-adequacy({config.capital_adequacy_ratio:.0%})")
     if config.capital_decay_rate > 0:
         flags.append(f"capital-decay({config.capital_decay_rate:.1%}/wk)")
+    if config.scratchpad:
+        flags.append("scratchpad")
+    if config.consistency_samples > 0:
+        flags.append(f"consistency(k={config.consistency_samples},"
+                     f"{config.consistency_sample_pct:.0%})")
     if config.info_asymmetry != "none":
         flags.append(f"info-asymmetry({config.info_asymmetry})")
     if config.arrival_phases > 1:
         flags.append(f"arrival-phases({config.arrival_phases})")
     if config.deep_uw_slots_per_week > 0:
         flags.append(f"deep-uw-slots({config.deep_uw_slots_per_week}/wk)")
+    if config.underwriting_cost_mode == "real":
+        flags.append(f"real-uw-costs(×{config.uw_cost_multiplier:g})")
     if config.borrower_patience_weeks > 1:
         flags.append(f"borrower-patience({config.borrower_patience_weeks}w)")
     if config.offer_validity_weeks > 1:
@@ -238,6 +245,72 @@ class SeasonEngine:
                     f"${min_capital:,.0f} ({threshold:.0%} of initial) ***"
                 )
         return events
+
+    def _apply_underwriting_costs(self, week: int) -> list[str]:
+        """Charge real API costs to lender P&L when underwriting_cost_mode='real'.
+
+        Instead of the flat simulated underwriting_cost_per_application_usd,
+        each lender's actual API spend (× uw_cost_multiplier) is deducted from
+        effective capital.  This makes expensive models genuinely more costly
+        to operate — a model that "thinks harder" per loan eats into its own
+        margins, creating the same tension a real lending ops team faces between
+        thoroughness and efficiency.
+
+        The cost flows through cumulative_uw_ops_cost and reduces effective
+        capital via the same path as losses/workout costs.  Capital adequacy
+        elimination can then trigger naturally if costs spiral.
+        """
+        if self.config.underwriting_cost_mode != "real":
+            return []
+
+        multiplier = self.config.uw_cost_multiplier
+        events = []
+
+        for lid, state in self.lender_states.items():
+            if state.eliminated:
+                continue
+
+            # Compute this week's API cost delta
+            prev_charged = state.cumulative_uw_ops_cost
+            raw_api_cost = state.cumulative_cost_usd
+            effective_cost = raw_api_cost * multiplier
+            week_charge = effective_cost - prev_charged
+
+            if week_charge > 0:
+                state.cumulative_uw_ops_cost = effective_cost
+                # Deduct from capital via workout_cost channel (existing P&L path)
+                state.cumulative_workout_cost += week_charge
+                self._recompute_available(state)
+                events.append(
+                    f"  [{state.lender_name}] Underwriting ops: "
+                    f"-${week_charge:,.0f} this week "
+                    f"(API: ${raw_api_cost:.4f} × {multiplier:g} = "
+                    f"${effective_cost:,.0f} cumulative)"
+                )
+        return events
+
+    def _format_uw_cost_briefing(self, state: SeasonLenderState) -> list[str]:
+        """Format underwriting cost status for portfolio briefing."""
+        if self.config.underwriting_cost_mode != "real":
+            return []
+
+        lines: list[str] = []
+        multiplier = self.config.uw_cost_multiplier
+        effective = state.cumulative_cost_usd * multiplier
+        lines.append(
+            f"Underwriting Ops Cost: ${effective:,.0f} "
+            f"(${state.cumulative_cost_usd:.4f} API × {multiplier:g})"
+        )
+
+        # Per-eval average and projection
+        if state.total_evaluations > 0:
+            avg = effective / state.total_evaluations
+            lines.append(
+                f"  Avg ${avg:,.0f}/evaluation "
+                f"({state.total_evaluations} evals to date)"
+            )
+
+        return lines
 
     @property
     def _active_lender_ids(self) -> set[str]:
@@ -640,7 +713,20 @@ class SeasonEngine:
             week_result.events = events
             self.week_results.append(week_result)
 
-            # 8b. Capture per-week detail for JSON export
+            # 8a. Update scratchpads (after results, before next week)
+            self._update_scratchpads(week, engine)
+
+            # 8b. Consistency checks (pass@k)
+            if self.config.consistency_samples > 0:
+                await self._run_consistency_checks(week, engine)
+
+            # 8c. Apply real underwriting costs to P&L (if enabled)
+            uw_events = self._apply_underwriting_costs(week)
+            events.extend(uw_events)
+            for e in uw_events:
+                print(e)
+
+            # 8d. Capture per-week detail for JSON export
             detail_cohort = origination_pool if self.deliberate_mode else cohort
             self._capture_week_detail(week, detail_cohort, engine, events, phase_map, slots_used)
             self._capture_week_match_data(week, engine)
@@ -851,6 +937,39 @@ class SeasonEngine:
                 for e in lender_events:
                     lines.append(f"  {e}")
 
+            # Decision attribution — link recent defaults/repayments to
+            # original underwriting decisions so the model can learn from
+            # its past choices (inspired by Terra Nova's credit assignment).
+            recent_resolved = [
+                lo for lo in state.resolved_loans
+                if lo.defaulted  # focus on losses — most actionable
+            ]
+            if recent_resolved:
+                lines.append("Decision Attribution (your past approvals that defaulted):")
+                for lo in recent_resolved[-5:]:  # last 5 to control length
+                    # Find the original active loan for booked_week context
+                    booked_week = "?"
+                    orig_rate = lo.total_interest_paid  # fallback
+                    for al in state.active_loans:
+                        if al.loan_id == lo.loan_id:
+                            booked_week = str(al.booked_week)
+                            orig_rate = al.interest_rate
+                            break
+                    # Check inactive loans too (already removed from active)
+                    if booked_week == "?":
+                        # Search all_decisions for the original rate
+                        decisions = self.all_decisions.get(lid, [])
+                        for d in decisions:
+                            if d.borrower_id == lo.borrower_id and d.term_sheet:
+                                orig_rate = d.term_sheet.interest_rate
+                                break
+                    fraud_tag = " [FRAUD]" if lo.was_fraud else ""
+                    lines.append(
+                        f"  - {lo.borrower_name} ({lo.sector}){fraud_tag}: "
+                        f"approved ${lo.principal:,.0f} @ {orig_rate:.1f}%, "
+                        f"lost ${lo.principal_lost:,.0f} after {lo.months_paid}mo"
+                    )
+
             # Season P&L summary
             total_pnl = self._net_pnl(state)
             lines.append(
@@ -860,6 +979,11 @@ class SeasonEngine:
                 f"losses: -${state.cumulative_losses:,.0f}, "
                 f"workout: -${state.cumulative_workout_cost:,.0f})"
             )
+
+            # Underwriting cost feedback (real mode only)
+            uw_lines = self._format_uw_cost_briefing(state)
+            if uw_lines:
+                lines.extend(uw_lines)
 
             # Competition feedback from last week
             stats = self._last_week_stats.get(lid)
@@ -889,6 +1013,23 @@ class SeasonEngine:
                             f"  Note: You are pricing {-gap:.1f}% below winning rates. "
                             f"You may be leaving margin on the table."
                         )
+
+            # Persistent strategy scratchpad
+            if self.config.scratchpad and state.scratchpad:
+                lines.append("--- YOUR STRATEGY NOTES (from prior weeks) ---")
+                lines.append(state.scratchpad)
+                lines.append("--- END NOTES ---")
+                lines.append(
+                    "Update your notes after this week by including "
+                    "SCRATCHPAD_UPDATE: <your notes> in your reasoning."
+                )
+
+            # Consistency score (if tracking)
+            if state.consistency_checks:
+                lines.append(
+                    f"Decision Consistency: {state.consistency_agreement_rate:.0%} "
+                    f"({len(state.consistency_checks)} checks)"
+                )
 
             lines.append("---")
 
@@ -1173,6 +1314,199 @@ Respond with JSON:
                 toolkit.update_tool(name=name, description=desc, implementation=impl)
 
     # ------------------------------------------------------------------
+    # Scratchpad update
+    # ------------------------------------------------------------------
+
+    def _update_scratchpads(self, week: int, engine: SimulationEngine) -> None:
+        """Update each lender's persistent strategy scratchpad after a week.
+
+        In mock mode, auto-generate notes based on performance patterns.
+        In live mode, extract SCRATCHPAD_UPDATE directives from LLM reasoning.
+        """
+        if not self.config.scratchpad:
+            return
+
+        active_ids = self._active_lender_ids
+
+        for lender in self.base_lenders:
+            if lender.id not in active_ids:
+                continue
+            state = self.lender_states[lender.id]
+
+            if self.engine_kwargs.get("mock"):
+                self._mock_scratchpad_update(state, week, engine)
+            else:
+                self._live_scratchpad_update(state, week, engine)
+
+    def _mock_scratchpad_update(
+        self, state: SeasonLenderState, week: int, engine: SimulationEngine,
+    ) -> None:
+        """Auto-generate scratchpad notes from performance patterns."""
+        notes: list[str] = []
+
+        # Note defaults by sector
+        default_sectors: dict[str, int] = {}
+        for lo in state.resolved_loans:
+            if lo.defaulted:
+                default_sectors[lo.sector] = default_sectors.get(lo.sector, 0) + 1
+        if default_sectors:
+            worst = max(default_sectors, key=default_sectors.get)  # type: ignore[arg-type]
+            notes.append(
+                f"W{week}: {default_sectors[worst]} default(s) in {worst} sector — "
+                "increase scrutiny on this sector."
+            )
+
+        # Note pricing competitiveness
+        stats = self._last_week_stats.get(state.lender_id, {})
+        if stats.get("lost", 0) > stats.get("won", 0) and stats.get("avg_offered_rate", 0) > 0:
+            gap = stats["avg_offered_rate"] - stats["avg_winning_rate"]
+            if gap > 0.5:
+                notes.append(
+                    f"W{week}: Lost {stats['lost']} deals — pricing "
+                    f"{gap:.1f}% above market. Consider lowering rates."
+                )
+        elif stats.get("won", 0) > 0 and stats.get("avg_offered_rate", 0) > 0:
+            gap = stats["avg_winning_rate"] - stats["avg_offered_rate"]
+            if gap > 0.5:
+                notes.append(
+                    f"W{week}: Winning at {gap:.1f}% below market — "
+                    "may be leaving margin on the table."
+                )
+
+        # Note concentration risk
+        if state.total_capital > 0:
+            for sector, exposure in state.sector_exposure.items():
+                pct = exposure / state.total_capital
+                if pct > 0.35:
+                    notes.append(
+                        f"W{week}: {sector} concentration at {pct:.0%} — "
+                        "watch for breach."
+                    )
+
+        if notes:
+            # Append new notes, keeping total under ~500 chars
+            existing = state.scratchpad
+            new_section = "\n".join(notes)
+            combined = f"{existing}\n{new_section}".strip() if existing else new_section
+            # Trim oldest lines if too long
+            lines = combined.split("\n")
+            while len("\n".join(lines)) > 500 and len(lines) > 3:
+                lines.pop(0)
+            state.scratchpad = "\n".join(lines)
+
+    def _live_scratchpad_update(
+        self, state: SeasonLenderState, week: int, engine: SimulationEngine,
+    ) -> None:
+        """Extract SCRATCHPAD_UPDATE directives from LLM reasoning."""
+        import re
+
+        decisions = engine.all_decisions.get(state.lender_id, [])
+        updates: list[str] = []
+        for decision in decisions:
+            if not decision.reasoning:
+                continue
+            # Look for SCRATCHPAD_UPDATE: <text> pattern
+            match = re.search(
+                r"SCRATCHPAD_UPDATE:\s*(.+?)(?:\n|$)",
+                decision.reasoning,
+                re.IGNORECASE,
+            )
+            if match:
+                updates.append(f"W{week}: {match.group(1).strip()}")
+
+        if updates:
+            existing = state.scratchpad
+            new_section = "\n".join(updates)
+            combined = f"{existing}\n{new_section}".strip() if existing else new_section
+            lines = combined.split("\n")
+            while len("\n".join(lines)) > 500 and len(lines) > 3:
+                lines.pop(0)
+            state.scratchpad = "\n".join(lines)
+
+    # ------------------------------------------------------------------
+    # Pass@k consistency checks
+    # ------------------------------------------------------------------
+
+    async def _run_consistency_checks(
+        self, week: int, engine: SimulationEngine,
+    ) -> None:
+        """Re-evaluate a random sample of borrowers to measure decision stability.
+
+        For each sampled borrower, runs `consistency_samples` additional evaluations
+        and compares whether the decision matches the original.  Tracks per-lender
+        agreement rate (inspired by InteractiveBench pass@k methodology).
+        """
+        k = self.config.consistency_samples
+        if k <= 0:
+            return
+
+        import random as rng
+
+        cohort = engine.borrowers
+        sample_size = max(1, int(len(cohort) * self.config.consistency_sample_pct))
+        sampled = rng.sample(cohort, min(sample_size, len(cohort)))
+
+        print(f"\n  [Consistency] pass@{k} check on {len(sampled)} borrower(s)...")
+
+        active_ids = self._active_lender_ids
+
+        for lender in self.base_lenders:
+            if lender.id not in active_ids:
+                continue
+            state = self.lender_states[lender.id]
+            original_decisions = engine.all_decisions.get(lender.id, [])
+            orig_map = {d.borrower_id: d.decision for d in original_decisions}
+
+            week_lenders = self._build_week_lenders(
+                self._build_briefings(week, [])
+            )
+            week_lender = next(
+                (l for l in week_lenders if l.id == lender.id), None
+            )
+            if not week_lender:
+                continue
+
+            for borrower in sampled:
+                original = orig_map.get(borrower.id)
+                if original is None:
+                    continue
+
+                # Run k additional evaluations
+                agreements = 0
+                for _ in range(k):
+                    re_engine = SimulationEngine(
+                        [borrower], [week_lender], **self.engine_kwargs,
+                    )
+                    await re_engine.run_origination()
+                    re_decisions = re_engine.all_decisions.get(lender.id, [])
+                    if re_decisions and re_decisions[0].decision == original:
+                        agreements += 1
+
+                check = {
+                    "week": week,
+                    "borrower_id": borrower.id,
+                    "original_decision": original,
+                    "samples": k,
+                    "agreements": agreements,
+                    "agreement_rate": agreements / k,
+                }
+                state.consistency_checks.append(check)
+
+            # Recompute running agreement rate
+            if state.consistency_checks:
+                total_agree = sum(c["agreements"] for c in state.consistency_checks)
+                total_samples = sum(c["samples"] for c in state.consistency_checks)
+                state.consistency_agreement_rate = (
+                    total_agree / total_samples if total_samples > 0 else 0.0
+                )
+
+            print(
+                f"    {state.lender_name}: "
+                f"{state.consistency_agreement_rate:.0%} agreement "
+                f"({len(state.consistency_checks)} total checks)"
+            )
+
+    # ------------------------------------------------------------------
     # Result ingestion
     # ------------------------------------------------------------------
 
@@ -1386,6 +1720,13 @@ Respond with JSON:
         for state in self.lender_states.values():
             defaults = sum(1 for o in state.resolved_loans if o.defaulted)
             frauds = sum(1 for o in state.resolved_loans if o.was_fraud)
+            # Compute per-week cost delta for budget tracking
+            prev_cost = (
+                state.weekly_snapshots[-1].get("cumulative_cost_usd", 0.0)
+                if state.weekly_snapshots else 0.0
+            )
+            week_cost = state.cumulative_cost_usd - prev_cost
+
             state.weekly_snapshots.append({
                 "week": week,
                 "effective_capital": round(self._effective_capital(state), 2),
@@ -1397,6 +1738,8 @@ Respond with JSON:
                 "net_pnl": round(
                     self._net_pnl(state), 2
                 ),
+                "cumulative_cost_usd": round(state.cumulative_cost_usd, 4),
+                "week_cost_usd": round(week_cost, 4),
             })
 
     # ------------------------------------------------------------------
@@ -1830,6 +2173,13 @@ Respond with JSON:
                 "tokens_in": state.cumulative_tokens_in,
                 "tokens_out": state.cumulative_tokens_out,
                 "cost_usd": round(state.cumulative_cost_usd, 4),
+                "scratchpad": state.scratchpad or None,
+                "consistency_agreement_rate": (
+                    round(state.consistency_agreement_rate, 4)
+                    if state.consistency_checks else None
+                ),
+                "consistency_checks": len(state.consistency_checks),
+                "uw_ops_cost": round(state.cumulative_uw_ops_cost, 2),
             })
 
         return {
@@ -1844,6 +2194,11 @@ Respond with JSON:
                 "deep_uw_slots_per_week": self.config.deep_uw_slots_per_week,
                 "borrower_patience_weeks": self.config.borrower_patience_weeks,
                 "offer_validity_weeks": self.config.offer_validity_weeks,
+                "scratchpad": self.config.scratchpad,
+                "underwriting_cost_mode": self.config.underwriting_cost_mode,
+                "uw_cost_multiplier": self.config.uw_cost_multiplier,
+                "consistency_samples": self.config.consistency_samples,
+                "consistency_sample_pct": self.config.consistency_sample_pct,
             },
             "lenders": lenders,
             "weeks": self.week_details,
@@ -1887,6 +2242,23 @@ Respond with JSON:
                     f"    Deep UW (avg/week): {avg_slots:.1f} "
                     f"| Deferred: {state.deep_uw_deferred}"
                 )
+
+            # Consistency
+            if state.consistency_checks:
+                print(f"    Decision Consistency: "
+                      f"{state.consistency_agreement_rate:.0%} "
+                      f"({len(state.consistency_checks)} checks)")
+
+            # Underwriting ops cost (real mode)
+            if state.cumulative_uw_ops_cost > 0:
+                print(f"    UW Ops Cost: ${state.cumulative_uw_ops_cost:,.0f} "
+                      f"(API: ${state.cumulative_cost_usd:.4f} × "
+                      f"{self.config.uw_cost_multiplier:g})")
+
+            # Scratchpad
+            if state.scratchpad:
+                pad_lines = state.scratchpad.count("\n") + 1
+                print(f"    Scratchpad: {pad_lines} note(s)")
 
             # Loan breakdown
             resolved = state.resolved_loans
