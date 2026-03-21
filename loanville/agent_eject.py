@@ -1,42 +1,39 @@
-"""Eject policies for agent sim — early termination for poor performers."""
+"""Eject policies for agent sim — early termination for poor performers.
+
+Loanville-specific policies built on agent-preflight's EjectPolicy base class.
+Domain logic (LOS deal/stage checks) is passed via the ``context`` dict.
+"""
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
-
-
-@dataclass
-class EjectDecision:
-    should_eject: bool
-    reason: str = ""
-
-
-class EjectPolicy:
-    """Base class for eject policies."""
-
-    def check(
-        self,
-        turn: int,
-        max_turns: int,
-        los_state: dict,
-        budget_fraction_spent: float | None = None,
-    ) -> EjectDecision:
-        return EjectDecision(should_eject=False)
+from agent_preflight import (  # noqa: F401
+    BudgetExceededEject,
+    BudgetFractionEject,
+    CompositeEject,
+    EjectDecision,
+    EjectPolicy,
+    IdleTimeoutEject,
+)
+from typing import Any
 
 
 class NoProgressEject(EjectPolicy):
-    """Eject if no deal created after a fraction of turns."""
+    """Eject if no deal created after a fraction of max turns.
+
+    Expects ``context`` to contain:
+    - ``turn``: current turn number (1-based)
+    - ``max_turns``: maximum turns allowed
+    - ``los_state``: dict with ``deals`` list from LOS inspection
+    """
 
     def __init__(self, threshold_fraction: float = 0.30) -> None:
         self.threshold_fraction = threshold_fraction
 
-    def check(
-        self,
-        turn: int,
-        max_turns: int,
-        los_state: dict,
-        budget_fraction_spent: float | None = None,
-    ) -> EjectDecision:
+    def check(self, *, context: dict, **_kwargs: Any) -> EjectDecision:
+        turn = context.get("turn", 0)
+        max_turns = context.get("max_turns", 20)
+        los_state = context.get("los_state", {})
+
         threshold_turn = int(max_turns * self.threshold_fraction)
         if turn >= threshold_turn:
             deals = los_state.get("deals", [])
@@ -49,7 +46,13 @@ class NoProgressEject(EjectPolicy):
 
 
 class QualityEject(EjectPolicy):
-    """Warn at warn_fraction if stuck in origination; eject at eject_fraction."""
+    """Warn at warn_fraction if stuck in origination; eject at eject_fraction.
+
+    Expects ``context`` to contain:
+    - ``turn``: current turn number (1-based)
+    - ``max_turns``: maximum turns allowed
+    - ``los_state``: dict with ``deals`` list from LOS inspection
+    """
 
     def __init__(
         self,
@@ -60,13 +63,11 @@ class QualityEject(EjectPolicy):
         self.eject_fraction = eject_fraction
         self._warned = False
 
-    def check(
-        self,
-        turn: int,
-        max_turns: int,
-        los_state: dict,
-        budget_fraction_spent: float | None = None,
-    ) -> EjectDecision:
+    def check(self, *, context: dict, **_kwargs: Any) -> EjectDecision:
+        turn = context.get("turn", 0)
+        max_turns = context.get("max_turns", 20)
+        los_state = context.get("los_state", {})
+
         deals = los_state.get("deals", [])
         if not deals:
             return EjectDecision(should_eject=False)
@@ -99,5 +100,5 @@ class QualityEject(EjectPolicy):
 
 
 def default_eject_policies() -> list[EjectPolicy]:
-    """Return the standard set of eject policies."""
+    """Return the standard set of Loanville eject policies."""
     return [NoProgressEject(), QualityEject()]

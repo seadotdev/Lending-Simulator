@@ -22,14 +22,14 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
 from pathlib import Path
 
-from .agent_budget import (
+from agent_preflight import (
     BudgetTracker,
+    EventLogger,
     get_account_balance,
     get_usage,
-    preflight_budget,
+    preflight,
     provision_key,
 )
-from .agent_events import EventLogger
 from .data import get_borrowers, get_lenders
 from .agent_tasks import get_task
 from .models import Borrower, LenderConfig
@@ -397,7 +397,14 @@ def run_agent_docker(
 
     # Preflight
     model_ids = [m for m, _ in models]
-    preflight_budget(admin_key, or_key, model_ids, budget_usd)
+    preflight(
+        admin_key=admin_key,
+        or_key=or_key,
+        models=model_ids,
+        budget_per_model=budget_usd,
+        docker_image=IMAGE_NAME,
+        site_name="loanville",
+    )
 
     # Build image if needed
     if not _image_exists():
