@@ -1,4 +1,4 @@
-# Loanville2 — LLM Lending Benchmark
+# Lending Simulator — LLM Lending Benchmark
 
 A synthetic commercial lending simulation that benchmarks LLM models as autonomous middle-market loan underwriters. Models compete head-to-head in randomly matched triplets, each receiving identical borrower applications and lender constraints. The only variable is the model's analytical and pricing ability.
 
@@ -119,29 +119,22 @@ configs/                          # Presets
 
 run.py                            # Convenience entry point
 run_sim.sh                        # Start Open LOS + run simulation end-to-end
-run_smoke_test.py                 # 1-week, 3-borrower smoke test per model
-run_compat_smoke.py               # 18-model compatibility smoke test
-run_top5_smoke.py                 # Smoke test for top 5 leaderboard models
-run_season_test.py                # Conservative 3-model season (gentle mix)
-run_season_5models.py             # 5-way season with cheap models
-run_season_big_models.py          # Big model season (portfolio briefing hypothesis)
-run_season_new_models.py          # Newer cheap models season (Qwen3, GLM, MiniMax)
-run_top5_season.py                # Top 5 leaderboard models season
 
-scripts/                          # Utilities
+scripts/                          # Utilities and experiment runners
 ├── check_mock_replay.py          # Determinism verification (hash comparison)
 ├── test_los_integration.py       # LOS integration tests
 ├── test_los_smoke.py             # LOS smoke tests
-└── validate_contract_fixtures.py # Contract fixture validation
+├── validate_contract_fixtures.py # Contract fixture validation
+├── run_smoke_test.py             # 1-week, 3-borrower smoke test per model
+├── run_season_test.py            # Conservative 3-model season (gentle mix)
+└── ...                           # Additional experiment runners
 
 contracts/                        # JSON schemas for integration artifacts
 fixtures/                         # Test fixture data
 tests/                            # Regression tests
-runs/                             # Run logs, champion state, replay hashes
 leaderboard/                      # Elo leaderboard (config, matches, standings)
 web/                              # Browser-based season visualizer (town scene + dashboards)
 docs/                             # Design docs, roadmap, methodology
-legacy/                           # Archived code — reference only
 ```
 
 ## Documentation

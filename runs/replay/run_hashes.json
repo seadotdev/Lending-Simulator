@@ -1,8 +1,0 @@
-{
-  "mix": "fraud",
-  "data_mode": "lite",
-  "seed": 42,
-  "first_hash": "dd6d537e9caf7c7dc579d4c2332a04eaf9714a39ba0549231522ada4eb85177f",
-  "second_hash": "dd6d537e9caf7c7dc579d4c2332a04eaf9714a39ba0549231522ada4eb85177f",
-  "match": true
-}

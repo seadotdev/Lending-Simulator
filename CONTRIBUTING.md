@@ -1,4 +1,4 @@
-# Contributing to Loanville
+# Contributing to Lending Simulator
 
 Thanks for your interest in contributing! Here's how to get started.
 
