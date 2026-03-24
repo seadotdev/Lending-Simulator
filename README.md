@@ -41,7 +41,7 @@ A synthetic commercial lending simulation that benchmarks LLM models as autonomo
 ## Setup
 
 ```bash
-pip install -r requirements.txt
+make setup        # Clone submodules + install Python & Node deps
 cp .env.example .env
 # Edit .env and add your OpenRouter API key
 ```
@@ -49,28 +49,24 @@ cp .env.example .env
 ## Run
 
 ```bash
-# LOS simulation (formal interactions enforced by default)
+make sim          # Full LOS simulation (realistic mix)
+make mock         # Mock mode (no API key, no LOS, deterministic)
+make season       # Multi-week season via LOS
+make season-mock  # Multi-week season in mock mode
+make smoke        # Smoke test (1 week, 3 borrowers per model)
+make view         # Browser-based season visualizer
+```
+
+Or call the CLI directly:
+
+```bash
+# LOS simulation
 python -m loanville --mix realistic --los-mode full
 
-# CRM-style high-volume simulation benchmark
-python -m loanville --crm-sim --crm-cases 180 --crm-concurrency 12
-
-# Legacy non-LOS/mocked path (explicit opt-out)
+# Mock mode (no API key needed)
 python -m loanville --mock --allow-non-los-formal
 
-# Elo tournament (recommended)
-python elo_benchmark.py --mix analyst --matches 50
-
-# Resume from previous results
-python elo_benchmark.py --mix analyst --matches 80 --resume elo_results.json
-
-# View standings from saved results
-python elo_benchmark.py --standings elo_results.json
-
-# Single-run benchmark with Pareto analysis
-python benchmark_models.py --mix analyst
-
-# Preset-driven season run (scenario + lender/model mapping)
+# Preset-driven season run
 python -m loanville \
   --economics balanced \
   --scenario realistic-10w \
@@ -78,13 +74,11 @@ python -m loanville \
   --allow-non-los-formal --mock
 ```
 
-Formal LOS enforcement and CRM simulation roadmap: [docs/los-crm-roadmap.md](docs/los-crm-roadmap.md)
+Run `make help` for all available targets.
 
 ## Configuration
 
 Set `OPENROUTER_API_KEY` in your `.env` file. Get one at [openrouter.ai](https://openrouter.ai/).
-
-Models are defined in `benchmark_models.py`. The tournament uses all models from `SMALL_MODELS` by default; pass `--full` for the complete `BENCHMARK_MODELS` list, or `--models model1 model2` for specific models.
 
 ## Project Structure
 
@@ -117,8 +111,7 @@ configs/                          # Presets
 ├── lenders/                      # Persona→model presets (e.g. budget-league)
 └── scenarios/                    # Named season bundles (e.g. realistic-10w)
 
-run.py                            # Convenience entry point
-run_sim.sh                        # Start Open LOS + run simulation end-to-end
+Makefile                          # Common tasks (make help)
 
 scripts/                          # Utilities and experiment runners
 ├── check_mock_replay.py          # Determinism verification (hash comparison)

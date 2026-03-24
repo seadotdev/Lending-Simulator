@@ -17,13 +17,13 @@ update: ## Pull latest code and update submodules
 	cd open-los && npm install
 
 sim: ## Run full LOS simulation (realistic mix)
-	./run_sim.sh
+	python -m loanville --los-mode full --mix realistic --economics balanced -v
 
 mock: ## Run mock simulation (no API key, no LOS)
 	python -m loanville --mock --allow-non-los-formal
 
 season: ## Run multi-week season via LOS
-	./run_sim.sh --season
+	python -m loanville --season --los-mode full --mix realistic --economics balanced -v
 
 season-mock: ## Run multi-week season in mock mode
 	python -m loanville --season --mock --allow-non-los-formal
@@ -32,7 +32,7 @@ agent-sim: ## Run agentic LOS sim (models drive the LOS autonomously)
 	python -m loanville --agent-sim --agent-cases 3 --agent-mode tool_call
 
 smoke: ## Run smoke test (1 week, 3 borrowers per model)
-	python run_smoke_test.py
+	python scripts/run_smoke_test.py
 
 view: ## Start web viewer (rebuilds season index)
 	python -m loanville view

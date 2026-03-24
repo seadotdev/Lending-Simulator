@@ -23,7 +23,6 @@ _model_pricing: dict[str, tuple[float, float]] = {
     "deepseek/deepseek-chat-v3-0324": (0.19, 0.87),
     "meta-llama/llama-3.3-70b-instruct": (0.10, 0.32),
     "meta-llama/llama-3.1-8b-instruct": (0.02, 0.05),
-    "nvidia/llama-3.3-nemotron-super-49b-v1.5": (0.10, 0.40),
     "qwen/qwen-2.5-7b-instruct": (0.04, 0.10),
 }
 MODEL_PRICING = dict(_model_pricing)
