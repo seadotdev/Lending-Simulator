@@ -17,4 +17,7 @@ web/assets/
 .codex/
 .claude/
 CLAUDE.md
+legacy/
+artifacts/
+runs/
 web/seasons/index.json
