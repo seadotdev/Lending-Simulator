@@ -56,13 +56,13 @@ python -m loanville --mock --allow-non-los-formal
 
 ### API Keys
 
-Set at least one LLM provider key in `.env`:
+An OpenRouter API key is required. Set it in `.env`:
 
 ```
-OPENROUTER_API_KEY=...    # Recommended — access to 100+ models
-ANTHROPIC_API_KEY=...     # Direct Anthropic access
-OPENAI_API_KEY=...        # Direct OpenAI access
+OPENROUTER_API_KEY=...
 ```
+
+In agent sim mode, [agent-preflight](https://github.com/seadotdev/agent-preflight) automatically provisions a scoped OpenRouter key per model, so each lender agent gets isolated budget tracking and rate limits.
 
 ### Lender Presets
 
