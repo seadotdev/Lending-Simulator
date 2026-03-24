@@ -20,4 +20,6 @@ CLAUDE.md
 legacy/
 artifacts/
 runs/
+leaderboard/matches/
 web/seasons/index.json
+web/seasons/2*.json
