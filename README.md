@@ -64,6 +64,8 @@ ANTHROPIC_API_KEY=...     # Direct Anthropic access
 OPENAI_API_KEY=...        # Direct OpenAI access
 ```
 
+In agent sim mode, [agent-preflight](https://pypi.org/project/agent-preflight/) automatically provisions a scoped API key per model, so each lender agent gets isolated budget tracking and rate limits.
+
 ### Lender Presets
 
 Lender presets in `configs/lenders/` map personas to models:
