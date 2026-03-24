@@ -15,4 +15,6 @@ env/
 loanville_trace.json
 web/assets/
 .codex/
+.claude/
+CLAUDE.md
 web/seasons/index.json
