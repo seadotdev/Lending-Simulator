@@ -1,135 +1,143 @@
 # Lending Simulator — LLM Lending Benchmark
 
-A synthetic commercial lending simulation that benchmarks LLM models as autonomous middle-market loan underwriters. Models compete head-to-head in randomly matched triplets, each receiving identical borrower applications and lender constraints. The only variable is the model's analytical and pricing ability.
+A synthetic commercial lending simulation that benchmarks LLM models as autonomous loan underwriters. Models compete head-to-head, each receiving identical borrower applications and lender constraints. The only variable is the model's analytical and pricing ability.
 
 ## How It Works
 
-1. **Pipeline Distribution** — 24 hand-crafted business dossiers (with 12-month bank statements, quarterly income statements, and narratives) are broadcast to all lender agents.
-2. **Underwriting** — Each LLM evaluates every application using a sandboxed bash tool to query raw bank statement data, then outputs a JSON decision (APPROVE/REJECT) with an optional term sheet (amount, rate, term).
-3. **Deal Adjudication** — Borrowers pick the lowest interest rate offer. Only one lender wins each deal (winner-takes-all competitive market). Capital limits enforced.
-4. **Resolution** — The engine fast-forwards loan lifecycles. Good businesses repay in full, bad businesses default partway through, and frauds default immediately.
-5. **Scoring** — Lenders are scored on RAROC (risk-adjusted return on capital) with penalties for fraud, concentration, under-deployment, and volatility. Models are ranked via a three-Elo tournament system.
+1. **Pipeline** — Business dossiers (12-month bank statements, quarterly income, narratives) are broadcast to all lender agents.
+2. **Underwriting** — Each LLM evaluates every application, then outputs a structured decision (APPROVE/REJECT) with an optional term sheet (amount, rate, term).
+3. **Adjudication** — Borrowers pick the lowest rate. Winner-takes-all. Capital limits enforced.
+4. **Resolution** — The engine fast-forwards loan lifecycles. Good businesses repay, bad businesses default partway through, frauds default immediately.
+5. **Scoring** — Lenders are scored on RAROC (risk-adjusted return on capital) with penalties for fraud, concentration, under-deployment, and volatility.
 
-### The Borrower Pool (24 businesses)
-
-| Type | Count | Behavior |
-|------|-------|----------|
-| Good | 10 | Full repayment with interest — healthy cash flow, diversified clients |
-| Bad (standard) | 4 | Default after partial payments — customer concentration, margin compression, grant dependency, revenue decline |
-| Bad (over-leverage) | 6 | Legitimate revenue but DSCR < 1.0 — loan creates unsustainable debt service |
-| Fraud | 4 | Immediate default — round-number deposits, circular transfers, fabricated consistency, structuring |
-
-### Scenario Mixes
-
-| Mix | Good | Bad | Fraud | Primary Test |
-|-----|------|-----|-------|-------------|
-| `analyst` | 10 | 6 | 0 | DSCR analysis, margin compression |
-| `fraud` | 5 | 0 | 4 | Bank statement fraud detection |
-| `easy` | 9 | 2 | 1 | Realistic commercial pipeline |
-| `balanced` | 7 | 4 | 4 | Stressed market with all risk types |
-| `hard` | 5 | 4 | 4 | Adversarial stress test |
-| `stress` | 5 | 8 | 4 | Kitchen-sink: all risk types combined |
-
-### Three Elo Ratings
-
-| Rating | What It Measures | Win Condition |
-|--------|-----------------|---------------|
-| **Profit Elo** (primary) | Economic utility aligned with RAROC | Higher risk-adjusted profit per borrower |
-| **Credit Elo** | Decision correctness vs ground truth | Correct approve/reject given true outcome |
-| **DealShare Elo** | Market participation and bid aggressiveness | Won the deal (regardless of profitability) |
-
-## Setup
+## Quick Start
 
 ```bash
-make setup        # Clone submodules + install Python & Node deps
-cp .env.example .env
-# Edit .env and add your OpenRouter API key
+make setup                # Clone submodules, install Python & Node deps
+cp .env.example .env      # Add your API key (e.g. OPENROUTER_API_KEY)
 ```
 
-## Run
+Try it without an API key first:
 
 ```bash
-make sim          # Full LOS simulation (realistic mix)
-make mock         # Mock mode (no API key, no LOS, deterministic)
-make season       # Multi-week season via LOS
-make season-mock  # Multi-week season in mock mode
-make smoke        # Smoke test (1 week, 3 borrowers per model)
-make view         # Browser-based season visualizer
+make mock                 # Deterministic mock mode — no API key, no LOS
 ```
 
-Or call the CLI directly:
+Then run a real simulation:
 
 ```bash
-# LOS simulation
-python -m loanville --mix realistic --los-mode full
+make sim                  # Full LOS simulation with default models
+```
 
-# Mock mode (no API key needed)
+Run `make help` for all targets.
+
+## CLI
+
+Everything runs through `python -m loanville`. Key flags:
+
+```bash
+# Single run
+python -m loanville --mix balanced --los-mode full
+
+# Multi-week season
+python -m loanville --season --weeks 10 --cohort-size 10 --season-mix realistic
+
+# Use preset configs (see configs/ directory)
+python -m loanville --season --scenario realistic-10w --lenders competitive-league
+
+# Override the model for all lenders
+python -m loanville --los-model anthropic/claude-sonnet-4
+
+# Mock mode (no API key, deterministic)
 python -m loanville --mock --allow-non-los-formal
-
-# Preset-driven season run
-python -m loanville \
-  --economics balanced \
-  --scenario realistic-10w \
-  --lenders budget-league \
-  --allow-non-los-formal --mock
 ```
-
-Run `make help` for all available targets.
 
 ## Configuration
 
-Set `OPENROUTER_API_KEY` in your `.env` file. Get one at [openrouter.ai](https://openrouter.ai/).
+### API Keys
+
+Set at least one LLM provider key in `.env`:
+
+```
+OPENROUTER_API_KEY=...    # Recommended — access to 100+ models
+ANTHROPIC_API_KEY=...     # Direct Anthropic access
+OPENAI_API_KEY=...        # Direct OpenAI access
+```
+
+### Lender Presets
+
+Lender presets in `configs/lenders/` map personas to models:
+
+```yaml
+# configs/lenders/competitive-league.yaml
+- id: LND-001
+  model: openai/gpt-4.1-mini
+- id: LND-002
+  model: google/gemini-2.5-flash
+- id: LND-003
+  model: deepseek/deepseek-chat-v3-0324
+```
+
+Available presets: `budget-league`, `competitive-league`, `default-league`, `sonnet-vs-flash`, `broken-league`
+
+### Scenario Presets
+
+Scenario presets in `configs/scenarios/` configure season parameters:
+
+```yaml
+# configs/scenarios/fast-pipeline.yaml
+weeks: 5
+cohort_size: 5
+season_mix: realistic
+los_config:
+  disabled_guards: [spread_created, documents_uploaded]
+```
+
+Available presets: `fast-pipeline`, `realistic-10w`, `stress-20w`
+
+### Borrower Mixes
+
+Control the composition of the borrower pool:
+
+| Mix | Good | Bad | Fraud | Focus |
+|-----|------|-----|-------|-------|
+| `realistic` | 9 | 2 | 1 | Typical commercial pipeline |
+| `analyst` | 10 | 6 | 0 | DSCR analysis, margin compression |
+| `fraud` | 5 | 0 | 4 | Bank statement fraud detection |
+| `balanced` | 7 | 4 | 4 | All risk types |
+| `hard` | 5 | 4 | 4 | Adversarial stress test |
+| `stress` | 5 | 8 | 4 | Kitchen-sink |
+
+### Scoring
+
+Three Elo ratings track different dimensions:
+
+| Rating | Measures | Win Condition |
+|--------|----------|---------------|
+| **Profit Elo** | RAROC-aligned economic utility | Higher risk-adjusted profit |
+| **Credit Elo** | Decision correctness vs ground truth | Correct approve/reject |
+| **DealShare Elo** | Market participation | Won the deal |
 
 ## Project Structure
 
 ```
-loanville/                        # Core package
-├── __main__.py                   # CLI entry point
-├── models.py                     # Dataclasses: Borrower, LenderConfig, LenderDecision, SeasonConfig
-├── data.py                       # 24 hand-crafted borrowers, mix presets, lender definitions
-├── llm.py                        # OpenRouter client, prompt construction, tool-use loop
-├── engine.py                     # SimulationEngine: origination, adjudication, booking, resolution
-├── scoring.py                    # RAROC scoring, baselines, confusion matrix, bootstrap CI, penalties
-├── season.py                     # Season mode: multi-week game with carry-forward capital/exposures
-├── borrower_gen.py               # Procedural borrower generation + hybrid pool management
-├── custom_tools.py               # Lender-created reusable tools that persist across season weeks
-├── los_adapter.py                # Open LOS REST API adapter (SIM ↔ LOS translation)
-├── scorecard.py                  # 3-layer scoring: hard gates, underwriting quality, market behavior
-├── run_schema.py                 # UnderwritingRun contract (unifies Benchmark, Simulator, LOS)
-├── run_logger.py                 # Append-only run storage and replay
-├── champion.py                   # Champion/challenger operating model for policy changes
-├── cost_tracking.py              # Token cost estimation for season mode
-├── contracts.py                  # Contract helpers, APR normalization
-├── benchmark_items.py            # Gold-labeled cases for evaluation harness
-├── flywheel_cli.py               # Unified CLI for the LOS → Benchmark → Simulator loop
-└── mock_llm.py                   # Deterministic mock for testing without API calls
-
-open-los/                         # LOS submodule (Loan Origination System)
-                                  # REST API, chat bot commands, CRM test tool schema
-
-configs/                          # Presets
-├── lenders/                      # Persona→model presets (e.g. budget-league)
-└── scenarios/                    # Named season bundles (e.g. realistic-10w)
-
-Makefile                          # Common tasks (make help)
-
-scripts/                          # Utilities and experiment runners
-├── check_mock_replay.py          # Determinism verification (hash comparison)
-├── test_los_integration.py       # LOS integration tests
-├── test_los_smoke.py             # LOS smoke tests
-├── validate_contract_fixtures.py # Contract fixture validation
-├── run_smoke_test.py             # 1-week, 3-borrower smoke test per model
-├── run_season_test.py            # Conservative 3-model season (gentle mix)
-└── ...                           # Additional experiment runners
-
-contracts/                        # JSON schemas for integration artifacts
-fixtures/                         # Test fixture data
-tests/                            # Regression tests
-leaderboard/                      # Elo leaderboard (config, matches, standings)
-web/                              # Browser-based season visualizer (town scene + dashboards)
-docs/                             # Design docs, roadmap, methodology
+loanville/          Core Python package (CLI, engine, scoring, LLM client)
+open-los/           LOS submodule — Loan Origination System REST API
+configs/            Lender and scenario presets (YAML)
+contracts/          JSON schemas for integration artifacts
+scripts/            Experiment runners and utilities
+tests/              Regression tests
+fixtures/           Test fixture data
+leaderboard/        Elo leaderboard config and standings
+web/                Browser-based season visualizer
+docs/               Design docs and methodology
+Makefile            Common tasks (make help)
 ```
 
 ## Documentation
 
 See [docs/elo-vs-raroc-benchmark.md](docs/elo-vs-raroc-benchmark.md) for the full design document covering borrower construction, underwriting mechanics, RAROC scoring, the three-Elo rating system, baselines, and pricing analysis.
+
+## License
+
+[MIT](LICENSE)
